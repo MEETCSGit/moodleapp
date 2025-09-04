@@ -1,0 +1,11 @@
+{
+  "appname": "MeetCS Moodle",
+  "packageid": "com.meetcs.moodle",
+  "versionname": "5.2.0",
+  "versioncode": "52000",
+  "ios_CFBundleVersion": "5.2.0.0",
+  "app_description" : "Meetcs Moodle app",
+  "app_author_name" : "Meetcs Moodle App team",
+  "app_author_email" : "support@meetcs.com",
+  "author_website" : "https://meetcs.com/"
+}
