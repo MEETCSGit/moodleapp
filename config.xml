@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget android-versionCode="51000" id="com.moodle.moodlemobile" ios-CFBundleVersion="5.1.0.0" version="5.1.0" versionCode="51000" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
-    <name>Moodle</name>
-    <description>Moodle official app</description>
-    <author email="mobile@moodle.com" href="http://moodle.com">Moodle Mobile team</author>
+<widget android-versionCode="52000" id="com.meetcs.moodle" ios-CFBundleVersion="5.2.0.0" version="5.2.0" versionCode="52000" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+    <name>MeetCS Moodle</name>
+    <description>Meetcs Moodle app</description>
+    <author email="support@meetcs.com" href="https://meetcs.com/">Meetcs Moodle App team</author>
     <content src="index.html" />
     <access origin="*" />
     <access launch-external="yes" origin="tel:*" />
@@ -53,7 +53,7 @@
     <preference name="GradlePluginGoogleServicesVersion" value="4.4.2" />
     <preference name="GradlePluginKotlinVersion" value="1.9.24" />
     <preference name="StatusBarOverlaysWebView" value="false" />
-    <preference name="StatusBarBackgroundColor" value="#FFFFFF" />
+    <preference name="StatusBarBackgroundColor" value="#1976D2" />
     <preference name="NavigationBarBackgroundColor" value="#FFFFFF" />
     <preference name="AndroidEdgeToEdge" value="true" />
     <feature name="StatusBar">
@@ -155,10 +155,10 @@
             <array>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>Unknown File</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>Unknown File</string>
+                    <string>Alternate</string>
                     <array>
                         <string>public.calendar-event</string>
                         <string>public.database</string>
@@ -170,40 +170,40 @@
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>Video</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>Video</string>
+                    <string>Alternate</string>
                     <array>
                         <string>public.video</string>
                     </array>
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>Image</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>Image</string>
+                    <string>Alternate</string>
                     <array>
                         <string>public.image</string>
                     </array>
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>Web Archive</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>Web Archive</string>
+                    <string>Alternate</string>
                     <array>
                         <string>com.apple.webarchive</string>
                     </array>
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>iWork Keynote</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>iWork Keynote</string>
+                    <string>Alternate</string>
                     <array>
                         <string>com.apple.keynote.key</string>
                         <string>com.apple.iwork.keynote.key</string>
@@ -212,10 +212,10 @@
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>iWork Numbers</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>iWork Numbers</string>
+                    <string>Alternate</string>
                     <array>
                         <string>com.apple.numbers.numbers</string>
                         <string>com.apple.iwork.numbers.numbers</string>
@@ -224,10 +224,10 @@
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>iWork Pages</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>iWork Pages</string>
+                    <string>Alternate</string>
                     <array>
                         <string>com.apple.page.pages</string>
                         <string>com.apple.iwork.pages.pages</string>
@@ -236,50 +236,50 @@
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>OpenDocument Spreadsheet</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>OpenDocument Spreadsheet</string>
+                    <string>Alternate</string>
                     <array>
                         <string>org.oasis.opendocument.spreadsheet</string>
                     </array>
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>OpenDocument Presentation</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>OpenDocument Presentation</string>
+                    <string>Alternate</string>
                     <array>
                         <string>org.oasis.opendocument.presentation</string>
                     </array>
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>OpenDocument Text</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>OpenDocument Text</string>
+                    <string>Alternate</string>
                     <array>
                         <string>org.oasis.opendocument.text</string>
                     </array>
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>Folder</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>Folder</string>
+                    <string>Alternate</string>
                     <array>
                         <string>public.folder</string>
                     </array>
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>Audio</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>Audio</string>
+                    <string>Alternate</string>
                     <array>
                         <string>public.audio</string>
                         <string>public.mp3</string>
@@ -292,10 +292,10 @@
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>Movie</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>Movie</string>
+                    <string>Alternate</string>
                     <array>
                         <string>public.movie</string>
                         <string>public.3gpp2</string>
@@ -307,60 +307,60 @@
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>GIF image</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>GIF image</string>
+                    <string>Alternate</string>
                     <array>
                         <string>com.compuserve.gif</string>
                     </array>
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>PNG image</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>PNG image</string>
+                    <string>Alternate</string>
                     <array>
                         <string>public.png</string>
                     </array>
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>TIFF image</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>TIFF image</string>
+                    <string>Alternate</string>
                     <array>
                         <string>public.tiff</string>
                     </array>
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>JPEG image</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>JPEG image</string>
+                    <string>Alternate</string>
                     <array>
                         <string>public.jpeg</string>
                     </array>
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>XML</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>XML</string>
+                    <string>Alternate</string>
                     <array>
                         <string>public.xml</string>
                     </array>
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>HTML</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>HTML</string>
+                    <string>Alternate</string>
                     <array>
                         <string>public.html</string>
                         <string>public.xhtml</string>
@@ -368,10 +368,10 @@
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>Rich Text</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>Rich Text</string>
+                    <string>Alternate</string>
                     <array>
                         <string>public.rtf</string>
                         <string>com.apple.rtfd</string>
@@ -380,10 +380,10 @@
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>Text</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>Text</string>
+                    <string>Alternate</string>
                     <array>
                         <string>public.text</string>
                         <string>public.plain-text</string>
@@ -405,70 +405,70 @@
                 </dict>
                 <dict>
                     <key>CFBundleTypeExtensions</key>
+                    <key>CFBundleTypeName</key>
+                    <key>LSHandlerRank</key>
+                    <key>LSItemContentTypes</key>
                     <array>
                         <string>zip</string>
                         <string>zipx</string>
                     </array>
-                    <key>CFBundleTypeName</key>
-                    <string>Zip archive</string>
-                    <key>LSHandlerRank</key>
-                    <string>Alternate</string>
-                    <key>LSItemContentTypes</key>
                     <array>
                         <string>public.zip-archive</string>
                         <string>public.archive</string>
                         <string>com.pkware.zip-archive</string>
                         <string>com.pkware.zipx-archive</string>
                     </array>
+                    <string>Zip archive</string>
+                    <string>Alternate</string>
                 </dict>
                 <dict>
                     <key>CFBundleTypeExtensions</key>
+                    <key>CFBundleTypeName</key>
+                    <key>LSHandlerRank</key>
+                    <key>LSItemContentTypes</key>
                     <array>
                         <string>rar</string>
                         <string>RAR</string>
                     </array>
-                    <key>CFBundleTypeName</key>
-                    <string>Rar archive</string>
-                    <key>LSHandlerRank</key>
-                    <string>Alternate</string>
-                    <key>LSItemContentTypes</key>
                     <array>
                         <string>com.rarlab.rar-archive</string>
                         <string>public.archive</string>
                     </array>
+                    <string>Rar archive</string>
+                    <string>Alternate</string>
                 </dict>
                 <dict>
                     <key>CFBundleTypeExtensions</key>
+                    <key>CFBundleTypeName</key>
+                    <key>LSHandlerRank</key>
+                    <key>LSItemContentTypes</key>
                     <array>
                         <string>7z</string>
                         <string>7Z</string>
                     </array>
-                    <key>CFBundleTypeName</key>
-                    <string>7z archive</string>
-                    <key>LSHandlerRank</key>
-                    <string>Alternate</string>
-                    <key>LSItemContentTypes</key>
                     <array>
                         <string>org.7-zip.7-zip-archive</string>
                         <string>public.archive</string>
                     </array>
+                    <string>7z archive</string>
+                    <string>Alternate</string>
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>Waveform audio</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>Waveform audio</string>
+                    <string>Alternate</string>
                     <array>
                         <string>com.microsoft.waveform-​audio</string>
                     </array>
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>Windows icon image</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>Windows icon image</string>
+                    <string>Alternate</string>
                     <array>
                         <string>com.microsoft.ico</string>
                         <string>com.apple.icns</string>
@@ -476,20 +476,20 @@
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>Windows bitmap image</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>Windows bitmap image</string>
+                    <string>Alternate</string>
                     <array>
                         <string>com.microsoft.bmp</string>
                     </array>
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>Microsoft PowerPoint</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>Microsoft PowerPoint</string>
+                    <string>Alternate</string>
                     <array>
                         <string>com.microsoft.powerpoint.​ppt</string>
                         <string>org.openxmlformats.presentationml.presentation</string>
@@ -497,10 +497,10 @@
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>Microsoft Excel</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>Microsoft Excel</string>
+                    <string>Alternate</string>
                     <array>
                         <string>org.openxmlformats.spreadsheetml.sheet</string>
                         <string>com.microsoft.excel.xls</string>
@@ -508,10 +508,10 @@
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>Microsoft Word</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>Microsoft Word</string>
+                    <string>Alternate</string>
                     <array>
                         <string>com.microsoft.word.doc</string>
                         <string>com.microsoft.word.wordml</string>
@@ -520,10 +520,10 @@
                 </dict>
                 <dict>
                     <key>CFBundleTypeName</key>
-                    <string>PDF</string>
                     <key>LSHandlerRank</key>
-                    <string>Alternate</string>
                     <key>LSItemContentTypes</key>
+                    <string>PDF</string>
+                    <string>Alternate</string>
                     <array>
                         <string>com.adobe.pdf</string>
                     </array>

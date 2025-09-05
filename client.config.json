@@ -1,11 +1,38 @@
 {
-  "appname": "MeetCS Moodle",
-  "packageid": "com.meetcs.moodle",
-  "versionname": "5.2.0",
-  "versioncode": "52000",
-  "ios_CFBundleVersion": "5.2.0.0",
-  "app_description" : "Meetcs Moodle app",
-  "app_author_name" : "Meetcs Moodle App team",
-  "app_author_email" : "support@meetcs.com",
-  "author_website" : "https://meetcs.com/"
+  "app_data" :{
+
+    "appname": "MeetCS Moodle",
+    "packageid": "com.meetcs.moodle",
+    "versionname": "5.2.0",
+    "versioncode": "52000",
+    "ios_CFBundleVersion": "5.2.0.0",
+    "app_description" : "Meetcs Moodle app",
+    "moodle_site_url" :
+    {
+      "name": "Beta A2A",
+      "alias": "Beta A2A",
+      "url":"https://beta.a2a.meetcs.com/lms",
+      "logo": "assets/img/SIESCOMS.jpg",
+      "staging": false
+    },
+    "side_menu_site_url" : "https://beta.a2a.meetcs.com",
+    "display_side_menu_switch_account_menu" : false,
+    "display_side_menu_logout_menu" : false
+  },
+
+  "author_data" :{
+
+    "app_author_name" : "Meetcs Moodle App team",
+    "app_author_email" : "support@meetcs.com",
+    "author_website" : "https://meetcs.com/"
+  },
+
+  "app_customisation" :{
+
+    "header_backgorud_colour" : "#0a0379",
+    "header_text_colour" : "#ffffff",
+    "brandColor" : "#0a0379"
+
+  }
+
 }

@@ -121,20 +121,22 @@
             </ion-label>
         </ion-item>
     }
-    <div class="ion-padding">
-        <ion-button (click)="logout($event)" expand="block" color="danger" [ariaLabel]="'core.mainmenu.logout' | translate"
-            class="ion-text-wrap">
-            @if (!removeAccountOnLogout) {
+    @if (displayLogoutButton) {
+        <div class="ion-padding">
+            <ion-button (click)="logout($event)" expand="block" color="danger" [ariaLabel]="'core.mainmenu.logout' | translate"
+                class="ion-text-wrap">
+                @if (!removeAccountOnLogout) {
 
-                <ion-icon name="fas-right-from-bracket" slot="start" aria-hidden="true" />
-                {{ 'core.mainmenu.logout' | translate }}
+                    <ion-icon name="fas-right-from-bracket" slot="start" aria-hidden="true" />
+                    {{ 'core.mainmenu.logout' | translate }}
 
-            } @else {
+                } @else {
 
-                <ion-icon name="fas-trash" slot="start" aria-hidden="true" />
-                {{ 'core.login.removeaccount' | translate }}
+                    <ion-icon name="fas-trash" slot="start" aria-hidden="true" />
+                    {{ 'core.login.removeaccount' | translate }}
 
-            }
-        </ion-button>
-    </div>
+                }
+            </ion-button>
+        </div>
+    }
 </ion-footer>

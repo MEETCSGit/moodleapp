@@ -34,6 +34,7 @@ import { Subscription } from 'rxjs';
 import { CoreLoginHelper } from '@features/login/services/login-helper';
 import { CoreSiteLogoComponent } from '@/core/components/site-logo/site-logo';
 import { CoreAlerts } from '@services/overlays/alerts';
+import clientConfig from '@/../client.config.json';
 
 /**
  * Component to display a user menu.
@@ -59,6 +60,8 @@ export class CoreMainMenuUserMenuComponent implements OnInit, OnDestroy {
     displaySwitchAccount = true;
     displayContactSupport = false;
     removeAccountOnLogout = false;
+    displayLogoutButton = clientConfig.app_data?.display_side_menu_logout_menu;
+
 
     protected siteId?: string;
     protected siteName?: string;
@@ -72,8 +75,12 @@ export class CoreMainMenuUserMenuComponent implements OnInit, OnDestroy {
         this.siteId = currentSite.getId();
         this.siteInfo = currentSite.getInfo();
         this.siteName = await currentSite.getSiteName();
-        this.siteUrl = currentSite.getURL();
-        this.displaySwitchAccount = !currentSite.isFeatureDisabled('NoDelegate_SwitchAccount');
+        this.siteUrl = clientConfig.app_data?.side_menu_site_url || currentSite.getURL();
+        if(clientConfig.app_data?.display_side_menu_switch_account_menu){
+            this.displaySwitchAccount = !currentSite.isFeatureDisabled('NoDelegate_SwitchAccount');
+        }else{
+            this.displaySwitchAccount = false;
+        }
         this.displayContactSupport = new CoreUserAuthenticatedSupportConfig(currentSite).canContactSupport();
         this.removeAccountOnLogout = !!CoreConstants.CONFIG.removeaccountonlogout;
         this.displaySiteUrl = currentSite.shouldDisplayInformativeLinks();
