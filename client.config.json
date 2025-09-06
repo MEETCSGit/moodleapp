@@ -33,6 +33,12 @@
     "header_text_colour" : "#ffffff",
     "brandColor" : "#0a0379"
 
+  },
+
+  "login_page_customisation" : {
+
+    "forgot_password_label" : "Forget Password?"
+
   }
 
 }

@@ -46,6 +46,7 @@ import { CoreLoginMethodsComponent } from '../../components/login-methods/login-
 import { CoreLoginExceededAttemptsComponent } from '../../components/exceeded-attempts/exceeded-attempts';
 import { CoreSiteLogoComponent } from '../../../../components/site-logo/site-logo';
 import { CoreSharedModule } from '@/core/shared.module';
+import clientConfig from '@/../client.config.json';
 
 /**
  * Page to enter the user credentials.
@@ -79,6 +80,7 @@ export default class CoreLoginCredentialsPage implements OnInit, OnDestroy {
     siteCheckError = '';
     displaySiteUrl = false;
     showLoginForm = true;
+    loginFormForgotPasswordLabel = clientConfig.login_page_customisation?.forgot_password_label;
 
     protected siteCheck?: CoreSiteCheckResponse;
     protected eventThrown = false;
