@@ -1,8 +1,8 @@
 {
-    "app_id": "com.meetcs.moodle",
-    "appname": "MeetCS Moodle",
-    "versioncode": "52000",
-    "versionname": "5.2.0",
+    "app_id": "com.simsree.app",
+    "appname": "SIMSREE LMS",
+    "versioncode": "54000",
+    "versionname": "5.4.0",
     "cache_update_frequency_usually": 420000,
     "cache_update_frequency_often": 1200000,
     "cache_update_frequency_sometimes": 3600000,
@@ -89,10 +89,10 @@
     "customurlscheme": "moodlemobile",
     "sites": [
         {
-            "name": "Beta A2A",
-            "alias": "Beta A2A",
-            "url": "https://beta.a2a.meetcs.com/lms",
-            "logo": "assets/img/SIESCOMS.jpg",
+            "name": "simsree",
+            "alias": "simsree",
+            "url": "https://lms.simsree.org/lms",
+            "logo": "",
             "staging": false
         }
     ],

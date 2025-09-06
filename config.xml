@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget android-versionCode="52000" id="com.meetcs.moodle" ios-CFBundleVersion="5.2.0.0" version="5.2.0" versionCode="52000" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
-    <name>MeetCS Moodle</name>
-    <description>Meetcs Moodle app</description>
+<widget android-versionCode="54000" id="com.simsree.app" ios-CFBundleVersion="5.4.0.0" version="5.4.0" versionCode="54000" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+    <name>SIMSREE LMS</name>
+    <description>SIMSREE LMS Moodle App</description>
     <author email="support@meetcs.com" href="https://meetcs.com/">Meetcs Moodle App team</author>
     <content src="index.html" />
     <access origin="*" />
