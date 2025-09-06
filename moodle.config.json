@@ -1,8 +1,8 @@
 {
-    "app_id": "com.meetcs.moodle",
-    "appname": "MeetCS Moodle",
-    "versioncode": "52000",
-    "versionname": "5.2.0",
+    "app_id": "com.kbpm.app",
+    "appname": "KBPM LMS",
+    "versioncode": "51000",
+    "versionname": "5.1.0",
     "cache_update_frequency_usually": 420000,
     "cache_update_frequency_often": 1200000,
     "cache_update_frequency_sometimes": 3600000,
@@ -89,10 +89,9 @@
     "customurlscheme": "moodlemobile",
     "sites": [
         {
-            "name": "Beta A2A",
-            "alias": "Beta A2A",
-            "url": "https://beta.a2a.meetcs.com/lms",
-            "logo": "assets/img/SIESCOMS.jpg",
+            "name": "KARMAVEER BHAURAO PATIL MAHAVIDYALAYA",
+            "alias": "KARMAVEER BHAURAO PATIL MAHAVIDYALAYA",
+            "url": "https://lms.kbpmautonomous.in",
             "staging": false
         }
     ],

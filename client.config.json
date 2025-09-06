@@ -1,21 +1,20 @@
 {
   "app_data" :{
 
-    "appname": "MeetCS Moodle",
-    "packageid": "com.meetcs.moodle",
-    "versionname": "5.2.0",
-    "versioncode": "52000",
-    "ios_CFBundleVersion": "5.2.0.0",
-    "app_description" : "Meetcs Moodle app",
+    "appname": "KBPM LMS",
+    "packageid": "com.kbpm.app",
+    "versionname": "5.1.0",
+    "versioncode": "51000",
+    "ios_CFBundleVersion": "5.1.0.0",
+    "app_description" : "KBPM LMS",
     "moodle_site_url" :
     {
-      "name": "Beta A2A",
-      "alias": "Beta A2A",
-      "url":"https://beta.a2a.meetcs.com/lms",
-      "logo": "assets/img/SIESCOMS.jpg",
+      "name": "KARMAVEER BHAURAO PATIL MAHAVIDYALAYA",
+      "alias": "KARMAVEER BHAURAO PATIL MAHAVIDYALAYA",
+      "url":"https://lms.kbpmautonomous.in",
       "staging": false
     },
-    "side_menu_site_url" : "https://beta.a2a.meetcs.com",
+    "side_menu_site_url" : "https://lms.kbpmautonomous.in/",
     "display_side_menu_switch_account_menu" : false,
     "display_side_menu_logout_menu" : false
   },
@@ -29,9 +28,9 @@
 
   "app_customisation" :{
 
-    "header_backgorud_colour" : "#0a0379",
+    "header_backgorud_colour" : "#00a651",
     "header_text_colour" : "#ffffff",
-    "brandColor" : "#0a0379"
+    "brandColor" : "#00a651"
 
   }
 
