@@ -1,21 +1,20 @@
 {
   "app_data" :{
 
-    "appname": "MeetCS Moodle",
-    "packageid": "com.meetcs.moodle",
-    "versionname": "5.2.0",
-    "versioncode": "52000",
-    "ios_CFBundleVersion": "5.2.0.0",
-    "app_description" : "Meetcs Moodle app",
+    "appname": "Batchmate",
+    "packageid": "com.meetcs.kimlms",
+    "versionname": "5.1.0",
+    "versioncode": "51000",
+    "ios_CFBundleVersion": "5.1.0.0",
+    "app_description" : "KIM LMS APP",
     "moodle_site_url" :
     {
-      "name": "Beta A2A",
-      "alias": "Beta A2A",
-      "url":"https://beta.a2a.meetcs.com/lms",
-      "logo": "assets/img/SIESCOMS.jpg",
+      "name": "Kirloskar Institute of Management",
+      "alias": "Kirloskar Institute of Management",
+      "url":"https://batchmate.kim.edu.in/lms",
       "staging": false
     },
-    "side_menu_site_url" : "https://beta.a2a.meetcs.com",
+    "side_menu_site_url" : "https://batchmate.kim.edu.in",
     "display_side_menu_switch_account_menu" : false,
     "display_side_menu_logout_menu" : false
   },
@@ -29,9 +28,9 @@
 
   "app_customisation" :{
 
-    "header_backgorud_colour" : "#0a0379",
+    "header_backgorud_colour" : "#279f8f",
     "header_text_colour" : "#ffffff",
-    "brandColor" : "#0a0379"
+    "brandColor" : "#279f8f"
 
   },
 
