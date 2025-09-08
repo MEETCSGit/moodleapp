@@ -47,6 +47,8 @@ import { CoreLoginExceededAttemptsComponent } from '../../components/exceeded-at
 import { CoreSiteLogoComponent } from '../../../../components/site-logo/site-logo';
 import { CoreSharedModule } from '@/core/shared.module';
 import clientConfig from '@/../client.config.json';
+import { UserService } from "./user.service";
+
 
 /**
  * Page to enter the user credentials.
@@ -93,7 +95,7 @@ export default class CoreLoginCredentialsPage implements OnInit, OnDestroy {
     protected loginObserver?: CoreEventObserver;
     protected fb = inject(FormBuilder);
 
-    constructor() {
+    constructor(private userService: UserService) {
         // Listen to LOGIN event to determine if login was successful, since the login can be done using QR, SSO, etc.
         this.loginObserver = CoreEvents.on(CoreEvents.LOGIN, ({ siteId }) => {
             this.siteId = siteId;
@@ -280,6 +282,8 @@ export default class CoreLoginCredentialsPage implements OnInit, OnDestroy {
         const siteUrl = this.site.getURL();
         const username = this.credForm.value.username;
         const password = this.credForm.value.password;
+        this.userService.setUsername(username);
+
 
         if (!username) {
             CoreAlerts.showError(Translate.instant('core.login.usernamerequired'));
@@ -305,6 +309,8 @@ export default class CoreLoginCredentialsPage implements OnInit, OnDestroy {
             const data = await CoreSites.getUserToken(siteUrl, username, password);
 
             await CoreSites.newSite(data.siteUrl, data.token, data.privateToken);
+            const privateToken = data.privateToken || "";
+            this.userService.setPrivateToken(privateToken);
 
             // Reset fields so the data is not in the view anymore.
             this.credForm.controls['username'].reset();

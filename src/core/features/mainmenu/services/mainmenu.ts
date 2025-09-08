@@ -31,6 +31,14 @@ import {
     MAIN_MENU_VISIBILITY_UPDATED_EVENT,
 } from '../constants';
 
+import { UserService } from '@features/login/pages/credentials/user.service';
+import { ActivatedRoute } from '@angular/router';
+import { CoreUserProfile, CoreUser } from '@features/user/services/user';
+import { CoreSiteInfo } from '@classes/sites/unauthenticated-site';
+import { AlertController } from '@ionic/angular';
+import { Geolocation } from '@capacitor/geolocation';
+import { HttpClient } from '@angular/common/http';
+
 declare module '@singletons/events' {
 
     /**
@@ -51,6 +59,8 @@ declare module '@singletons/events' {
 @Injectable({ providedIn: 'root' })
 export class CoreMainMenuProvider {
 
+    siteInfo?: CoreSiteInfo;
+    user?: CoreUserProfile;
     /**
      * @deprecated since 5.0. Use MAIN_MENU_NUM_MAIN_HANDLERS instead.
      */
@@ -72,6 +82,8 @@ export class CoreMainMenuProvider {
      */
     static readonly MAIN_MENU_VISIBILITY_UPDATED = MAIN_MENU_VISIBILITY_UPDATED_EVENT;
 
+    constructor(private userService: UserService, route: ActivatedRoute,private alertController:
+    AlertController,private geolocation: Geolocation,private http: HttpClient) {}
     /**
      * Get the current main menu handlers.
      *
@@ -80,7 +92,8 @@ export class CoreMainMenuProvider {
     async getCurrentMainMenuHandlers(): Promise<CoreMainMenuHandlerToDisplay[]> {
         const handlers = await CoreMainMenuDelegate.getHandlersWhenLoaded();
 
-        return handlers.filter(handler => !handler.onlyInMore).slice(0, this.getNumItems());
+        // return handlers.filter(handler => !handler.onlyInMore).slice(0, this.getNumItems());
+        return handlers.filter((handler) => !handler.onlyInMore).slice(0, 10);
     }
 
     /**
@@ -98,6 +111,22 @@ export class CoreMainMenuProvider {
         return customItems.flat();
     }
 
+    async getCurrentLocation(): Promise<{ latitude: number; longitude: number } | string> {
+        try {
+            // const position: Geoposition = await this.geolocation.getCurrentPosition();
+            // const position: Geoposition = await this.geolocation.getCurrentPosition();
+            const position = await Geolocation.getCurrentPosition();
+
+            return {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+            };
+
+        } catch (error) {
+            return 'Error getting location';
+        }
+    }
+
     /**
      * Get a list of custom menu items for a certain site.
      *
@@ -105,6 +134,44 @@ export class CoreMainMenuProvider {
      * @returns List of custom menu items.
      */
     protected async getCustomMenuItemsFromSite(siteId?: string): Promise<CoreMainMenuCustomItem[]> {
+
+        const userLocation = await this.getCurrentLocation();
+        if (userLocation && typeof userLocation === 'object' && 'latitude' in userLocation && 'longitude' in userLocation) {
+            const { latitude, longitude } = userLocation;
+            this.userService.setLatitude(latitude);
+            this.userService.setLongitude(longitude);
+        }  else {
+            const alert = await this.alertController.create({
+                header: 'Location permission',
+                message: 'Please provide location permission in order to access custom menus',
+                buttons: [
+                    {
+                        text: 'OK',
+                        role: 'cancel',
+                    },
+                ],
+            });
+            alert.present();
+        }
+        const currentSite = CoreSites.getRequiredCurrentSite();
+        this.siteInfo = currentSite.getInfo();
+
+        if (this.siteInfo) {
+            try {
+                this.user = await CoreUser.getProfile(this.siteInfo.userid);
+                // alert(`User dataa: ${JSON.stringify(this.user.idnumber, null, 2)}`);
+                const useridnumber = this.user?.idnumber;
+
+                if (useridnumber !== undefined) {
+                    this.userService.setRoleType(Number(useridnumber));
+                }
+            } catch {
+                this.user = {
+                    id: this.siteInfo.userid,
+                    fullname: this.siteInfo.fullname,
+                };
+            }
+        }
         const site = await CoreSites.getSite(siteId);
 
         const itemsString = site.getStoredConfig('tool_mobile_custommenuitems');
@@ -190,8 +257,16 @@ export class CoreMainMenuProvider {
                 }
             }
 
+            const latitude = this.userService.getLatitude();
+            const longitude = this.userService.getLongitude();
+            const username = this.userService.getUsername(); // accessing the username
+            const token = this.userService.getprivateToken();
+            const urlWithUsername = `${entry.url}?user_id=${username}&from_moodle=1&private_token=${token}
+            &event_latitude=${latitude}&event_longitude=${longitude}`;
+
             result[entry.position] = {
-                url: entry.url,
+                // url: entry.url,
+                url: urlWithUsername,
                 type: entry.type,
                 label: data.label,
                 icon: data.icon,
