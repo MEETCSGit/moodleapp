@@ -29,6 +29,7 @@ import { register } from 'swiper/element/bundle';
 import { CoreWait } from '@singletons/wait';
 import { CoreOpener } from '@singletons/opener';
 import { BackButtonPriority } from '@/core/constants';
+import { Geolocation } from '@capacitor/geolocation';
 
 register();
 
@@ -168,5 +169,7 @@ export class AppComponent implements OnInit, AfterViewInit {
 
         return promise;
     }
+
+
 
 }

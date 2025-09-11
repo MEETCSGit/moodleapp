@@ -15,6 +15,15 @@
 </ion-header>
 <ion-content>
     <ion-list>
+
+        @if (showEventsMenuLocationError) {
+            <ion-item class="ion-text-center">
+                <p style="color: #ca3120;">
+                    Please enable Location and grant Location Permission in the app settings, then restart the app to access custom menus.
+                </p>
+            </ion-item>
+
+        }
         @if ((!handlers || !handlers.length) && !handlersLoaded) {
             <ion-item class="ion-text-center">
                 <ion-label>

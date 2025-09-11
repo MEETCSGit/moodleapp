@@ -71,6 +71,7 @@
         "@awesome-cordova-plugins/sqlite": "^8.0.2",
         "@awesome-cordova-plugins/status-bar": "^8.0.2",
         "@awesome-cordova-plugins/web-intent": "^8.0.2",
+        "@capacitor/app": "^7.1.0",
         "@capacitor/geolocation": "^7.1.5",
         "@ionic/angular": "^8.7.1",
         "@ionic/cordova-builders": "^12.2.0",
@@ -134,6 +135,7 @@
         "@angular/cli": "^20.1.0",
         "@angular/compiler-cli": "^20.1.0",
         "@angular/language-service": "^20.1.0",
+        "@capacitor/cli": "^7.4.3",
         "@eslint/js": "^9.29.0",
         "@ionic/angular-toolkit": "^12.2.0",
         "@ionic/cli": "^7.2.1",
@@ -148,7 +150,9 @@
         "circular-dependency-plugin": "^5.2.2",
         "concurrently": "^8.2.2",
         "cordova-android": "^14.0.1",
+        "cordova-open-native-settings": "^1.5.5",
         "cordova-plugin-moodleapp": "file:cordova-plugin-moodleapp",
+        "cordova.plugins.diagnostic": "^7.2.4",
         "cross-env": "^7.0.3",
         "es-check": "^9.1.4",
         "es6-promise-plugin": "^4.2.2",
@@ -233,7 +237,8 @@
             "cordova-plugin-wkuserscript": {},
             "cordova-plugin-wkwebview-cookies": {},
             "cordova-sqlite-storage": {},
-            "nl.kingsquare.cordova.background-audio": {}
+            "nl.kingsquare.cordova.background-audio": {},
+            "cordova-open-native-settings": {}
         }
     }
 }

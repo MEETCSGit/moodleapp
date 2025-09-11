@@ -35,9 +35,12 @@ import { UserService } from '@features/login/pages/credentials/user.service';
 import { ActivatedRoute } from '@angular/router';
 import { CoreUserProfile, CoreUser } from '@features/user/services/user';
 import { CoreSiteInfo } from '@classes/sites/unauthenticated-site';
-import { AlertController } from '@ionic/angular';
+import { AlertController, Platform } from '@ionic/angular';
 import { Geolocation } from '@capacitor/geolocation';
 import { HttpClient } from '@angular/common/http';
+import { App } from '@capacitor/app';
+import { CoreAlerts } from '@services/overlays/alerts';
+declare var cordova: any;
 
 declare module '@singletons/events' {
 
@@ -83,13 +86,18 @@ export class CoreMainMenuProvider {
     static readonly MAIN_MENU_VISIBILITY_UPDATED = MAIN_MENU_VISIBILITY_UPDATED_EVENT;
 
     constructor(private userService: UserService, route: ActivatedRoute,private alertController:
-    AlertController,private geolocation: Geolocation,private http: HttpClient) {}
+    AlertController,private http: HttpClient,private alertCtrl: AlertController, private platform: Platform) {}
     /**
      * Get the current main menu handlers.
      *
      * @returns Promise resolved with the current main menu handlers.
      */
     async getCurrentMainMenuHandlers(): Promise<CoreMainMenuHandlerToDisplay[]> {
+
+        const userLocation = await this.getCurrentLocation();
+        if (!(userLocation && typeof userLocation === 'object' && 'latitude' in userLocation && 'longitude' in userLocation)) {
+
+        }
         const handlers = await CoreMainMenuDelegate.getHandlersWhenLoaded();
 
         // return handlers.filter(handler => !handler.onlyInMore).slice(0, this.getNumItems());
@@ -113,19 +121,22 @@ export class CoreMainMenuProvider {
 
     async getCurrentLocation(): Promise<{ latitude: number; longitude: number } | string> {
         try {
-            // const position: Geoposition = await this.geolocation.getCurrentPosition();
-            // const position: Geoposition = await this.geolocation.getCurrentPosition();
+
+            // const permResult = await Geolocation.requestPermissions();
+            // Capacitor will handle requesting permission automatically
             const position = await Geolocation.getCurrentPosition();
 
             return {
                 latitude: position.coords.latitude,
                 longitude: position.coords.longitude,
             };
-
         } catch (error) {
+            console.error('Error getting location', error);
             return 'Error getting location';
         }
     }
+
+
 
     /**
      * Get a list of custom menu items for a certain site.
@@ -135,23 +146,53 @@ export class CoreMainMenuProvider {
      */
     protected async getCustomMenuItemsFromSite(siteId?: string): Promise<CoreMainMenuCustomItem[]> {
 
+        let IslocationEnabled = false;
+
+
         const userLocation = await this.getCurrentLocation();
         if (userLocation && typeof userLocation === 'object' && 'latitude' in userLocation && 'longitude' in userLocation) {
             const { latitude, longitude } = userLocation;
             this.userService.setLatitude(latitude);
             this.userService.setLongitude(longitude);
+            IslocationEnabled = true;
         }  else {
+            // const alert = await this.alertController.create({
+            //     header: 'Location permission',
+            //     message: 'Please provide location permission in order to access custom menus',
+            //     buttons: [
+            //         {
+            //             text: 'OK',
+            //             role: 'cancel',
+            //         },
+            //     ],
+            // });
+            // alert.present();
             const alert = await this.alertController.create({
-                header: 'Location permission',
-                message: 'Please provide location permission in order to access custom menus',
+                header: 'Location Permission Required',
+                message: 'Please enable Location and grant Location Permission in the app settings, then restart the app to access custom menus.',
                 buttons: [
                     {
-                        text: 'OK',
+                        text: 'Cancel',
                         role: 'cancel',
                     },
-                ],
+                    {
+                        text: 'Open Settings',
+                        handler: () => {
+                            if (cordova && cordova.plugins && cordova.plugins.settings) {
+                                cordova.plugins.settings.open("application_details",
+                                    () => { console.log("Opened settings"); },
+                                    () => { console.log("Failed to open settings"); }
+                                );
+                            } else {
+                                console.log("Cordova settings plugin not available");
+                            }
+                        }
+                    }
+                ]
             });
-            alert.present();
+
+            await alert.present();
+
         }
         const currentSite = CoreSites.getRequiredCurrentSite();
         this.siteInfo = currentSite.getInfo();
@@ -194,6 +235,10 @@ export class CoreMainMenuProvider {
             const type = values[2] ? values[2].trim() : values[2];
             const lang = (values[3] ? values[3].trim() : values[3]) || 'none';
             let icon = values[4] ? values[4].trim() : values[4];
+
+            if(IslocationEnabled == false && label == 'Events'){
+                return;
+            }
 
             if (!label || !url || !type) {
                 // Invalid item, ignore it.
@@ -260,9 +305,9 @@ export class CoreMainMenuProvider {
             const latitude = this.userService.getLatitude();
             const longitude = this.userService.getLongitude();
             const username = this.userService.getUsername(); // accessing the username
-            const token = this.userService.getprivateToken();
-            const urlWithUsername = `${entry.url}?user_id=${username}&from_moodle=1&private_token=${token}
-            &event_latitude=${latitude}&event_longitude=${longitude}`;
+            const token = this.userService.getprivateToken().trim();
+            const urlWithUsername = `${entry.url}?user_id=${username}&from_moodle=1&private_token=${token}&event_latitude=${latitude}&event_longitude=${longitude}`;
+            console.log('Events Url:', urlWithUsername);
 
             result[entry.position] = {
                 // url: entry.url,
@@ -276,6 +321,7 @@ export class CoreMainMenuProvider {
         // Remove undefined values.
         return result.filter((entry) => entry !== undefined);
     }
+
 
     /**
      * Get a list of custom menu items from config.
@@ -393,6 +439,8 @@ export class CoreMainMenuProvider {
 
         return !!site?.isFeatureDisabled('NoDelegate_ResponsiveMainMenuItems');
     }
+
+
 
 }
 

@@ -27,6 +27,8 @@ import { CoreViewer } from '@features/viewer/services/viewer';
 import { CoreSharedModule } from '@/core/shared.module';
 import { CoreMainMenuUserButtonComponent } from '../../components/user-menu-button/user-menu-button';
 import { CoreContentLinksHelper } from '@features/contentlinks/services/contentlinks-helper';
+import { log } from 'console';
+import { Geolocation } from '@capacitor/geolocation';
 
 /**
  * Page that displays the more page of the app.
@@ -46,6 +48,7 @@ export default class CoreMainMenuMorePage implements OnInit, OnDestroy {
     handlersLoaded = false;
     showScanQR: boolean;
     customItems?: CoreMainMenuCustomItem[];
+    showEventsMenuLocationError = false;
 
     protected allHandlers?: CoreMainMenuHandlerData[];
     protected subscription!: Subscription;
@@ -117,7 +120,33 @@ export default class CoreMainMenuMorePage implements OnInit, OnDestroy {
      * Load custom menu items.
      */
     protected async loadCustomMenuItems(): Promise<void> {
+
         this.customItems = await CoreMainMenu.getCustomMenuItems();
+        const eventsMenu = this.customItems.find(item => item.label === 'Events');
+
+        if (eventsMenu) {
+            this.showEventsMenuLocationError = false;
+        } else {
+            this.showEventsMenuLocationError = true;
+        }
+
+    }
+
+    async getCurrentLocation(): Promise<{ latitude: number; longitude: number } | string> {
+        try {
+
+            // const permResult = await Geolocation.requestPermissions();
+            // Capacitor will handle requesting permission automatically
+            const position = await Geolocation.getCurrentPosition();
+
+            return {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+            };
+        } catch (error) {
+            console.error('Error getting location', error);
+            return 'Error getting location';
+        }
     }
 
     /**
