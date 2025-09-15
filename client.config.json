@@ -32,6 +32,13 @@
     "header_text_colour" : "#ffffff",
     "brandColor" : "#00a651"
 
+  },
+
+  "login_page_customisation" : {
+
+    "forgot_password_label" : "Forget Password?",
+    "site_url_to_show" : "https://beta.a2a.meetcs.com"
+
   }
 
 }
