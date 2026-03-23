@@ -1,43 +1,35 @@
 {
-  "app_data" :{
-
-    "appname": "Batchmate",
-    "packageid": "com.meetcs.kimlms",
-    "versionname": "5.1.0",
-    "versioncode": "51000",
-    "ios_CFBundleVersion": "5.1.0.0",
-    "app_description" : "KIM LMS APP",
-    "moodle_site_url" :
-    {
-      "name": "Kirloskar Institute of Management",
-      "alias": "Kirloskar Institute of Management",
-      "url":"https://batchmate.kim.edu.in/lms",
-      "staging": false
+    "app_data": {
+        "appname": "Batchmate-Harihar",
+        "packageid": "com.meetcs.kimlmsharihar",
+        "versionname": "5.1.0",
+        "versioncode": "51000",
+        "ios_CFBundleVersion": "5.1.0.0",
+        "app_description": "KIM Harihar LMS APP",
+        "moodle_site_url": {
+            "name": "Kirloskar Institute of Management",
+            "alias": "Kirloskar Institute of Management",
+            "url": "https://batchmate-harihar.kim.edu.in/lms",
+            "staging": false
+        },
+        "side_menu_site_url": "https://batchmate-harihar.kim.edu.in",
+        "display_side_menu_switch_account_menu": false,
+        "display_side_menu_logout_menu": false
     },
-    "side_menu_site_url" : "https://batchmate.kim.edu.in",
-    "display_side_menu_switch_account_menu" : false,
-    "display_side_menu_logout_menu" : false
-  },
 
-  "author_data" :{
+    "author_data": {
+        "app_author_name": "Meetcs Moodle App team",
+        "app_author_email": "support@meetcs.com",
+        "author_website": "https://meetcs.com/"
+    },
 
-    "app_author_name" : "Meetcs Moodle App team",
-    "app_author_email" : "support@meetcs.com",
-    "author_website" : "https://meetcs.com/"
-  },
+    "app_customisation": {
+        "header_backgorud_colour": "#279f8f",
+        "header_text_colour": "#ffffff",
+        "brandColor": "#279f8f"
+    },
 
-  "app_customisation" :{
-
-    "header_backgorud_colour" : "#279f8f",
-    "header_text_colour" : "#ffffff",
-    "brandColor" : "#279f8f"
-
-  },
-
-  "login_page_customisation" : {
-
-    "forgot_password_label" : "Forget Password?"
-
-  }
-
+    "login_page_customisation": {
+        "forgot_password_label": "Forget Password?"
+    }
 }

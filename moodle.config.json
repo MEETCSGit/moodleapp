@@ -1,6 +1,6 @@
 {
-    "app_id": "com.meetcs.kimlms",
-    "appname": "Batchmate",
+    "app_id": "com.meetcs.kimlmsharihar",
+    "appname": "Batchmate-Harihar",
     "versioncode": "51000",
     "versionname": "5.1.0",
     "cache_update_frequency_usually": 420000,
@@ -91,7 +91,7 @@
         {
             "name": "Kirloskar Institute of Management",
             "alias": "Kirloskar Institute of Management",
-            "url": "https://batchmate.kim.edu.in/lms",
+            "url": "https://batchmate-harihar.kim.edu.in/lms",
             "staging": false
         }
     ],
