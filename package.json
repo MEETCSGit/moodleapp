@@ -18,6 +18,7 @@
         }
     ],
     "scripts": {
+        "prod": "cross-env NODE_ENV=production bash ./scripts/build.sh",
         "ng": "ng",
         "start": "ionic serve --browser=$MOODLE_APP_BROWSER --ssl",
         "serve:test": "NODE_ENV=testing ionic serve --no-open",
@@ -37,7 +38,7 @@
         "lint": "NODE_OPTIONS=--max-old-space-size=8192 ng lint",
         "ionic:serve:before": "gulp",
         "ionic:serve": "ionic serve --host=localhost --port=8100 --project=app",
-        "ionic:build:before": "gulp",
+        "ionic:build:before": "npm run prod --prefix cordova-plugin-moodleapp && ionic cordova plugin add cordova-plugin-moodleapp && gulp",
         "postinstall": "patch-package && cd cordova-plugin-moodleapp && npm install",
         "lang:update-langpacks": "./scripts/update_langpacks.sh",
         "lang:detect-langpacks": "./scripts/update_langpacks.sh detect",
@@ -182,8 +183,8 @@
     },
     "cordova": {
         "platforms": [
-            "ios",
-            "android"
+            "android",
+            "ios"
         ],
         "plugins": {
             "@moodlehq/cordova-plugin-advanced-http": {
