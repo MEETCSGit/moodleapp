@@ -146,7 +146,7 @@
         "angular-eslint": "^20.1.1",
         "circular-dependency-plugin": "^5.2.2",
         "concurrently": "^8.2.2",
-        "cordova-android": "^14.0.1",
+        "cordova-android": "^15.0.0",
         "cordova-plugin-moodleapp": "file:cordova-plugin-moodleapp",
         "cross-env": "^7.0.3",
         "es-check": "^9.1.4",
@@ -222,10 +222,7 @@
             "cordova-plugin-local-notification": {
                 "ANDROID_SUPPORT_V4_VERSION": "26.+"
             },
-            "cordova-plugin-moodleapp": {
-                "ANDROIDX_VERSION": "1.0.0",
-                "ANDROIDX_APPCOMPAT_VERSION": "1.3.1"
-            },
+            "cordova-plugin-moodleapp": {},
             "cordova-plugin-network-information": {},
             "cordova-plugin-prevent-override": {},
             "cordova-plugin-screen-orientation": {},
