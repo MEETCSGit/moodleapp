@@ -81,6 +81,7 @@ export default class CoreLoginCredentialsPage implements OnInit, OnDestroy {
     displaySiteUrl = false;
     showLoginForm = true;
     loginFormForgotPasswordLabel = clientConfig.login_page_customisation?.forgot_password_label;
+    siteUrlToShow = clientConfig.login_page_customisation.site_url_to_show;
 
     protected siteCheck?: CoreSiteCheckResponse;
     protected eventThrown = false;
