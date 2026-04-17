@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget android-versionCode="51000" id="com.meetcs.kimlms" ios-CFBundleVersion="5.1.0.0" version="5.1.0" versionCode="51000" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
-    <name>Batchmate</name>
+<widget android-versionCode="51001" id="com.meetcs.kimlms" ios-CFBundleVersion="5.1.1.0" version="5.1.1" versionCode="51001" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+    <name>Batchmate-Pune</name>
     <description>KIM LMS APP</description>
     <author email="support@meetcs.com" href="https://meetcs.com/">Meetcs Moodle App team</author>
     <content src="index.html" />

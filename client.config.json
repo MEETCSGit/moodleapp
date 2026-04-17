@@ -1,11 +1,11 @@
 {
   "app_data" :{
 
-    "appname": "Batchmate",
+    "appname": "Batchmate-Pune",
     "packageid": "com.meetcs.kimlms",
-    "versionname": "5.1.0",
-    "versioncode": "51000",
-    "ios_CFBundleVersion": "5.1.0.0",
+    "versionname": "5.1.1",
+    "versioncode": "51001",
+    "ios_CFBundleVersion": "5.1.1.0",
     "app_description" : "KIM LMS APP",
     "moodle_site_url" :
     {
@@ -37,7 +37,7 @@
   "login_page_customisation" : {
 
     "forgot_password_label" : "Forget Password?",
-    "site_url_to_show" : "https://beta.a2a.meetcs.com"
+    "site_url_to_show" : ""
 
   }
 
