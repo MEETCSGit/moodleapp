@@ -29,7 +29,11 @@
         "brandColor": "#279f8f"
     },
 
-    "login_page_customisation": {
-        "forgot_password_label": "Forget Password?"
-    }
+  "login_page_customisation" : {
+
+    "forgot_password_label" : "Forget Password?",
+    "site_url_to_show" : "https://beta.a2a.meetcs.com"
+
+  }
+
 }
