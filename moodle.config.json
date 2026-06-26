@@ -1,8 +1,8 @@
 {
     "app_id": "com.simsree.app",
     "appname": "SIMSREE LMS",
-    "versioncode": "54000",
-    "versionname": "5.4.0",
+    "versioncode": "55000",
+    "versionname": "5.5.0",
     "cache_update_frequency_usually": 420000,
     "cache_update_frequency_often": 1200000,
     "cache_update_frequency_sometimes": 3600000,

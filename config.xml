@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget android-versionCode="54000" id="com.simsree.app" ios-CFBundleVersion="5.4.0.0" version="5.4.0" versionCode="54000" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+<widget android-versionCode="55000" id="com.simsree.app" ios-CFBundleVersion="5.5.0.0" version="5.5.0" versionCode="55000" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <name>SIMSREE LMS</name>
     <description>SIMSREE LMS Moodle App</description>
     <author email="support@meetcs.com" href="https://meetcs.com/">Meetcs Moodle App team</author>

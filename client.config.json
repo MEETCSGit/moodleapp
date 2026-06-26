@@ -3,9 +3,9 @@
 
     "appname": "SIMSREE LMS",
     "packageid": "com.simsree.app",
-    "versionname": "5.4.0",
-    "versioncode": "54000",
-    "ios_CFBundleVersion": "5.4.0.0",
+    "versionname": "5.5.0",
+    "versioncode": "55000",
+    "ios_CFBundleVersion": "5.5.0.0",
     "app_description" : "SIMSREE LMS Moodle App",
     "moodle_site_url" :
     {

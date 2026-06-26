@@ -149,7 +149,7 @@
         "angular-eslint": "^20.1.1",
         "circular-dependency-plugin": "^5.2.2",
         "concurrently": "^8.2.2",
-        "cordova-android": "^14.0.1",
+        "cordova-android": "^15.0.0",
         "cordova-open-native-settings": "^1.5.5",
         "cordova-plugin-moodleapp": "file:cordova-plugin-moodleapp",
         "cordova.plugins.diagnostic": "^7.2.4",
