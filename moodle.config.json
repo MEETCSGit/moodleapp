@@ -1,8 +1,8 @@
 {
     "app_id": "com.meetcs.kimlmsharihar",
     "appname": "Batchmate-Harihar",
-    "versioncode": "51001",
-    "versionname": "5.1.1",
+    "versioncode": "52000",
+    "versionname": "5.2.0",
     "cache_update_frequency_usually": 420000,
     "cache_update_frequency_often": 1200000,
     "cache_update_frequency_sometimes": 3600000,
