@@ -16,8 +16,8 @@
       "staging": false
     },
     "side_menu_site_url" : "https://vector.meetcs.com",
-    "display_side_menu_switch_account_menu" : false,
-    "display_side_menu_logout_menu" : false
+    "display_side_menu_switch_account_menu" : true,
+    "display_side_menu_logout_menu" : true
   },
 
   "author_data" :{
@@ -29,16 +29,17 @@
 
   "app_customisation" :{
 
-    "header_backgorud_colour" : "#000000",
-    "header_text_colour" : "#ffffff",
-    "brandColor" : "#78184A"
+    "header_backgorud_colour" : "#ffffff",
+    "header_text_colour" : "#000000",
+    "brandColor" : "#78184A",
+    "splash_background_colour" : "#ffffff"
 
   },
 
   "login_page_customisation" : {
 
     "forgot_password_label" : "Forget Password?",
-    "site_url_to_show" : "https://vector.meetcs.com"
+    "site_url_to_show" : ""
 
   }
 

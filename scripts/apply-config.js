@@ -104,11 +104,12 @@ configXml = replaceOnce(
   'StatusBarBackgroundColor preference',
 );
 
+const splashColour = customisation.splash_background_colour || customisation.header_backgorud_colour;
 for (const pref of ['AndroidWindowSplashScreenBackground', 'AndroidWindowSplashScreenIconBackgroundColor']) {
   configXml = replaceOnce(
     configXml,
     new RegExp(`<preference name="${pref}" value="[^"]*" \/>`),
-    `<preference name="${pref}" value="${xmlEscape(customisation.header_backgorud_colour)}" />`,
+    `<preference name="${pref}" value="${xmlEscape(splashColour)}" />`,
     pref,
   );
 }
@@ -130,6 +131,16 @@ const clientThemeContent = `
 :root {
   --core-header-toolbar-background: ${customisation.header_backgorud_colour};
   --core-header-toolbar-color: ${customisation.header_text_colour};
+}
+
+// Moodle makes the main (collapsible) page headers transparent with dark text until the page is
+// scrolled; keep them in the client header colours instead.
+body .collapsible-header-page ion-header,
+body .collapsible-header-page .collapsible-header-collapsed {
+  --core-header-toolbar-background: ${customisation.header_backgorud_colour} !important;
+  --core-header-toolbar-color: ${customisation.header_text_colour} !important;
+  --core-header-buttons-color: ${customisation.header_text_colour} !important;
+  --core-header-buttons-background: transparent !important;
 }
 `;
 fs.writeFileSync(clientThemeFile, clientThemeContent, 'utf8');

@@ -1,5 +1,15 @@
 
 :root {
-  --core-header-toolbar-background: #000000;
-  --core-header-toolbar-color: #ffffff;
+  --core-header-toolbar-background: #ffffff;
+  --core-header-toolbar-color: #000000;
+}
+
+// Moodle makes the main (collapsible) page headers transparent with dark text until the page is
+// scrolled; keep them in the client header colours instead.
+body .collapsible-header-page ion-header,
+body .collapsible-header-page .collapsible-header-collapsed {
+  --core-header-toolbar-background: #ffffff !important;
+  --core-header-toolbar-color: #000000 !important;
+  --core-header-buttons-color: #000000 !important;
+  --core-header-buttons-background: transparent !important;
 }
