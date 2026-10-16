@@ -1,6 +1,6 @@
 {
-    "app_id": "com.meetcs.moodle",
-    "appname": "MeetCS Moodle",
+    "app_id": "com.vector.meetcs",
+    "appname": "Vector",
     "versioncode": 53000,
     "versionname": "5.3.0",
     "cache_update_frequency_usually": 420000,
@@ -89,10 +89,10 @@
     "customurlscheme": "moodlemobile",
     "sites": [
         {
-            "name": "Beta A2A",
-            "alias": "Beta A2A",
-            "url": "https://beta.a2a.meetcs.com/lms",
-            "logo": "assets/img/SIESCOMS.jpg",
+            "name": "Vector",
+            "alias": "Vector",
+            "url": "https://vector.meetcs.com/learning/",
+            "logo": "assets/img/vector/logo-black.png",
             "staging": false
         }
     ],

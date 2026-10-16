@@ -97,21 +97,43 @@ configXml = replaceOnce(
   'AppendUserAgent preference',
 );
 
+configXml = replaceOnce(
+  configXml,
+  /<preference name="StatusBarBackgroundColor" value="[^"]*" \/>/,
+  `<preference name="StatusBarBackgroundColor" value="${xmlEscape(customisation.header_backgorud_colour)}" />`,
+  'StatusBarBackgroundColor preference',
+);
+
+for (const pref of ['AndroidWindowSplashScreenBackground', 'AndroidWindowSplashScreenIconBackgroundColor']) {
+  configXml = replaceOnce(
+    configXml,
+    new RegExp(`<preference name="${pref}" value="[^"]*" \/>`),
+    `<preference name="${pref}" value="${xmlEscape(customisation.header_backgorud_colour)}" />`,
+    pref,
+  );
+}
+
 fs.writeFileSync(configXmlPath, configXml);
 console.log(`✅ Updated config.xml: ${appData.appname} (${appData.packageid}) ${appData.versionname}`);
 
-// === Update client-variables.scss ===
+// === Update client-variables.scss / client-theme.scss ===
+// client-variables.scss only holds Sass variables (imported by globals.variables.scss).
 const themeFile = path.join(root, 'src/theme/client-variables.scss');
-const themeContent = `
+fs.writeFileSync(themeFile, `
 $brand-color: ${customisation.brandColor};
+`, 'utf8');
+
+// client-theme.scss holds the CSS variables. It is imported from theme.custom.scss so it loads after
+// theme.light.scss and wins over its :root defaults.
+const clientThemeFile = path.join(root, 'src/theme/client-theme.scss');
+const clientThemeContent = `
 :root {
   --core-header-toolbar-background: ${customisation.header_backgorud_colour};
   --core-header-toolbar-color: ${customisation.header_text_colour};
 }
 `;
-
-fs.writeFileSync(themeFile, themeContent, 'utf8');
-console.log(`✅ Updated header color in client-variables.scss: ${customisation.header_backgorud_colour}`);
+fs.writeFileSync(clientThemeFile, clientThemeContent, 'utf8');
+console.log(`✅ Updated theme files: header ${customisation.header_backgorud_colour}, brand ${customisation.brandColor}`);
 
 // === Update moodle.config.json ===
 const configPath = path.join(root, 'moodle.config.json');

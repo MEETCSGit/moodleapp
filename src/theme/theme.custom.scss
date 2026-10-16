@@ -19,3 +19,65 @@
 :root.dark {
 
 }
+
+/*
+ * Vector brand (see Vector LMS Brand Guidelines).
+ * Neutral surfaces, Pansy Purple (#78184A) only as a fine accent, Playfair Display for titles,
+ * Roboto Light for interface and body copy.
+ */
+@import "client-theme";
+
+@font-face {
+    font-family: "Roboto";
+    font-style: normal;
+    font-weight: 300;
+    font-display: swap;
+    src: url("/assets/fonts/vector/roboto-latin-300-normal.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Roboto";
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url("/assets/fonts/vector/roboto-latin-500-normal.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Playfair Display";
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url("/assets/fonts/vector/playfair-display-latin-500-normal.woff2") format("woff2");
+}
+
+:root {
+    --ion-default-font: "Roboto", "Helvetica Neue", Arial, sans-serif;
+    --ion-font-family: var(--ion-default-font), serif;
+    --mdl-typography-body-fontWeight: 300;
+    --core-heading-font-family: "Playfair Display", Georgia, serif;
+}
+
+body {
+    font-weight: 300;
+}
+
+b,
+strong {
+    font-weight: 500;
+}
+
+h1,
+h2,
+h3,
+ion-title,
+.core-logo-sitename {
+    font-family: var(--core-heading-font-family);
+    font-weight: 500;
+}
+
+// Selected state: a thin purple accent instead of a solid fill.
+:root {
+    --core-bottom-tabs-color-selected: #78184A;
+    --core-bottom-tabs-background-selected: transparent;
+}
