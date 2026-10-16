@@ -37,6 +37,7 @@ import { CoreSiteLogoComponent } from '@/core/components/site-logo/site-logo';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreDynamicComponent } from '@components/dynamic-component/dynamic-component';
 import { CorePromiseUtils } from '@static/promise-utils';
+import clientConfig from '@/../client.config.json';
 import type { ReloadableComponent } from '@coretypes/reloadable-component';
 import { CoreCustomMenu, CoreCustomMenuItem } from '@features/mainmenu/services/custommenu';
 import { CoreCustomMenuItemComponent } from '../custom-menu-item/custom-menu-item';

@@ -3,9 +3,9 @@
 
     "appname": "MeetCS Moodle",
     "packageid": "com.meetcs.moodle",
-    "versionname": "5.2.0",
-    "versioncode": "52000",
-    "ios_CFBundleVersion": "5.2.0.0",
+    "versionname": "5.3.0",
+    "versioncode": "53000",
+    "ios_CFBundleVersion": "5.3.0.0",
     "app_description" : "Meetcs Moodle app",
     "moodle_site_url" :
     {
