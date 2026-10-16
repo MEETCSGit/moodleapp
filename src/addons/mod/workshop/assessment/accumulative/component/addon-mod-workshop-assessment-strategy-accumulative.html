@@ -12,8 +12,8 @@
                 @if (edit) {
                     <ion-item>
                         <ion-select labelPlacement="stacked" [(ngModel)]="selectedValues[n].grade" [cancelText]="'core.cancel' | translate"
-                            interface="action-sheet" [interfaceOptions]="{header: 'addon.mod_workshop_assessment_accumulative.dimensiongradefor' |
-                        translate : {'$a': field.dimtitle }}">
+                            interface="action-sheet" [interfaceOptions]="{header:
+                                'addon.mod_workshop_assessment_accumulative.dimensiongradefor' | translate : {'$a': field.dimtitle }}">
                             <div [core-mark-required]="true" slot="label">
                                 {{ 'addon.mod_workshop_assessment_accumulative.dimensiongradefor' | translate : {'$a': field.dimtitle } }}
                             </div>
@@ -38,7 +38,7 @@
                 }
             }
             @if (edit) {
-                <ion-item>
+                <ion-item lines="none">
                     <ion-textarea labelPlacement="stacked" [(ngModel)]="selectedValues[n].peercomment"
                         [core-auto-rows]="selectedValues[n].peercomment"
                         [label]=" 'addon.mod_workshop_assessment_accumulative.dimensioncommentfor' | translate : {'$a': field.dimtitle }" />

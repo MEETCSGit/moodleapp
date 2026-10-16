@@ -22,7 +22,7 @@ import {
 } from '@addons/mod/workshop/services/workshop';
 import { Injectable, Type } from '@angular/core';
 import { makeSingleton, Translate } from '@singletons';
-import { CoreFormFields } from '@singletons/form';
+import { CoreFormFields } from '@static/form';
 import { AddonModWorkshopAssessmentStrategyCommentsHandlerService } from './handler';
 
 /**
@@ -59,7 +59,7 @@ export class AddonModWorkshopAssessmentStrategyCommentsHandlerLazyService
 
             originalValues[n] = {};
             originalValues[n].peercomment = form.current[n].peercomment || '';
-            originalValues[n].number = field.number; // eslint-disable-line id-blacklist
+            originalValues[n].number = field.number; // eslint-disable-line id-denylist
         });
 
         return originalValues;

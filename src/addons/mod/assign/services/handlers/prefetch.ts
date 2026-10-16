@@ -27,7 +27,7 @@ import { CoreCourseActivityPrefetchHandlerBase } from '@features/course/classes/
 import { CoreCourse, CoreCourseAnyModuleData, CoreCourseCommonModWSOptions } from '@features/course/services/course';
 import { CoreWSFile } from '@services/ws';
 import { AddonModAssignHelper, AddonModAssignSubmissionFormatted } from '../assign-helper';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreFilepool } from '@services/filepool';
 import { CoreGroups } from '@services/groups';
 import { AddonModAssignSync, AddonModAssignSyncResult } from '../assign-sync';
@@ -113,7 +113,7 @@ export class AddonModAssignPrefetchHandlerService extends CoreCourseActivityPref
 
                         files = files.concat(submissionFiles);
                     } catch (error) {
-                        if (error && error.errorcode == 'nopermission') {
+                        if (error && error.errorcode === 'nopermission') {
                             // The user does not have persmission to view this submission, ignore it.
                             return;
                         }
@@ -185,15 +185,17 @@ export class AddonModAssignPrefetchHandlerService extends CoreCourseActivityPref
         }
 
         if (submissionStatus.feedback && submissionStatus.feedback.plugins) {
+            const feedbackPlugins = AddonModAssignHelper.mergeFeedbackPluginsWithMultipleMarkers(submissionStatus.feedback);
+
             // Add feedback plugin files.
-            submissionStatus.feedback.plugins.forEach((plugin) => {
+            feedbackPlugins.forEach((plugin) => {
                 promises.push(AddonModAssignFeedbackDelegate.getPluginFiles(assign, userSubmission, plugin, siteId));
             });
         }
 
         const filesLists = await Promise.all(promises);
 
-        return files.concat.apply(files, filesLists);
+        return files.concat(...filesLists);
     }
 
     /**
@@ -256,7 +258,7 @@ export class AddonModAssignPrefetchHandlerService extends CoreCourseActivityPref
 
         promises.push(CoreCourse.getModuleBasicInfoByInstance(assign.id, ADDON_MOD_ASSIGN_MODNAME, { siteId }));
         // Get course data, needed to determine upload max size if it's configured to be course limit.
-        promises.push(CorePromiseUtils.ignoreErrors(CoreCourses.getCourseByField('id', courseId, siteId)));
+        promises.push(CorePromiseUtils.ignoreErrors(CoreCourses.getCourseByField('id', courseId, { siteId })));
 
         // Download intro files and attachments. Do not call getFiles because it'd call some WS twice.
         let files: CoreWSFile[] = assign.introattachments || [];
@@ -350,7 +352,7 @@ export class AddonModAssignPrefetchHandlerService extends CoreCourseActivityPref
         }
 
         // Teacher, prefetch all submissions.
-        if (!groupInfo.groups || groupInfo.groups.length == 0) {
+        if (!groupInfo.groups || groupInfo.groups.length === 0) {
             groupInfo.groups = [{ id: 0, name: '' }];
         }
 
@@ -373,7 +375,7 @@ export class AddonModAssignPrefetchHandlerService extends CoreCourseActivityPref
                     subPromises.push(AddonModAssign.getAssignmentGrades(assign.id, modOptions));
 
                     // Prefetch the submission of the current user even if it does not exist, this will be create it.
-                    if (!submissions || !submissions.find((subm: AddonModAssignSubmissionFormatted) => subm.submitid == userId)) {
+                    if (!submissions || !submissions.find((subm: AddonModAssignSubmissionFormatted) => subm.submitid === userId)) {
                         const submissionOptions = {
                             userId,
                             groupId: group.id,
@@ -442,7 +444,7 @@ export class AddonModAssignPrefetchHandlerService extends CoreCourseActivityPref
                             promises.push(
                                 AddonModAssignSubmissionDelegate.getPluginFiles(assign, userSubmission, plugin, siteId)
                                     .then((files) =>
-                                        CoreFilepool.addFilesToQueue(siteId, files, this.component, module.id))
+                                        CoreFilepool.addFilesToQueue(siteId, files, this.component, moduleId))
                                     .catch(() => {
                                         // Ignore errors.
                                     }),
@@ -484,14 +486,16 @@ export class AddonModAssignPrefetchHandlerService extends CoreCourseActivityPref
 
                 // Prefetch feedback plugins data.
                 if (submission.feedback.plugins && userSubmission && userSubmission.id) {
-                    submission.feedback.plugins.forEach((plugin) => {
+                    const feedbackPlugins = AddonModAssignHelper.mergeFeedbackPluginsWithMultipleMarkers(submission.feedback);
+
+                    feedbackPlugins.forEach((plugin) => {
                         // Prefetch the plugin WS data.
                         promises.push(AddonModAssignFeedbackDelegate.prefetch(assign, userSubmission, plugin, siteId));
 
                         // Prefetch the plugin files.
                         promises.push(
                             AddonModAssignFeedbackDelegate.getPluginFiles(assign, userSubmission, plugin, siteId)
-                                .then((files) => CoreFilepool.addFilesToQueue(siteId, files, this.component, module.id))
+                                .then((files) => CoreFilepool.addFilesToQueue(siteId, files, this.component, moduleId))
                                 .catch(() => {
                                     // Ignore errors.
                                 }),
@@ -506,7 +510,7 @@ export class AddonModAssignPrefetchHandlerService extends CoreCourseActivityPref
             await Promise.all(promises);
         } catch (error) {
             // Ignore if the user can't view their own submission.
-            if (resolveOnNoPermission && error.errorcode != 'nopermission') {
+            if (resolveOnNoPermission && error.errorcode !== 'nopermission') {
                 throw error;
             }
         }

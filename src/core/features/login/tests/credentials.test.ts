@@ -12,10 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { findElement, mock, mockSingleton, renderPageComponent, requireElement } from '@/testing/utils';
+import { findElement, mockSingleton, renderPageComponent, requireElement, overrideTranslations } from '@/testing/utils';
 import { CoreLoginError } from '@classes/errors/loginerror';
 import CoreLoginCredentialsPage from '@features/login/pages/credentials/credentials';
-import { CoreLang } from '@services/lang';
 import { CoreSites } from '@services/sites';
 import { Http } from '@singletons';
 import { of } from 'rxjs';
@@ -29,7 +28,6 @@ describe('Credentials page', () => {
     beforeEach(() => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         mockSingleton(Http, { get: () => of(null as any) });
-        mockSingleton(CoreLang, mock({ getCurrentLanguage: async () => 'en' }));
     });
 
     it('renders', async () => {
@@ -129,6 +127,12 @@ describe('Credentials page', () => {
 
         mockSingleton(CoreLoginHelper, { getAvailableSites: async () => [] });
 
+        // Override translation before rendering the component to make sure it's used in the page.
+        const translationText = 'You have exceeded the maximum number of login attempts. Please contact support.';
+        overrideTranslations({
+            'core.login.exceededloginattempts': translationText,
+        });
+
         const fixture = await renderPageComponent(CoreLoginCredentialsPage, {
             routeParams: { siteUrl, siteCheck },
         });
@@ -141,12 +145,12 @@ describe('Credentials page', () => {
         formControls['password'].setValue('secret');
 
         for (let i = 0; i < 3; i++) {
-            form.submit();
+            form.dispatchEvent(new Event('submit'));
             await fixture.whenStable();
         }
 
         // Assert.
-        expect(findElement(fixture, 'ion-label', 'core.login.exceededloginattempts')).not.toBeNull();
+        expect(findElement(fixture, 'ion-label', translationText)).not.toBeNull();
     });
 
 });

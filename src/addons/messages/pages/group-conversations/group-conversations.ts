@@ -14,7 +14,7 @@
 
 import { Component, OnInit, OnDestroy, inject, viewChild } from '@angular/core';
 import { AccordionGroupChangeEventDetail, IonAccordionGroup, IonContent } from '@ionic/angular';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { CoreSites } from '@services/sites';
 import {
     AddonMessagesConversationFormatted,
@@ -32,7 +32,7 @@ import { Translate } from '@singletons';
 import { Subscription } from 'rxjs';
 import { CorePushNotificationsNotificationBasicData } from '@features/pushnotifications/services/pushnotifications';
 import { ActivatedRoute, Params } from '@angular/router';
-import { CoreUtils } from '@singletons/utils';
+import { CoreUtils } from '@static/utils';
 import { CoreNavigator } from '@services/navigator';
 import { CoreScreen } from '@services/screen';
 import { CorePlatform } from '@services/platform';
@@ -73,7 +73,7 @@ const enum AddonMessagesGroupConversationOptionNames {
 export default class AddonMessagesGroupConversationsPage implements OnInit, OnDestroy {
 
     readonly splitView = viewChild.required(CoreSplitViewComponent);
-    readonly content = viewChild(IonContent);
+    readonly content = viewChild.required(IonContent);
     readonly accordionGroup = viewChild.required<IonAccordionGroup>('accordionGroup');
 
     loaded = false;
@@ -128,6 +128,7 @@ export default class AddonMessagesGroupConversationsPage implements OnInit, OnDe
     protected updateConversationListObserver: CoreEventObserver;
     protected contactRequestsCountObserver: CoreEventObserver;
     protected memberInfoObserver: CoreEventObserver;
+    protected routeSubscription?: Subscription;
     protected firstExpand = false;
     protected route = inject(ActivatedRoute);
 
@@ -189,7 +190,7 @@ export default class AddonMessagesGroupConversationsPage implements OnInit, OnDe
 
                     if (isNewer) {
                         // The last message is newer than the previous one, scroll to top to keep viewing the conversation.
-                        this.content()?.scrollToTop();
+                        this.content().scrollToTop();
                     }
                 }
             },
@@ -314,10 +315,10 @@ export default class AddonMessagesGroupConversationsPage implements OnInit, OnDe
      * @inheritdoc
      */
     async ngOnInit(): Promise<void> {
-        this.route.queryParams.subscribe(async (params) => {
+        this.routeSubscription = this.route.queryParams.subscribe(() => {
             // When a child page loads this callback is triggered too.
-            const conversationId = CoreNavigator.getRouteNumberParam('conversationId', { params });
-            const userId = CoreNavigator.getRouteNumberParam('userId', { params });
+            const conversationId = CoreNavigator.getRouteNumberParam('conversationId');
+            const userId = CoreNavigator.getRouteNumberParam('userId');
             if (conversationId || userId) {
                 // Update the selected ones.
                 this.selectedConversationId = conversationId;
@@ -347,7 +348,7 @@ export default class AddonMessagesGroupConversationsPage implements OnInit, OnDe
      * @param refreshUnreadCounts Whether to refresh unread counts.
      * @returns Promise resolved when done.
      */
-    protected async fetchData(refreshUnreadCounts: boolean = true): Promise<void> {
+    protected async fetchData(refreshUnreadCounts = true): Promise<void> {
         // Load the amount of conversations and contact requests.
         const promises: Promise<unknown>[] = [];
 
@@ -772,7 +773,7 @@ export default class AddonMessagesGroupConversationsPage implements OnInit, OnDe
      * @param refreshUnreadCounts Whether to refresh unread counts.
      * @returns Promise resolved when done.
      */
-    async refreshData(refresher?: HTMLIonRefresherElement, refreshUnreadCounts: boolean = true): Promise<void> {
+    async refreshData(refresher?: HTMLIonRefresherElement, refreshUnreadCounts = true): Promise<void> {
         // Don't invalidate conversations and so, they always try to get latest data.
         try {
             await AddonMessages.invalidateContactRequestsCountCache(this.siteId);
@@ -847,6 +848,7 @@ export default class AddonMessagesGroupConversationsPage implements OnInit, OnDe
         this.updateConversationListObserver?.off();
         this.contactRequestsCountObserver?.off();
         this.memberInfoObserver?.off();
+        this.routeSubscription?.unsubscribe();
     }
 
 }

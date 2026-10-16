@@ -14,12 +14,12 @@
 
 import { Component, OnInit, OnDestroy, ElementRef, inject, viewChild } from '@angular/core';
 import { FormControl, FormGroup, FormBuilder, Validators } from '@angular/forms';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { CoreGroup, CoreGroups } from '@services/groups';
 import { CoreSites, CoreSitesReadingStrategy } from '@services/sites';
 import { CoreSync } from '@services/sync';
-import { CoreTime } from '@singletons/time';
-import { CoreUtils } from '@singletons/utils';
+import { CoreTime } from '@static/time';
+import { CoreUtils } from '@static/utils';
 import { CoreCategoryData, CoreCourses, CoreCourseSearchedData, CoreEnrolledCourseData } from '@features/courses/services/courses';
 import { CoreEditorRichTextEditorComponent } from '@features/editor/components/rich-text-editor/rich-text-editor';
 import {
@@ -38,7 +38,7 @@ import { AddonCalendarOfflineEventDBRecord } from '../../services/database/calen
 import { CoreError } from '@classes/errors/error';
 import { CoreNavigator } from '@services/navigator';
 import { CanLeave } from '@guards/can-leave';
-import { CoreForms } from '@singletons/form';
+import { CoreForms } from '@static/form';
 import { CoreReminders, CoreRemindersService } from '@features/reminders/services/reminders';
 import { dayjs } from '@/core/utils/dayjs';
 import {
@@ -46,16 +46,17 @@ import {
     ADDON_CALENDAR_EDIT_EVENT_EVENT,
     ADDON_CALENDAR_NEW_EVENT_EVENT,
     ADDON_CALENDAR_SYNC_ID,
+    AddonCalendarEventDuration,
     AddonCalendarEventType,
 } from '@addons/calendar/constants';
 import { ContextLevel } from '@/core/constants';
 import { CorePopovers } from '@services/overlays/popovers';
 import { CoreLoadings } from '@services/overlays/loadings';
 import { REMINDERS_DISABLED, CoreRemindersUnits } from '@features/reminders/constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreSharedModule } from '@/core/shared.module';
-import { DEFAULT_TEXT_FORMAT } from '@singletons/text';
+import { DEFAULT_TEXT_FORMAT } from '@static/text';
 
 /**
  * Page that displays a form to create/edit an event.
@@ -71,8 +72,7 @@ import { DEFAULT_TEXT_FORMAT } from '@singletons/text';
 })
 export default class AddonCalendarEditEventPage implements OnInit, OnDestroy, CanLeave {
 
-    readonly descriptionEditor = viewChild.required(CoreEditorRichTextEditorComponent);
-    readonly formElement = viewChild.required<ElementRef<HTMLFormElement>>('editEventForm');
+    readonly formElement = viewChild<ElementRef<HTMLFormElement>>('editEventForm');
 
     title = 'addon.calendar.newevent';
     component = ADDON_CALENDAR_COMPONENT;
@@ -127,7 +127,7 @@ export default class AddonCalendarEditEventPage implements OnInit, OnDestroy, Ca
         this.form.addControl('groupid', this.groupControl);
         this.form.addControl('description', this.descriptionControl);
         this.form.addControl('location', this.fb.control(''));
-        this.form.addControl('duration', this.fb.control(0));
+        this.form.addControl('duration', this.fb.control(AddonCalendarEventDuration.NONE));
         this.form.addControl('timedurationminutes', this.fb.control(''));
         this.form.addControl('repeat', this.fb.control(false));
         this.form.addControl('repeats', this.fb.control({ value: '1', disabled: true }));
@@ -160,8 +160,6 @@ export default class AddonCalendarEditEventPage implements OnInit, OnDestroy, Ca
 
     /**
      * Fetch the data needed to render the form.
-     *
-     * @returns Promise resolved when done.
      */
     protected async fetchData(): Promise<void> {
         this.error = false;
@@ -283,7 +281,7 @@ export default class AddonCalendarEditEventPage implements OnInit, OnDestroy, Ca
         // Get the courses.
         let courses = await (this.showAll ? CoreCourses.getCoursesByField() : CoreCourses.getUserCourses());
 
-        if (courses.length < 0) {
+        if (courses.length <= 0) {
             this.courses = [];
 
             return;
@@ -370,13 +368,13 @@ export default class AddonCalendarEditEventPage implements OnInit, OnDestroy, Ca
             // Online event, we'll have to calculate the data.
 
             if (onlineEvent.timeduration > 0) {
-                this.form.controls.duration.setValue(1);
+                this.form.controls.duration.setValue(AddonCalendarEventDuration.UNTIL);
                 this.form.controls.timedurationuntil.setValue(CoreTime.toDatetimeFormat(
                     (onlineEvent.timestart + onlineEvent.timeduration) * 1000,
                 ));
             } else {
                 // No duration.
-                this.form.controls.duration.setValue(0);
+                this.form.controls.duration.setValue(AddonCalendarEventDuration.NONE);
                 this.form.controls.timedurationuntil.setValue(CoreTime.toDatetimeFormat());
             }
 
@@ -448,7 +446,6 @@ export default class AddonCalendarEditEventPage implements OnInit, OnDestroy, Ca
      * Load groups of a certain course.
      *
      * @param courseId Course ID.
-     * @returns Promise resolved when done.
      */
     protected async loadGroups(courseId: number): Promise<void> {
         this.loadingGroups = true;
@@ -459,10 +456,6 @@ export default class AddonCalendarEditEventPage implements OnInit, OnDestroy, Ca
         } finally {
             this.loadingGroups = false;
         }
-    }
-
-    selectDuration(duration: string): void {
-        this.form.controls.duration.setValue(duration);
     }
 
     /**
@@ -484,9 +477,10 @@ export default class AddonCalendarEditEventPage implements OnInit, OnDestroy, Ca
             error = 'core.selectagroup';
         } else if (formData.eventtype === AddonCalendarEventType.CATEGORY && !formData.categoryid) {
             error = 'core.selectacategory';
-        } else if (formData.duration === 1 && timeStartDate > timeUntilDate) {
+        } else if (formData.duration === AddonCalendarEventDuration.UNTIL && timeStartDate > timeUntilDate) {
             error = 'addon.calendar.invalidtimedurationuntil';
-        } else if (formData.duration === 2 && (isNaN(timeDurationMinutes) || timeDurationMinutes < 1)) {
+        } else if (formData.duration === AddonCalendarEventDuration.MINUTES &&
+            (isNaN(timeDurationMinutes) || timeDurationMinutes < 1)) {
             error = 'addon.calendar.invalidtimedurationminutes';
         }
 
@@ -521,9 +515,9 @@ export default class AddonCalendarEditEventPage implements OnInit, OnDestroy, Ca
             data.categoryid = formData.categoryid;
         }
 
-        if (formData.duration == 1) {
+        if (formData.duration === AddonCalendarEventDuration.UNTIL) {
             data.timedurationuntil = timeUntilDate;
-        } else if (formData.duration == 2) {
+        } else if (formData.duration === AddonCalendarEventDuration.MINUTES) {
             data.timedurationminutes = formData.timedurationminutes;
         }
 
@@ -629,8 +623,6 @@ export default class AddonCalendarEditEventPage implements OnInit, OnDestroy, Ca
 
     /**
      * Init reminders.
-     *
-     * @returns Promise resolved when done.
      */
     protected async initReminders(): Promise<void> {
         // Don't init reminders when editing an event. Right now, only allow adding reminders for new events.
@@ -664,7 +656,7 @@ export default class AddonCalendarEditEventPage implements OnInit, OnDestroy, Ca
         const { CoreRemindersSetReminderMenuComponent } =
             await import('@features/reminders/components/set-reminder-menu/set-reminder-menu');
 
-        const reminderTime = await CorePopovers.open<{timeBefore: number}>({
+        const reminderTime = await CorePopovers.open<{ timeBefore: number }>({
             component: CoreRemindersSetReminderMenuComponent,
             componentProps: {
                 eventTime,
@@ -704,9 +696,11 @@ export default class AddonCalendarEditEventPage implements OnInit, OnDestroy, Ca
      * Value of repeat input changed.
      */
     repeatChanged(): void {
-        this.form.controls.repeat.value ?
-            this.form.controls.repeats.enable() :
+        if (this.form.controls.repeat.value) {
+            this.form.controls.repeats.enable();
+        } else {
             this.form.controls.repeats.disable();
+        }
     }
 
     /**

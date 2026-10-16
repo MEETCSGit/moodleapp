@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { InAppBrowserObject, InAppBrowserOptions } from '@awesome-cordova-plugins/in-app-browser';
+import { InAppBrowserObject, InAppBrowserOptions } from '@awesome-cordova-plugins/in-app-browser/ngx';
 
 import { CoreNetwork } from '@services/network';
 import { CoreDB } from '@services/db';
-import { CoreEventData, CoreEvents } from '@singletons/events';
+import { CoreEventData, CoreEvents } from '@static/events';
 import { CoreFile } from '@services/file';
 import {
     CoreWS,
@@ -24,19 +24,20 @@ import {
     CoreWSExternalWarning,
     CoreWSUploadFileResult,
 } from '@services/ws';
-import { CoreTime } from '@singletons/time';
-import { CoreUrl } from '@singletons/url';
-import { CoreOpener, CoreOpenerOpenInBrowserOptions } from '@singletons/opener';
-import { CoreConstants } from '@/core/constants';
+import { CoreTime } from '@static/time';
+import { CoreUrl } from '@static/url';
+import { CoreOpener, CoreOpenerOpenInBrowserOptions } from '@static/opener';
+import { CoreConstants, CoreTimeConstants } from '@/core/constants';
 import { SQLiteDB } from '@classes/sqlitedb';
 import { CoreError } from '@classes/errors/error';
-import { CoreLogger } from '@singletons/logger';
+import { CoreLogger } from '@static/logger';
 import { Translate } from '@singletons';
 import { CoreIonLoadingElement } from '../ion-loading';
 import { CoreSites, CoreSitesReadingStrategy } from '@services/sites';
 import { asyncInstance, AsyncInstance } from '../../utils/async-instance';
 import { CoreDatabaseTable } from '../database/database-table';
 import { CoreDatabaseCachingStrategy } from '../database/database-table-proxy';
+import { CoreEagerDatabaseTable } from '../database/eager-database-table';
 import {
     CONFIG_TABLE,
     CoreSiteConfigDBRecord,
@@ -54,7 +55,7 @@ import { CoreAuthenticatedSite, CoreAuthenticatedSiteOptionalData, CoreSiteWSPre
 import { firstValueFrom } from 'rxjs';
 import { CorePlatform } from '@services/platform';
 import { CoreLoadings } from '@services/overlays/loadings';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreAlerts } from '@services/overlays/alerts';
 
 /**
@@ -69,8 +70,8 @@ export class CoreSite extends CoreAuthenticatedSite {
 
     protected db!: SQLiteDB;
     protected cacheTable: AsyncInstance<CoreDatabaseTable<CoreSiteWSCacheRecord>>;
-    protected configTable: AsyncInstance<CoreDatabaseTable<CoreSiteConfigDBRecord, 'name', never>>;
-    protected lastViewedTable: AsyncInstance<CoreDatabaseTable<CoreSiteLastViewedDBRecord, CoreSiteLastViewedDBPrimaryKeys>>;
+    protected configTable: AsyncInstance<CoreEagerDatabaseTable<CoreSiteConfigDBRecord, 'name', never>>;
+    protected lastViewedTable: AsyncInstance<CoreEagerDatabaseTable<CoreSiteLastViewedDBRecord, CoreSiteLastViewedDBPrimaryKeys>>;
     protected lastAutoLogin = 0;
     protected tokenPluginFileWorks?: boolean;
     protected tokenPluginFileWorksPromise?: Promise<boolean>;
@@ -252,13 +253,10 @@ export class CoreSite extends CoreAuthenticatedSite {
         return this.cacheTable.reduce(
             {
                 sql: 'SUM(length(data))',
-                js: (size, record) => size + record.data.length,
-                jsInitialValue: 0,
             },
             {
                 sql: `WHERE component = ?${extraClause}`,
                 sqlParams: params,
-                js: record => record.component === component && (params.length === 1 || record.componentId === componentId),
             },
         );
     }
@@ -356,7 +354,6 @@ export class CoreSite extends CoreAuthenticatedSite {
         await this.cacheTable.updateWhere({ expirationTime: 0 }, {
             sql: 'key LIKE ?',
             sqlParams: [`${key}%`],
-            js: record => !!record.key?.startsWith(key),
         });
     }
 
@@ -434,8 +431,6 @@ export class CoreSite extends CoreAuthenticatedSite {
     async getCacheUsage(): Promise<number> {
         return this.cacheTable.reduce({
             sql: 'SUM(length(data))',
-            js: (size, record) => size + record.data.length,
-            jsInitialValue: 0,
         });
     }
 
@@ -557,6 +552,24 @@ export class CoreSite extends CoreAuthenticatedSite {
     }
 
     /**
+     * Get a boolean config of this site.
+     *
+     * @param name Name of the setting to get.
+     * @param ignoreCache True if it should ignore cached data.
+     * @param defaultValue Default value to return if the config is not found or there's an error.
+     * @returns Promise resolved with the config value.
+     */
+    async getBooleanConfig(name: string, ignoreCache?: boolean, defaultValue = false): Promise<boolean> {
+        try {
+            const value = await this.getConfig(name, ignoreCache);
+
+            return value === '1';
+        } catch {
+            return defaultValue;
+        }
+    }
+
+    /**
      * Get the config of this site.
      * It is recommended to use getStoredConfig instead since it's faster and doesn't use network.
      *
@@ -576,7 +589,7 @@ export class CoreSite extends CoreAuthenticatedSite {
             if (name) {
                 // Return the requested setting.
                 for (const x in config.settings) {
-                    if (config.settings[x].name == name) {
+                    if (config.settings[x].name === name) {
                         return String(config.settings[x].value);
                     }
                 }
@@ -643,8 +656,10 @@ export class CoreSite extends CoreAuthenticatedSite {
     protected triggerSiteEvent<Fallback = unknown, Event extends string = string>(
         eventName: Event,
         data?: CoreEventData<Event, Fallback>,
-    ): void {
+    ): boolean {
         CoreEvents.trigger(eventName, data, this.id);
+
+        return true;
     }
 
     /**
@@ -670,7 +685,7 @@ export class CoreSite extends CoreAuthenticatedSite {
      * @param showModal Whether to show a loading modal.
      * @returns Promise resolved with the converted URL.
      */
-    async getAutoLoginUrl(url: string, showModal: boolean = true): Promise<string> {
+    async getAutoLoginUrl(url: string, showModal = true): Promise<string> {
         if (!this.privateToken) {
             // No private token, don't change the URL.
             return url;
@@ -681,8 +696,8 @@ export class CoreSite extends CoreAuthenticatedSite {
             return url;
         }
 
-        if (CoreUrl.isTokenPluginFileUrl(url)) {
-            // Tokenpluginfile URLs authenticate the user using the access key, no need to use auto-login.
+        if (CoreUrl.isTokenPluginFileUrl(url) || CoreUrl.isRefererScriptUrl(url, this.siteUrl)) {
+            // URL doesn't need login or it already has a different login system.
             return url;
         }
 
@@ -884,7 +899,7 @@ export class CoreSite extends CoreAuthenticatedSite {
     async getAutoLoginMinTimeBetweenRequests(): Promise<number> {
         const timeBetweenRequests = await CorePromiseUtils.ignoreErrors(
             this.getConfig('tool_mobile_autologinmintimebetweenreq'),
-            CoreConstants.SECONDS_MINUTE * 6,
+            CoreTimeConstants.SECONDS_MINUTE * 6,
         );
 
         return Number(timeBetweenRequests);
@@ -898,6 +913,35 @@ export class CoreSite extends CoreAuthenticatedSite {
      */
     getLastAutoLoginTime(): number {
         return this.lastAutoLogin;
+    }
+
+    /**
+     * Given a URL, fix it to use a redirect script that will add the referer if possible.
+     *
+     * @param url URL to fix.
+     * @returns Fixed URL or original URL if no need to fix it.
+     */
+    fixRefererForUrl(url: string): string {
+        if (!this.isVersionGreaterEqualThan('5.2')) {
+            // The referer script was added in Moodle 5.2. If the site is older, referer cannot be fixed.
+            return url;
+        }
+
+        return CoreUrl.toRefererScriptUrl(url, this.siteUrl);
+    }
+
+    /**
+     * Get URLs of scripts that are allowed in the user generated content.
+     *
+     * @returns List of allowed script URLs.
+     */
+    getContentAllowedScriptUrls(): string[] {
+        const allowedScriptsConfig = this.getStoredConfig('tool_mobile_scriptallowlist');
+        if (!allowedScriptsConfig) {
+            return [];
+        }
+
+        return allowedScriptsConfig.split(/(?:\r\n|\r|\n)/).map((url) => url.trim()).filter(url => !!url);
     }
 
 }
@@ -929,6 +973,9 @@ export type CoreSiteConfig = Record<string, string> & {
     supportavailability?: string; // String representation of CoreSiteConfigSupportAvailability.
     searchbanner?: string; // Search banner text.
     searchbannerenable?: string; // Whether search banner is enabled.
+    enabledashboard?: string; // Whether dashboard is enabled.
+    enablemyhome?: string; // @since 5.2. Whether my home is enabled.
+    enablemycourses?: string; // @since 5.2. Whether my courses is enabled.
 };
 
 /**

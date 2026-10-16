@@ -16,10 +16,10 @@ import { Params } from '@angular/router';
 import { CoreRoutedItemsManagerSource } from '@classes/items-management/routed-items-manager-source';
 import { CoreGroupInfo, CoreGroups } from '@services/groups';
 import { CoreSites } from '@services/sites';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { Translate } from '@singletons';
-import { CoreIonicColorNames } from '@singletons/colors';
-import { CoreEvents } from '@singletons/events';
+import { CoreIonicColorNames } from '@static/colors';
+import { CoreEvents } from '@static/events';
 import {
     AddonModAssign,
     AddonModAssignAssign,
@@ -108,8 +108,10 @@ export class AddonModAssignSubmissionsSource extends CoreRoutedItemsManagerSourc
 
     /**
      * Load assignment.
+     *
+     * @param sync Whether to try to synchronize data.
      */
-    async loadAssignment(sync: boolean = false): Promise<void> {
+    async loadAssignment(sync = false): Promise<void> {
         // Get assignment data.
         this.assign = await AddonModAssign.getAssignment(this.courseId, this.moduleId);
 

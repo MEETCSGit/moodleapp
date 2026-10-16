@@ -15,7 +15,7 @@
 import { Injectable } from '@angular/core';
 import { CoreCronHandler } from '@services/cron';
 import { CoreSites, CoreSitesReadingStrategy } from '@services/sites';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { makeSingleton } from '@singletons';
 
 /**
@@ -43,7 +43,7 @@ export class CoreLoginCronHandlerService implements CoreCronHandler {
             readingStrategy: CoreSitesReadingStrategy.ONLY_NETWORK,
         }));
 
-        CorePromiseUtils.ignoreErrors(CoreSites.checkApplication(config));
+        config && CorePromiseUtils.ignoreErrors(CoreSites.checkApplication(config, site));
     }
 
     /**

@@ -19,6 +19,11 @@ export const CORE_PARTICIPANTS_COURSE_OPTION_NAME = 'CoreUserParticipants'; // T
 // Events.
 export const CORE_USER_AUTO_SYNCED = 'core_user_autom_synced';
 
+// Features.
+export const CORE_USER_FEATURE_PREFIX = 'CoreUserDelegate_';
+
+export const CORE_USER_PICTURE_FEATURE_NAME = `${CORE_USER_FEATURE_PREFIX}picture`;
+
 /**
  * Profile picture updated event.
  */
@@ -47,3 +52,5 @@ export const CORE_USER_PARTICIPANTS_LIST_LIMIT = 50;
 // Time formats.
 export const CORE_USER_TF_24 = '%H:%M'; // Time format in 24 hours format.
 export const CORE_USER_TF_12 = '%I:%M %p'; // Time format in 12 hours format.
+
+export const CORE_USER_CALENDAR_DEFAULT_STARTING_WEEKDAY = 1;

@@ -1,11 +1,14 @@
-@core_courses @app @core @core_my @block_myoverview @block_timeline @javascript
+@app_parallel_run_courses @core_courses @app @core @core_my @block_myoverview @block_timeline @javascript
 Feature: Test basic usage of courses in app
   In order to participate in the courses while using the mobile app
   As a student
   I need basic courses functionality to work
 
   Background:
-    Given the following "users" exist:
+    Given the following config values are set as admin:
+      | enablemyhome    | 1 |
+      | enablemycourses | 1 |
+    And the following "users" exist:
       | username | firstname | lastname | email |
       | teacher1 | Teacher | teacher | teacher1@example.com |
       | student1 | Student | student | student1@example.com |
@@ -41,15 +44,19 @@ Feature: Test basic usage of courses in app
     Given I entered the app as "student1"
     When I should see "Dashboard"
     And the header should be "Acceptance test site" in the app
+    And the page title should be "Dashboard | Acceptance test site" in the app
+
     And I should see "Timeline"
     And I press "Site home" in the app
     Then I should find "Dashboard" in the app
     And the header should be "Acceptance test site" in the app
+    And the page title should be "Site home | Acceptance test site" in the app
 
     When I press "My courses" in the app
     Then I should find "Course 1" in the app
     And I should find "Course 2" in the app
     And I should find "Course 3" in the app
+    And the page title should be "My courses | Acceptance test site" in the app
 
   Scenario: Hidden course is only accessible for teachers
     Given I entered the app as "teacher1"

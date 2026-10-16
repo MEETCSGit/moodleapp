@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { Injectable } from '@angular/core';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { CoreSites, CoreSitesReadingStrategy } from '@services/sites';
 import { CoreSyncBlockedError } from '@classes/base-sync';
 import {
@@ -46,7 +46,7 @@ import {
     ADDON_MOD_ASSIGN_MANUAL_SYNCED,
     ADDON_MOD_ASSIGN_MODNAME,
 } from '../constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 
 /**
  * Service to sync assigns.
@@ -85,7 +85,7 @@ export class AddonModAssignSyncProvider extends CoreCourseActivitySyncBaseProvid
 
         optionsList.unshift('');
 
-        const index = options.indexOf(selected) || 0;
+        const index = optionsList.indexOf(selected) || 0;
         if (index < 0) {
             return 0;
         }
@@ -108,7 +108,7 @@ export class AddonModAssignSyncProvider extends CoreCourseActivitySyncBaseProvid
      * Try to synchronize all the assignments in a certain site or in all sites.
      *
      * @param siteId Site ID to sync. If not defined, sync all sites.
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
     syncAllAssignments(siteId?: string, force?: boolean): Promise<void> {
@@ -118,7 +118,7 @@ export class AddonModAssignSyncProvider extends CoreCourseActivitySyncBaseProvid
     /**
      * Sync all assignments on a site.
      *
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @param siteId Site ID to sync. If not defined, sync all sites.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
@@ -368,7 +368,7 @@ export class AddonModAssignSyncProvider extends CoreCourseActivitySyncBaseProvid
             }
 
             // Submission data sent, update cached data. No need to block the user for this.
-            AddonModAssign.getSubmissionStatus(assign, options);
+            void AddonModAssign.getSubmissionStatus(assign, options);
         } catch (error) {
             if (!CoreWSError.isWebServiceError(error)) {
                 // Local error, reject.
@@ -483,7 +483,7 @@ export class AddonModAssignSyncProvider extends CoreCourseActivitySyncBaseProvid
                     }
                 } else if (gradeInfo && grade.outcomeid && gradeInfo.outcomes) {
                     gradeInfo.outcomes.forEach((outcome, index) => {
-                        if (outcome.scale && grade.itemnumber == index) {
+                        if (outcome.scale && grade.itemnumber === index) {
                             offlineData.outcomes[grade.itemnumber] = this.getSelectedScaleId(
                                 outcome.scale,
                                 grade.grade || '',
@@ -563,7 +563,7 @@ export type AddonModAssignManualSyncData = AddonModAssignAutoSyncData & {
     submitId?: number;
 };
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.

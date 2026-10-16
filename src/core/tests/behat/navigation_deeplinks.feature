@@ -1,4 +1,4 @@
-@core_navigation @app @javascript
+@app_parallel_run_core @core_navigation @app @javascript
 Feature: It navigates properly using deep links.
 
   Background:
@@ -23,7 +23,9 @@ Feature: It navigates properly using deep links.
       | defaulthomepage | 0 |             |
 
   Scenario: Receive a push notification
-    Given I entered the app as "student2"
+    Given the following config values are set as admin:
+      | enablemyhome | 1 |
+    And I entered the app as "student2"
     When I log out in the app
     And I press "Add" in the app
     And I set the field "Your site" to "$WWWROOT" in the app
@@ -47,10 +49,16 @@ Feature: It navigates properly using deep links.
     And I should not find "Forum message" in the app
 
   Scenario: Open a link with a custom URL
+    Given the following config values are set as admin:
+      | enablemyhome | 1 |
     When I launch the app
     And I open a custom link in the app for:
       | discussion  |
       | Forum topic |
+    Then I should find "Only continue if you trust this site." in the app
+
+    When I press "Open site" in the app
+    And I wait the app to restart
     And I log in as "student1"
     And I wait loading to finish in the app
     Then I should find "Forum topic" in the app
@@ -63,11 +71,14 @@ Feature: It navigates properly using deep links.
     And I should not find "Forum message" in the app
 
   Scenario: Open a link with a custom URL that calls WebServices for a logged out site
-    Given I entered the app as "student2"
+    Given the following config values are set as admin:
+      | enablemyhome | 1 |
+    And I entered the app as "student2"
     When I log out in the app
     And I open a custom link in the app for:
       | forum      |
       | Test forum |
+    And I wait the app to restart
     Then I should find "Reconnect" in the app
 
     When I set the field "Password" to "student2" in the app
@@ -83,9 +94,9 @@ Feature: It navigates properly using deep links.
     When I open a custom link in the app for:
       | discussion  | user     |
       | Forum topic | student2 |
-    Then I should find "This link belongs to another site" in the app
+    Then I should find "Only continue if you trust this site." in the app
 
-    When I press "OK" in the app
+    When I press "Open site" in the app
     And I wait the app to restart
     Then the header should be "Log in" in the app
 
@@ -105,9 +116,9 @@ Feature: It navigates properly using deep links.
     When I open a custom link in the app for:
       | discussion  | user     |
       | Forum topic | student2 |
-    Then I should find "This link belongs to another site" in the app
+    Then I should find "Only continue if you trust this site." in the app
 
-    When I press "OK" in the app
+    When I press "Open site" in the app
     And I wait the app to restart
     Then I should find "Forum topic" in the app
     And I should find "Forum message" in the app
@@ -125,9 +136,9 @@ Feature: It navigates properly using deep links.
     When I open a custom link in the app for:
       | discussion  | user     |
       | Forum topic | student2 |
-    Then I should find "This link belongs to another site" in the app
+    Then I should find "Only continue if you trust this site." in the app
 
-    When I press "OK" in the app
+    When I press "Open site" in the app
     And I wait the app to restart
     Then the header should be "Reconnect" in the app
     And I should find "pau student2" in the app
@@ -152,9 +163,9 @@ Feature: It navigates properly using deep links.
     And I open a custom link in the app for:
       | discussion  | user     |
       | Forum topic | student2 |
-    Then I should find "This link belongs to another site" in the app
+    Then I should find "Only continue if you trust this site." in the app
 
-    When I press "OK" in the app
+    When I press "Open site" in the app
     Then I should find "Leave page?" in the app
     And I should find "Unsaved changes will be lost." in the app
 
@@ -164,7 +175,9 @@ Feature: It navigates properly using deep links.
     When I open a custom link in the app for:
       | discussion  | user     |
       | Forum topic | student2 |
-    And I press "OK" in the app
+    Then I should find "Only continue if you trust this site." in the app
+
+    When I press "Open site" in the app
     And I press "Leave" in the app
     And I wait the app to restart
     Then I should find "Forum topic" in the app
@@ -173,3 +186,38 @@ Feature: It navigates properly using deep links.
     When I go back to the root page in the app
     And I press the user menu button in the app
     Then I should find "pau student2" in the app
+
+  @lms_from5.3
+  Scenario: Cannot authenticate automatically with deep link if admin setting is disabled
+    Given the Moodle site is compatible with this feature
+    And the following config values are set as admin:
+      | enabledeeplinkautologin | 0 | tool_mobile |
+    When I launch the app
+    And I open a custom link in the app for:
+      | discussion  | user     | includetoken |
+      | Forum topic | student1 | 1            |
+    Then I should find "Only continue if you trust this site." in the app
+
+    When I press "Open site" in the app
+    Then the header should be "Log in" in the app
+    And I should not find "Forum topic" in the app
+
+    When I set the field "Password" to "student1" in the app
+    And I press "Log in" "ion-button" in the app
+    Then I should find "Forum topic" in the app
+    And I should find "Forum message" in the app
+
+  @lms_from5.3
+  Scenario: Can authenticate automatically with deep link if admin setting is enabled
+    Given the Moodle site is compatible with this feature
+    And the following config values are set as admin:
+      | enabledeeplinkautologin | 1 | tool_mobile |
+    When I launch the app
+    And I open a custom link in the app for:
+      | discussion  | user     | includetoken |
+      | Forum topic | student1 | 1            |
+    Then I should find "Only continue if you trust this site." in the app
+
+    When I press "Open site" in the app
+    Then I should find "Forum topic" in the app
+    And I should find "Forum message" in the app

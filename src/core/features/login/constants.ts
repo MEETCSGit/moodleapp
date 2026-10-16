@@ -13,7 +13,6 @@
 // limitations under the License.
 
 export const GET_STARTED_URL = 'https://moodle.com';
-export const ONBOARDING_DONE = 'onboarding_done';
 export const FAQ_QRCODE_INFO_DONE = 'qrcode_info_done';
 export const FAQ_URL_IMAGE_HTML = '<img src="assets/img/login/faq_url.png" role="presentation" alt="">';
 export const FAQ_QRCODE_IMAGE_HTML = '<img src="assets/img/login/faq_qrcode.png" role="presentation" alt="">';
@@ -26,3 +25,8 @@ export const ALWAYS_SHOW_LOGIN_FORM_CHANGED = 'always_show_login_form_changed';
 
 // Event indicating that a user left the app because it wasn't supported by a site.
 export const APP_UNSUPPORTED_CHURN = 'app_unsupported_churn';
+
+// Login info to be stored when using SSO.
+export const LOGIN_SSO_LAUNCH_DATA = 'CoreLoginLaunchData';
+
+export const NO_SITE_ID = 'NoSite';

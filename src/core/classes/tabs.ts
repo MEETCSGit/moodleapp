@@ -30,16 +30,16 @@ import { Subscription } from 'rxjs';
 
 import { CoreSettingsHelper } from '@features/settings/services/settings-helper';
 import { CoreAriaRoleTab, CoreAriaRoleTabFindable } from './aria-role-tab';
-import { CoreEventObserver } from '@singletons/events';
-import { CoreDom } from '@singletons/dom';
-import { CoreWait } from '@singletons/wait';
+import { CoreEventObserver } from '@static/events';
+import { CoreDom } from '@static/dom';
+import { CoreWait } from '@static/wait';
 import { CoreError } from './errors/error';
 import { CorePromisedValue } from './promised-value';
-import { AsyncDirective } from './async-directive';
-import { CoreDirectivesRegistry } from '@singletons/directives-registry';
+import type { AsyncDirective } from '../types/async-directive';
+import { CoreDirectivesRegistry } from '@static/directives-registry';
 import { Swiper } from 'swiper';
 import { SwiperOptions } from 'swiper/types';
-import { CoreSwiper } from '@singletons/swiper';
+import { CoreSwiper } from '@static/swiper';
 import { toBoolean } from '../transforms/boolean';
 import { BackButtonPriority } from '../constants';
 
@@ -106,7 +106,7 @@ export class CoreTabsBaseComponent<T extends CoreTabBase> implements AfterViewIn
     protected firstSelectedTab?: string; // ID of the first selected tab to control history.
     protected backButtonFunction: (event: BackButtonEvent) => void;
     // Swiper documentation: https://swiperjs.com/swiper-api
-    protected isInTransition = false; // Wether Slides is in transition.
+    protected isInTransition = false; // Whether Slides is in transition.
     protected subscriptions: Subscription[] = [];
     protected onReadyPromise = new CorePromisedValue<void>();
 
@@ -476,9 +476,9 @@ export class CoreTabsBaseComponent<T extends CoreTabBase> implements AfterViewIn
             return;
         }
 
-        const suceeded = await this.loadTab(tabToSelect);
+        const succeeded = await this.loadTab(tabToSelect);
 
-        if (suceeded !== false) {
+        if (succeeded !== false) {
             this.tabSelected(tabToSelect, index);
         }
         this.onReadyPromise.resolve();

@@ -14,15 +14,14 @@
 
 import { Component, OnDestroy, OnInit } from '@angular/core';
 
-import { CoreConstants } from '@/core/constants';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreConfigSettingKey } from '@/core/constants';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { CoreSites } from '@services/sites';
 import { CoreConfig } from '@services/config';
 import { CoreSettingsHelper } from '@features/settings/services/settings-helper';
-import { NgZone, Translate } from '@singletons';
+import { Translate } from '@singletons';
 import { CoreAccountsList, CoreLoginHelper } from '@features/login/services/login-helper';
 import { CoreNetwork } from '@services/network';
-import { Subscription } from 'rxjs';
 import { CoreNavigator } from '@services/navigator';
 import { CoreToasts } from '@services/overlays/toasts';
 import { CoreAlerts } from '@services/overlays/alerts';
@@ -48,12 +47,11 @@ export default class CoreSettingsSynchronizationPage implements OnInit, OnDestro
 
     sitesLoaded = false;
     dataSaver = false;
-    limitedConnection = false;
-    isOnline = true;
+    readonly limitedConnection = CoreNetwork.isCellularSignal;
+    readonly isOnline = CoreNetwork.onlineSignal;
 
     protected isDestroyed = false;
     protected sitesObserver: CoreEventObserver;
-    protected networkObserver: Subscription;
 
     constructor() {
 
@@ -92,17 +90,6 @@ export default class CoreSettingsSynchronizationPage implements OnInit, OnDestro
             }
         });
 
-        this.isOnline = CoreNetwork.isOnline();
-        this.limitedConnection = CoreNetwork.isCellular();
-
-        this.networkObserver = CoreNetwork.onChange().subscribe(() => {
-            // Execute the callback in the Angular zone, so change detection doesn't stop working.
-            NgZone.run(() => {
-                this.isOnline = CoreNetwork.isOnline();
-                this.limitedConnection = CoreNetwork.isCellular();
-            });
-        });
-
     }
 
     /**
@@ -117,14 +104,14 @@ export default class CoreSettingsSynchronizationPage implements OnInit, OnDestro
 
         this.sitesLoaded = true;
 
-        this.dataSaver = await CoreConfig.get(CoreConstants.SETTINGS_SYNC_ONLY_ON_WIFI, true);
+        this.dataSaver = await CoreConfig.get(CoreConfigSettingKey.SYNC_ONLY_ON_WIFI, true);
     }
 
     /**
      * Called when sync only on wifi setting is enabled or disabled.
      */
     syncOnlyOnWifiChanged(): void {
-        CoreConfig.set(CoreConstants.SETTINGS_SYNC_ONLY_ON_WIFI, this.dataSaver ? 1 : 0);
+        CoreConfig.set(CoreConfigSettingKey.SYNC_ONLY_ON_WIFI, this.dataSaver ? 1 : 0);
     }
 
     /**
@@ -186,7 +173,6 @@ export default class CoreSettingsSynchronizationPage implements OnInit, OnDestro
     ngOnDestroy(): void {
         this.isDestroyed = true;
         this.sitesObserver.off();
-        this.networkObserver.unsubscribe();
     }
 
 }

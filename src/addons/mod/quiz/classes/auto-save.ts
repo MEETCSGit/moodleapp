@@ -16,7 +16,7 @@ import { BehaviorSubject } from 'rxjs';
 
 import { CoreQuestionHelper } from '@features/question/services/question-helper';
 import { CoreQuestionsAnswers } from '@features/question/services/question';
-import { CoreLogger } from '@singletons/logger';
+import { CoreLogger } from '@static/logger';
 import { AddonModQuiz, AddonModQuizAttemptWSData, AddonModQuizQuizWSData } from '../services/quiz';
 import { CorePopovers } from '@services/overlays/popovers';
 
@@ -181,6 +181,8 @@ export class AddonModQuizAutoSave {
 
     /**
      * Show an error popover due to an auto save error.
+     *
+     * @param ev Event that triggered the error. If not provided it will try to find the button using the buttonSelector property.
      */
     async showAutoSaveError(ev?: Event): Promise<void> {
         // Don't show popover if it was already shown.

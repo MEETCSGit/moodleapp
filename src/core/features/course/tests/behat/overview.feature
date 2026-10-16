@@ -1,4 +1,4 @@
-@core_course @app @core @javascript @lms_from5.1
+@app_parallel_run_course @core_course @app @core @javascript @lms_from5.1
 Feature: Activities overview common functionality
 
   Background:
@@ -230,7 +230,9 @@ Feature: Activities overview common functionality
     Then I should not find "Resource type" in the app
 
   Scenario: Links to overview are handled by the app and open the overview page
-    Given the following "courses" exist:
+    Given the following config values are set as admin:
+      | enablemycourses | 1 |
+    And the following "courses" exist:
       | fullname | shortname |
       | Course 2 | C2        |
     And the following "course enrolments" exist:
@@ -259,8 +261,14 @@ Feature: Activities overview common functionality
   Scenario: The course overview page should log a page event and a resource list event
     Given I entered the course "Course 1" as "student" in the app
     When I press "Activities" in the app
-    And I press "Resources" in the app
     Then the following events should have been logged for "student" in the app:
       | name                               | course   |
       | \core\event\course_overview_viewed | Course 1 |
-  # TODO MOBILE-4869: Check expanding Resources registers a log. Each activity should also check its log.
+    And the following events should not have been logged for "student" in the app:
+      | name                                     | course   |
+      | \core\event\course_resources_list_viewed | Course 1 |
+
+    When I press "Resources" in the app
+    Then the following events should have been logged for "student" in the app:
+      | name                                     | course   |
+      | \core\event\course_resources_list_viewed | Course 1 |

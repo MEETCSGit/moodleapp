@@ -13,15 +13,18 @@
 // limitations under the License.
 
 import { CoreColorScheme, CoreZoomLevel } from '@features/settings/services/settings-helper';
-import { CoreMainMenuLocalizedCustomItem } from '@features/mainmenu/services/mainmenu';
+import { CoreMainMenuOverrideItem } from '@features/mainmenu/services/mainmenu';
+import { CoreCustomMenuLocalizedCustomItem } from '@features/mainmenu/services/custommenu';
 import { CoreLoginSiteInfo, CoreSitesDemoSiteData } from '@services/sites';
-import { OpenFileAction } from '@singletons/opener';
+import { OpenFileAction } from '@static/opener';
 import { CoreLoginSiteFinderSettings, CoreLoginSiteSelectorListMethod } from '@features/login/services/login-helper';
 import { CoreDatabaseConfiguration } from '@classes/database/database-table';
 import { ToastDuration } from '@services/overlays/toasts';
+import { CoreWSOverride } from '@classes/sites/unauthenticated-site';
+import { CoreLinkOpenMethod } from '@/core/constants';
 
 /* eslint-disable @typescript-eslint/naming-convention */
-
+// It's important to keep EnvironmentConfig as an interface so it can be extended using "declare module".
 export interface EnvironmentConfig {
     app_id: string;
     appname: string;
@@ -47,10 +50,10 @@ export interface EnvironmentConfig {
     sitefindersettings: Partial<CoreLoginSiteFinderSettings>;
     onlyallowlistedsites: boolean;
     skipssoconfirmation: boolean;
+    addUserIdToSsoUrl?: boolean;
     forcedefaultlanguage: boolean;
     privacypolicy: string;
     notificoncolor: string;
-    enableonboarding: boolean;
     forceColorScheme: CoreColorScheme;
     forceLoginLogo: boolean;
     showTopLogo: 'online' | 'offline' | 'hidden';
@@ -58,9 +61,10 @@ export interface EnvironmentConfig {
     appstores: Record<string, string>;
     displayqroncredentialscreen?: boolean;
     displayqronsitescreen?: boolean;
-    forceOpenLinksIn?: 'app' | 'browser';
+    forceOpenLinksIn?: Exclude<CoreLinkOpenMethod, CoreLinkOpenMethod.APP>;
     iOSDefaultOpenFileAction?: OpenFileAction;
-    customMainMenuItems?: CoreMainMenuLocalizedCustomItem[];
+    customMainMenuItems?: CoreCustomMenuLocalizedCustomItem[];
+    customUserMenuItems?: CoreCustomMenuLocalizedCustomItem[];
     feedbackFormUrl?: string | false;
     a11yStatement?: string | false;
     legalDisclaimer?: string | false;
@@ -80,4 +84,6 @@ export interface EnvironmentConfig {
     clearIABSessionWhenAutoLogin?: 'android' | 'ios' | 'all'; // Clear the session every time a new IAB is opened with auto-login.
     disabledFeatures?: string; // Disabled features for the whole app, using the same format as tool_mobile_disabledfeatures.
     collapsibleItemsExpanded: boolean; // Expand or collapse the collapsible items by default.
+    wsOverrides: Record<string, CoreWSOverride[]>; // Overrides to apply to WS calls.
+    overrideMainMenuButtons: CoreMainMenuOverrideItem[]; // Override main menu items.
 }

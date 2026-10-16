@@ -14,17 +14,17 @@
 
 import { Injectable } from '@angular/core';
 import { Subject, Subscription } from 'rxjs';
-import { ILocalNotification } from '@awesome-cordova-plugins/local-notifications';
+import { ILocalNotification } from '@awesome-cordova-plugins/local-notifications/ngx';
 
 import { CoreAppDB } from '@services/app-db';
 import { CoreConfig } from '@services/config';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
-import { CoreText } from '@singletons/text';
+import { CoreEventObserver, CoreEvents } from '@static/events';
+import { CoreText } from '@static/text';
 import { CoreQueueRunner } from '@classes/queue-runner';
 import { CoreError } from '@classes/errors/error';
-import { CoreConstants } from '@/core/constants';
+import { CoreConstants, CoreConfigSettingKey } from '@/core/constants';
 import { makeSingleton, NgZone, Translate, LocalNotifications, ApplicationInit } from '@singletons';
-import { CoreLogger } from '@singletons/logger';
+import { CoreLogger } from '@static/logger';
 import {
     APP_SCHEMA,
     TRIGGERED_TABLE_NAME,
@@ -43,8 +43,9 @@ import { CoreDatabaseTable } from '@classes/database/database-table';
 import { CoreDatabaseCachingStrategy, CoreDatabaseTableProxy } from '@classes/database/database-table-proxy';
 import { CoreSites } from './sites';
 import { CoreNavigator } from './navigator';
-import { CoreWait } from '@singletons/wait';
+import { CoreWait } from '@static/wait';
 import { CoreAlerts } from './overlays/alerts';
+import { AndroidNotificationPriority } from '@features/native/constants';
 
 /**
  * Service to handle local notifications.
@@ -54,8 +55,8 @@ export class CoreLocalNotificationsProvider {
 
     protected logger: CoreLogger;
     protected codes: { [s: string]: number } = {};
-    protected codeRequestsQueue: {[key: string]: CodeRequestsQueueItem} = {};
-    protected observables: {[eventName: string]: {[component: string]: Subject<unknown>}} = {};
+    protected codeRequestsQueue: { [key: string]: CodeRequestsQueueItem } = {};
+    protected observables: { [eventName: string]: { [component: string]: Subject<unknown> } } = {};
 
     protected triggerSubscription?: Subscription;
     protected clickSubscription?: Subscription;
@@ -155,7 +156,7 @@ export class CoreLocalNotificationsProvider {
                 return;
             }
 
-            const dontShowWarning = await CoreConfig.get(CoreConstants.EXACT_ALARMS_WARNING_DISPLAYED, 0);
+            const dontShowWarning = await CoreConfig.get(CoreConfigSettingKey.EXACT_ALARMS_WARNING_DISPLAYED, 0);
             if (dontShowWarning) {
                 return;
             }
@@ -177,7 +178,7 @@ export class CoreLocalNotificationsProvider {
                 ],
             });
 
-            CoreConfig.set(CoreConstants.EXACT_ALARMS_WARNING_DISPLAYED, 1);
+            CoreConfig.set(CoreConfigSettingKey.EXACT_ALARMS_WARNING_DISPLAYED, 1);
         });
     }
 
@@ -188,21 +189,21 @@ export class CoreLocalNotificationsProvider {
         await CoreAppDB.createTablesFromSchema(APP_SCHEMA);
 
         const database = CoreAppDB.getDB();
-        const sitesTable = new CoreDatabaseTableProxy<CoreLocalNotificationsSitesDBRecord, 'id', never>(
+        const sitesTable = CoreDatabaseTableProxy.createInstance<CoreLocalNotificationsSitesDBRecord, 'id', never>(
             { cachingStrategy: CoreDatabaseCachingStrategy.None },
             database,
             LOCAL_NOTIFICATIONS_SITES_TABLE_NAME,
             ['id'],
             null,
         );
-        const componentsTable = new CoreDatabaseTableProxy<CoreLocalNotificationsComponentsDBRecord, 'id', never>(
+        const componentsTable = CoreDatabaseTableProxy.createInstance<CoreLocalNotificationsComponentsDBRecord, 'id', never>(
             { cachingStrategy: CoreDatabaseCachingStrategy.None },
             database,
             COMPONENTS_TABLE_NAME,
             ['id'],
             null,
         );
-        const triggeredTable = new CoreDatabaseTableProxy<CoreLocalNotificationsTriggeredDBRecord>(
+        const triggeredTable = CoreDatabaseTableProxy.createInstance<CoreLocalNotificationsTriggeredDBRecord>(
             { cachingStrategy: CoreDatabaseCachingStrategy.None },
             database,
             TRIGGERED_TABLE_NAME,
@@ -320,10 +321,12 @@ export class CoreLocalNotificationsProvider {
             return;
         }
 
+        // @todo: The LocalNotification plugin now allows creating the channel, but the awesome-cordova-plugins
+        // wrapper doesn't have the method yet. Continue using the Push plugin for now.
         await Push.createChannel({
             id: 'default-channel-id',
             description: Translate.instant('addon.calendar.calendarreminders'),
-            importance: 4,
+            importance: AndroidNotificationPriority.HIGH,
         }).catch((error) => {
             this.logger.error('Error changing channel name', error);
         });
@@ -339,7 +342,11 @@ export class CoreLocalNotificationsProvider {
             // LocalNotifications.getAllScheduled is broken, use the Cordova plugin directly.
             const plugin = this.getCordovaPlugin();
 
-            plugin ? plugin.getScheduled(notifications => resolve(notifications)) : resolve([]);
+            if (plugin) {
+                plugin.getScheduled(notifications => resolve(notifications));
+            } else {
+                resolve([]);
+            }
         }));
     }
 
@@ -476,7 +483,7 @@ export class CoreLocalNotificationsProvider {
      * @param useQueue Whether to add the call to the queue.
      * @returns Promise resolved with a boolean indicating if promise is triggered (true) or not.
      */
-    async isTriggered(notification: ILocalNotification, useQueue: boolean = true): Promise<boolean> {
+    async isTriggered(notification: ILocalNotification, useQueue = true): Promise<boolean> {
         if (notification.id === undefined) {
             return false;
         }
@@ -486,7 +493,7 @@ export class CoreLocalNotificationsProvider {
 
             let triggered = (notification.trigger && notification.trigger.at) || 0;
 
-            if (typeof triggered != 'number') {
+            if (typeof triggered !== 'number') {
                 triggered = triggered.getTime();
             }
 
@@ -541,7 +548,7 @@ export class CoreLocalNotificationsProvider {
     protected parseNotificationData(data: unknown): unknown {
         if (!data) {
             return {};
-        } else if (typeof data == 'string') {
+        } else if (typeof data === 'string') {
             return CoreText.parseJSON(data, {});
         } else {
             return data;
@@ -662,7 +669,7 @@ export class CoreLocalNotificationsProvider {
     ): Promise<number> {
         const deferred = new CorePromisedValue<number>();
         const key = `${table}#${id}`;
-        const isQueueEmpty = Object.keys(this.codeRequestsQueue).length == 0;
+        const isQueueEmpty = Object.keys(this.codeRequestsQueue).length === 0;
 
         if (this.codeRequestsQueue[key] !== undefined) {
             // There's already a pending request for this store and ID, add the promise to it.
@@ -779,7 +786,7 @@ export class CoreLocalNotificationsProvider {
                 if (!this.canDisableSound()) {
                     soundEnabled = true;
                 } else {
-                    soundEnabled = await CoreConfig.get(CoreConstants.SETTINGS_NOTIFICATION_SOUND, true);
+                    soundEnabled = await CoreConfig.get(CoreConfigSettingKey.NOTIFICATION_SOUND, true);
                 }
 
                 if (!soundEnabled) {
@@ -802,9 +809,8 @@ export class CoreLocalNotificationsProvider {
      * time is changed.
      *
      * @param notification Triggered notification.
-     * @returns Promise resolved when stored, rejected otherwise.
      */
-    async trigger(notification: ILocalNotification): Promise<number> {
+    async trigger(notification: ILocalNotification): Promise<void> {
         let time = Date.now();
         if (notification.trigger?.at) {
             // The type says "at" is a Date, but in Android we can receive timestamps instead.
@@ -815,7 +821,7 @@ export class CoreLocalNotificationsProvider {
             }
         }
 
-        return this.triggeredTable.insert({
+        await this.triggeredTable.insert({
             id: notification.id,
             at: time,
         });

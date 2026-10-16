@@ -14,7 +14,7 @@
 
 import { AddonBlockMyOverviewComponent } from '@addons/block/myoverview/components/myoverview/myoverview';
 import { Component, effect, OnDestroy, OnInit, viewChild, inject } from '@angular/core';
-import { AsyncDirective } from '@classes/async-directive';
+import type { AsyncDirective } from '@coretypes/async-directive';
 import { PageLoadsManager } from '@classes/page-loads-manager';
 import { CorePromisedValue } from '@classes/promised-value';
 import { CoreBlockComponent } from '@features/block/components/block/block';
@@ -22,14 +22,14 @@ import { CoreBlockDelegate } from '@features/block/services/block-delegate';
 import { CoreCourseBlock } from '@features/course/services/course';
 import { CoreCoursesDashboard } from '@features/courses/services/dashboard';
 import { CoreSites } from '@services/sites';
-import { CorePromiseUtils } from '@singletons/promise-utils';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { Subscription } from 'rxjs';
 import { CoreCourses } from '../../services/courses';
-import { CoreTime } from '@singletons/time';
+import { CoreTime } from '@static/time';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
 import { Translate } from '@singletons';
-import { CoreWait } from '@singletons/wait';
+import { CoreWait } from '@static/wait';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreSharedModule } from '@/core/shared.module';
 import { CoreSiteLogoComponent } from '../../../../components/site-logo/site-logo';
@@ -37,6 +37,7 @@ import { CoreMainMenuUserButtonComponent } from '../../../mainmenu/components/us
 import { CoreBlockSideBlocksButtonComponent } from '../../../block/components/side-blocks-button/side-blocks-button';
 import { CoreCoursesMyPageName } from '@features/courses/constants';
 import { ADDON_BLOCK_MYOVERVIEW_BLOCK_NAME } from '@addons/block/myoverview/constants';
+import { CoreCoursesMy } from '@features/courses/services/my';
 
 /**
  * Page that shows a my courses.
@@ -69,7 +70,10 @@ export default class CoreCoursesMyPage implements OnInit, OnDestroy, AsyncDirect
     myPageCourses = CoreCoursesMyPageName.COURSES;
     hasSideBlocks = false;
 
+    protected sideBlocks?: CoreCourseBlock[];
+    protected supportsMyParam = false;
     protected updateSiteObserver: CoreEventObserver;
+    protected blockSubscription: Subscription;
     protected onReadyPromise = new CorePromisedValue<void>();
     protected loadsManagerSubscription: Subscription;
     protected logView: () => void;
@@ -108,6 +112,15 @@ export default class CoreCoursesMyPage implements OnInit, OnDestroy, AsyncDirect
                 url: '/my/courses.php',
             });
         });
+
+        // Re-evaluate if blocks are supported if the list of handlers changed (e.g. site plugins added).
+        this.blockSubscription = CoreBlockDelegate.blocksUpdateObservable.subscribe(async (): Promise<void> => {
+            if (!this.sideBlocks) {
+                return;
+            }
+
+            this.hasSideBlocks = this.supportsMyParam && CoreBlockDelegate.hasSupportedBlock(this.sideBlocks);
+        });
     }
 
     /**
@@ -115,6 +128,7 @@ export default class CoreCoursesMyPage implements OnInit, OnDestroy, AsyncDirect
      */
     async ngOnInit(): Promise<void> {
         this.downloadCoursesEnabled = !CoreCourses.isDownloadCoursesDisabledInSite();
+        this.supportsMyParam = !!CoreSites.getCurrentSite()?.isVersionGreaterEqualThan('4.0');
 
         CoreSites.loginNavigationFinished();
 
@@ -128,16 +142,14 @@ export default class CoreCoursesMyPage implements OnInit, OnDestroy, AsyncDirect
      */
     protected async loadContent(firstLoad = false): Promise<void> {
         const loadWatcher = this.loadsManager.startPageLoad(this, !!firstLoad);
-        const available = await CoreCoursesDashboard.isAvailable();
-        const disabled = CoreCourses.isMyCoursesDisabledInSite();
-
-        const supportsMyParam = !!CoreSites.getCurrentSite()?.isVersionGreaterEqualThan('4.0');
+        const available = await CoreCoursesDashboard.isWSAvailable();
+        const disabled = CoreCoursesMy.isDisabledInSite();
 
         if (available && !disabled) {
             try {
                 const blocks = await loadWatcher.watchRequest(
                     CoreCoursesDashboard.getDashboardBlocksObservable({
-                        myPage: supportsMyParam ? this.myPageCourses : undefined,
+                        myPage: this.supportsMyParam ? this.myPageCourses : undefined,
                         readingStrategy: loadWatcher.getReadingStrategy(),
                     }),
                 );
@@ -145,11 +157,12 @@ export default class CoreCoursesMyPage implements OnInit, OnDestroy, AsyncDirect
                 // My overview block should always be in main blocks, but check side blocks too just in case.
                 this.loadedBlock = blocks.mainBlocks.concat(blocks.sideBlocks).find((block) =>
                     block.name === ADDON_BLOCK_MYOVERVIEW_BLOCK_NAME);
-                this.hasSideBlocks = supportsMyParam && CoreBlockDelegate.hasSupportedBlock(blocks.sideBlocks);
+                this.sideBlocks = blocks.sideBlocks;
+                this.hasSideBlocks = this.supportsMyParam && CoreBlockDelegate.hasSupportedBlock(this.sideBlocks);
 
                 await CoreWait.nextTicks(2);
 
-                if (!this.loadedBlock && !supportsMyParam) {
+                if (!this.loadedBlock && !this.supportsMyParam) {
                     // In old sites, display the block even if not found in Dashboard.
                     // This is because the "My courses" page doesn't exist in the site so it can't be configured.
                     this.loadFallbackBlock();
@@ -212,6 +225,7 @@ export default class CoreCoursesMyPage implements OnInit, OnDestroy, AsyncDirect
     ngOnDestroy(): void {
         this.updateSiteObserver?.off();
         this.loadsManagerSubscription.unsubscribe();
+        this.blockSubscription.unsubscribe();
     }
 
     /**

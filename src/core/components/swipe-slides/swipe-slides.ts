@@ -27,16 +27,16 @@ import {
     ViewChild,
     inject,
 } from '@angular/core';
-import { AsyncDirective } from '@classes/async-directive';
+import type { AsyncDirective } from '@coretypes/async-directive';
 import { CoreSwipeSlidesItemsManager } from '@classes/items-management/swipe-slides-items-manager';
 import { CorePromisedValue } from '@classes/promised-value';
 import { IonContent } from '@ionic/angular';
-import { CoreWait } from '@singletons/wait';
+import { CoreWait } from '@static/wait';
 import { NgZone } from '@singletons';
-import { CoreDom, VerticalPoint } from '@singletons/dom';
-import { CoreEventObserver } from '@singletons/events';
-import { CoreMath } from '@singletons/math';
-import { CoreSwiper } from '@singletons/swiper';
+import { CoreDom, VerticalPoint } from '@static/dom';
+import { CoreEventObserver } from '@static/events';
+import { CoreMath } from '@static/math';
+import { CoreSwiper } from '@static/swiper';
 import { Swiper } from 'swiper';
 import { SwiperOptions } from 'swiper/types';
 import { CoreBaseModule } from '@/core/base.module';
@@ -83,7 +83,7 @@ export class CoreSwipeSlidesComponent<Item = unknown> implements OnChanges, OnDe
         });
     }
 
-    @ContentChild(TemplateRef) template?: TemplateRef<{item: Item; active: boolean}>; // Template defined by the content.
+    @ContentChild(TemplateRef) template?: TemplateRef<{ item: Item; active: boolean }>; // Template defined by the content.
 
     protected unsubscribe?: () => void;
     protected resizeListener: CoreEventObserver;

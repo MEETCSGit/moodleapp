@@ -26,9 +26,9 @@ import { CoreRatingOffline } from '@features/rating/services/rating-offline';
 import { CoreRatingSyncProvider } from '@features/rating/services/rating-sync';
 import { CoreNavigator } from '@services/navigator';
 import { CoreSites } from '@services/sites';
-import { CoreText } from '@singletons/text';
+import { CoreText } from '@static/text';
 import { Translate } from '@singletons';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import {
     AddonModGlossaryEntriesSource,
     AddonModGlossaryEntryItem,
@@ -46,7 +46,7 @@ import {
     AddonModGlossarySyncResult,
 } from '../../services/glossary-sync';
 import { AddonModGlossaryPrefetchHandler } from '../../services/handlers/prefetch';
-import { CoreTime } from '@singletons/time';
+import { CoreTime } from '@static/time';
 import {
     ADDON_MOD_GLOSSARY_COMPONENT_LEGACY,
     ADDON_MOD_GLOSSARY_ENTRY_ADDED,
@@ -180,9 +180,9 @@ export class AddonModGlossaryIndexComponent extends CoreCourseModuleMainActivity
         this.observers.push(CoreEvents.on(CoreRatingProvider.RATING_SAVED_EVENT, (data) => {
             if (
                 this.glossary &&
-                data.component == 'mod_glossary' &&
-                data.ratingArea == 'entry' &&
-                data.contextLevel == ContextLevel.MODULE &&
+                data.component === 'mod_glossary' &&
+                data.ratingArea === 'entry' &&
+                data.contextLevel === ContextLevel.MODULE &&
                 data.instanceId == this.glossary.coursemodule
             ) {
                 this.hasOfflineRatings = true;
@@ -192,9 +192,9 @@ export class AddonModGlossaryIndexComponent extends CoreCourseModuleMainActivity
         this.observers.push(CoreEvents.on(CoreRatingSyncProvider.SYNCED_EVENT, (data) => {
             if (
                 this.glossary &&
-                data.component == 'mod_glossary' &&
-                data.ratingArea == 'entry' &&
-                data.contextLevel == ContextLevel.MODULE &&
+                data.component === 'mod_glossary' &&
+                data.ratingArea === 'entry' &&
+                data.contextLevel === ContextLevel.MODULE &&
                 data.instanceId == this.glossary.coursemodule
             ) {
                 this.hasOfflineRatings = false;
@@ -274,7 +274,7 @@ export class AddonModGlossaryIndexComponent extends CoreCourseModuleMainActivity
      */
     protected isRefreshSyncNeeded(syncEventData: AddonModGlossaryAutoSyncedData): boolean {
         return !!this.glossary && syncEventData.glossaryId == this.glossary.id &&
-                syncEventData.userId == CoreSites.getCurrentSiteUserId();
+            syncEventData.userId == CoreSites.getCurrentSiteUserId();
     }
 
     /**
@@ -320,7 +320,7 @@ export class AddonModGlossaryIndexComponent extends CoreCourseModuleMainActivity
                     // Try to get the first letter without HTML tags.
                     const noTags = CoreText.cleanTags(entry.concept);
 
-                    return (noTags || entry.concept).substring(0, 1).toUpperCase();
+                    return (noTags || entry.concept).charAt(0).toUpperCase();
                 };
 
                 this.getDivider = getDivider;

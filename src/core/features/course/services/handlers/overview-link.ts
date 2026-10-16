@@ -18,9 +18,6 @@ import { CoreContentLinksHandlerBase } from '@features/contentlinks/classes/base
 import { makeSingleton } from '@singletons';
 import { CoreSites } from '@services/sites';
 import { CoreCourseOverview } from '../course-overview';
-import { CoreCourses } from '@features/courses/services/courses';
-import { CoreCourseHelper } from '../course-helper';
-import { CORE_COURSE_OVERVIEW_OPTION_NAME } from '@features/course/constants';
 
 /**
  * Handler to treat links to activities overview.
@@ -44,7 +41,7 @@ export class CoreCourseOverviewLinkHandlerService extends CoreContentLinksHandle
 
         return [{
             action: async (siteId): Promise<void> => {
-                await CoreCourseHelper.getAndOpenCourse(courseId, { selectedTab: CORE_COURSE_OVERVIEW_OPTION_NAME }, siteId);
+                await CoreCourseOverview.navigateToCourseOverview(courseId, params.expand, undefined, siteId);
             },
         }];
     }
@@ -60,13 +57,7 @@ export class CoreCourseOverviewLinkHandlerService extends CoreContentLinksHandle
 
         const site = await CoreSites.getSite(siteId);
 
-        if (!CoreCourseOverview.canGetInformation(site)) {
-            return false;
-        }
-
-        const options = await CoreCourses.getCoursesAdminAndNavOptions([courseId]);
-
-        return options.navOptions[courseId].overview;
+        return CoreCourseOverview.canGetInformation(site);
     }
 
 }

@@ -15,7 +15,6 @@
 import { CoreConstants } from '@/core/constants';
 import { AfterViewInit, Directive, ElementRef, OnDestroy, inject, input } from '@angular/core';
 import { CoreSwipeNavigationItemsManager } from '@classes/items-management/swipe-navigation-items-manager';
-import { CoreSwipeNavigationTourComponent } from '@components/swipe-navigation-tour/swipe-navigation-tour';
 import { CoreUserTours } from '@features/usertours/services/user-tours';
 import { Gesture, GestureDetail } from '@ionic/angular';
 import { CorePlatform } from '@services/platform';
@@ -42,7 +41,7 @@ export class CoreSwipeNavigationDirective implements AfterViewInit, OnDestroy {
     protected swipeGesture?: Gesture;
 
     constructor() {
-        if (CoreConstants.enableDevTools()) {
+        if (CoreConstants.isDevOrTestingBuild()) {
             this.element['swipeNavigation'] = this;
             this.element.classList.add('uses-swipe-navigation');
         }
@@ -94,7 +93,8 @@ export class CoreSwipeNavigationDirective implements AfterViewInit, OnDestroy {
         // Show user tour.
         await CoreUserTours.showIfPending({
             id: 'swipe-navigation',
-            component: CoreSwipeNavigationTourComponent,
+            loadComponent: () =>
+                import('@features/usertours/components/swipe-navigation-tour/swipe-navigation-tour'),
             watch: this.element,
         });
     }
@@ -107,9 +107,11 @@ export class CoreSwipeNavigationDirective implements AfterViewInit, OnDestroy {
             return;
         }
 
-        CorePlatform.isRTL
-            ? this.manager()?.navigateToPreviousItem()
-            : this.manager()?.navigateToNextItem();
+        if (CorePlatform.isRTL) {
+            this.manager()?.navigateToPreviousItem();
+        } else {
+            this.manager()?.navigateToNextItem();
+        }
     }
 
     /**
@@ -120,9 +122,11 @@ export class CoreSwipeNavigationDirective implements AfterViewInit, OnDestroy {
             return;
         }
 
-        CorePlatform.isRTL
-            ? this.manager()?.navigateToNextItem()
-            : this.manager()?.navigateToPreviousItem();
+        if (CorePlatform.isRTL) {
+            this.manager()?.navigateToNextItem();
+        } else {
+            this.manager()?.navigateToPreviousItem();
+        }
     }
 
     /**

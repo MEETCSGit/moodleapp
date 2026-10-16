@@ -14,9 +14,9 @@
 
 import { Component, OnInit, OnDestroy, viewChild } from '@angular/core';
 import { CoreNetwork } from '@services/network';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { CoreSites } from '@services/sites';
-import { CoreTime } from '@singletons/time';
+import { CoreTime } from '@static/time';
 import {
     AddonCalendar,
     AddonCalendarEventToDisplay,
@@ -28,12 +28,11 @@ import { AddonCalendarSync } from '../../services/calendar-sync';
 import { CoreCategoryData, CoreCourses, CoreEnrolledCourseData } from '@features/courses/services/courses';
 import { CoreCoursesHelper } from '@features/courses/services/courses-helper';
 import { dayjs, Dayjs } from '@/core/utils/dayjs';
-import { NgZone, Translate } from '@singletons';
+import { Translate } from '@singletons';
 import { CoreNavigator } from '@services/navigator';
 import { Params } from '@angular/router';
-import { Subscription } from 'rxjs';
-import { CoreArray } from '@singletons/array';
-import { CoreConstants } from '@/core/constants';
+import { CoreArray } from '@static/array';
+import { CoreSyncIcon } from '@/core/constants';
 import { CoreSwipeSlidesDynamicItemsManager } from '@classes/items-management/swipe-slides-dynamic-items-manager';
 import { CoreSwipeSlidesComponent } from '@components/swipe-slides/swipe-slides';
 import {
@@ -43,7 +42,7 @@ import {
 import { CoreRoutedItemsManagerSourcesTracker } from '@classes/items-management/routed-items-manager-sources-tracker';
 import { AddonCalendarEventsSource } from '@addons/calendar/classes/events-source';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
-import { CoreUrl } from '@singletons/url';
+import { CoreUrl } from '@static/url';
 import { CoreModals } from '@services/overlays/modals';
 import {
     ADDON_CALENDAR_AUTO_SYNCED,
@@ -56,10 +55,11 @@ import {
     ADDON_CALENDAR_UNDELETED_EVENT_EVENT,
     AddonCalendarEventType,
 } from '@addons/calendar/constants';
-import { CoreObject } from '@singletons/object';
+import { CoreObject } from '@static/object';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreSharedModule } from '@/core/shared.module';
 import { CoreUserPreferences } from '@features/user/services/user-preferences';
+import { AddonCalendarEventCardComponent } from '@addons/calendar/components/calendar-event-card/calendar-event-card';
 
 /**
  * Page that displays the calendar events for a certain day.
@@ -70,6 +70,7 @@ import { CoreUserPreferences } from '@features/user/services/user-preferences';
     styleUrls: ['../../calendar-common.scss', 'day.scss'],
     imports: [
         CoreSharedModule,
+        AddonCalendarEventCardComponent,
     ],
 })
 export default class AddonCalendarDayPage implements OnInit, OnDestroy {
@@ -80,15 +81,14 @@ export default class AddonCalendarDayPage implements OnInit, OnDestroy {
 
     // Observers.
     protected eventObservers: CoreEventObserver[] = [];
-    protected onlineObserver: Subscription;
     protected managerUnsubscribe?: () => void;
     protected logView: () => void;
 
     periodName?: string;
     manager?: CoreSwipeSlidesDynamicItemsManager<PreloadedDay, AddonCalendarDaySlidesItemsManagerSource>;
     loaded = false;
-    isOnline = false;
-    syncIcon = CoreConstants.ICON_LOADING;
+    readonly isOnline = CoreNetwork.onlineSignal;
+    syncIcon = CoreSyncIcon.LOADING;
     filter: AddonCalendarFilter = {
         filtered: false,
         courseId: undefined,
@@ -142,7 +142,7 @@ export default class AddonCalendarDayPage implements OnInit, OnDestroy {
         // Refresh data if calendar events are synchronized manually but not by this page.
         this.eventObservers.push(CoreEvents.on(ADDON_CALENDAR_MANUAL_SYNCED, (data) => {
             const selectedDay = this.manager?.getSelectedItem();
-            if (data && (data.source != 'day' || !selectedDay || !data.dayJS || !selectedDay.dayJS.isSame(data.dayJS, 'day'))) {
+            if (data && (data.source !== 'day' || !selectedDay || !data.dayJS || !selectedDay.dayJS.isSame(data.dayJS, 'day'))) {
                 this.manager?.getSource().markAllItemsUnloaded();
                 this.refreshData(false, true);
             }
@@ -188,14 +188,6 @@ export default class AddonCalendarDayPage implements OnInit, OnDestroy {
                 this.manager?.getSource().filterAllDayEvents(this.filter);
             },
         ));
-
-        // Refresh online status when changes.
-        this.onlineObserver = CoreNetwork.onChange().subscribe(() => {
-            // Execute the callback in the Angular zone, so change detection doesn't stop working.
-            NgZone.run(() => {
-                this.isOnline = CoreNetwork.isOnline();
-            });
-        });
 
         this.logView = CoreTime.once(() => {
             const day = this.manager?.getSelectedItem();
@@ -267,8 +259,7 @@ export default class AddonCalendarDayPage implements OnInit, OnDestroy {
      * @returns Promise resolved when done.
      */
     async fetchData(sync?: boolean): Promise<void> {
-        this.syncIcon = CoreConstants.ICON_LOADING;
-        this.isOnline = CoreNetwork.isOnline();
+        this.syncIcon = CoreSyncIcon.LOADING;
 
         if (sync) {
             await this.sync();
@@ -285,7 +276,7 @@ export default class AddonCalendarDayPage implements OnInit, OnDestroy {
         }
 
         this.loaded = true;
-        this.syncIcon = CoreConstants.ICON_SYNC;
+        this.syncIcon = CoreSyncIcon.SYNC;
     }
 
     /**
@@ -326,7 +317,7 @@ export default class AddonCalendarDayPage implements OnInit, OnDestroy {
      * @returns Promise resolved when done.
      */
     async refreshData(sync?: boolean, afterChange?: boolean): Promise<void> {
-        this.syncIcon = CoreConstants.ICON_LOADING;
+        this.syncIcon = CoreSyncIcon.LOADING;
 
         const selectedDay = this.manager?.getSelectedItem() || null;
 
@@ -484,7 +475,6 @@ export default class AddonCalendarDayPage implements OnInit, OnDestroy {
      */
     ngOnDestroy(): void {
         this.eventObservers.forEach((observer) => observer.off());
-        this.onlineObserver?.unsubscribe();
         this.manager?.getSource().forgetRelatedSources();
         this.manager?.destroy();
         this.managerUnsubscribe?.();
@@ -772,9 +762,9 @@ class AddonCalendarDaySlidesItemsManagerSource extends CoreSwipeSlidesDynamicIte
 
         if (this.offlineEditedEventsIds.length) {
             // Remove the online events that were modified in offline.
-            result = result.filter((event) => this.offlineEditedEventsIds.indexOf(event.id) == -1);
+            result = result.filter((event) => !this.offlineEditedEventsIds.includes(event.id));
 
-            if (result.length != day.onlineEvents?.length) {
+            if (result.length !== day.onlineEvents?.length) {
                 day.hasOffline = true;
             }
         }

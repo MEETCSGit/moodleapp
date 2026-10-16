@@ -15,8 +15,8 @@
 import { Injectable } from '@angular/core';
 import { makeSingleton } from '@singletons';
 import { CoreMainMenuHomeDelegate } from '../home-delegate';
-import { CoreMainMenuHandler, CoreMainMenuHandlerData } from '../mainmenu-delegate';
-import { MAIN_MENU_HOME_PAGE_NAME } from '@features/mainmenu/constants';
+import { CoreMainMenuHandler, CoreMainMenuPageNavHandlerData } from '../mainmenu-delegate';
+import { CORE_HOME_COMPONENT_NAME, MAIN_MENU_HOME_PAGE_NAME } from '@features/mainmenu/constants';
 
 /**
  * Handler to add Home into main menu.
@@ -24,7 +24,7 @@ import { MAIN_MENU_HOME_PAGE_NAME } from '@features/mainmenu/constants';
 @Injectable({ providedIn: 'root' })
 export class CoreMainMenuHomeHandlerService implements CoreMainMenuHandler {
 
-    name = 'CoreHome';
+    name = CORE_HOME_COMPONENT_NAME;
     priority = 1000;
 
     /**
@@ -39,7 +39,7 @@ export class CoreMainMenuHomeHandlerService implements CoreMainMenuHandler {
     /**
      * @inheritdoc
      */
-    getDisplayData(): CoreMainMenuHandlerData {
+    getDisplayData(): CoreMainMenuPageNavHandlerData {
         return {
             icon: 'fas-gauge-high',
             title: 'core.mainmenu.home',

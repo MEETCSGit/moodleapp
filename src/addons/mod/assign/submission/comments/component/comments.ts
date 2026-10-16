@@ -33,7 +33,7 @@ import { ADDON_MOD_ASSIGN_COMMENTS_AREA, ADDON_MOD_ASSIGN_COMMENTS_COMPONENT_NAM
 })
 export class AddonModAssignSubmissionCommentsComponent extends AddonModAssignSubmissionPluginBaseComponent {
 
-    readonly commentsComponent = viewChild.required(CoreCommentsCommentsComponent);
+    readonly commentsComponent = viewChild(CoreCommentsCommentsComponent);
 
     commentsEnabled: boolean;
 
@@ -60,6 +60,8 @@ export class AddonModAssignSubmissionCommentsComponent extends AddonModAssignSub
 
     /**
      * Show the comments.
+     *
+     * @param e Event.
      */
     showComments(e?: Event): void {
         this.commentsComponent()?.openComments(e);

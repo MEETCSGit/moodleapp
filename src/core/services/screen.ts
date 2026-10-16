@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Injectable } from '@angular/core';
+import { Injectable, Signal, signal } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { distinctUntilChanged, map } from 'rxjs/operators';
 
 import { makeSingleton, StatusBar } from '@singletons';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { CorePlatform } from '@services/platform';
 
 /**
@@ -66,6 +66,7 @@ export class CoreScreenService {
 
     protected breakpointsSubject: BehaviorSubject<Record<Breakpoint, boolean>>;
     private _layoutObservable: Observable<CoreScreenLayout>;
+    private readonly _orientationSignal = signal<CoreScreenOrientation>(CoreScreenOrientation.PORTRAIT);
 
     constructor() {
         this.breakpointsSubject = new BehaviorSubject(BREAKPOINT_NAMES.reduce((breakpoints, breakpoint) => ({
@@ -77,6 +78,8 @@ export class CoreScreenService {
             map(breakpoints => this.calculateLayout(breakpoints)),
             distinctUntilChanged<CoreScreenLayout>(),
         );
+
+        this.initializeOrientation();
     }
 
     get breakpoints(): Record<Breakpoint, boolean> {
@@ -104,9 +107,18 @@ export class CoreScreenService {
     }
 
     get orientation(): CoreScreenOrientation {
-        return screen.orientation.type.startsWith(CoreScreenOrientation.LANDSCAPE)
+        if (!this.orientationDataExists()) {
+            // Not initialized yet, assume portrait.
+            return CoreScreenOrientation.PORTRAIT;
+        }
+
+        return screen.orientation.type?.startsWith(CoreScreenOrientation.LANDSCAPE)
             ? CoreScreenOrientation.LANDSCAPE
             : CoreScreenOrientation.PORTRAIT;
+    }
+
+    get orientationSignal(): Signal<CoreScreenOrientation> {
+        return this._orientationSignal.asReadonly();
     }
 
     get isPortrait(): boolean {
@@ -124,7 +136,11 @@ export class CoreScreenService {
         await CorePlatform.ready();
 
         screen.orientation.addEventListener('change', () => {
-            CoreEvents.trigger(CoreEvents.ORIENTATION_CHANGE, { orientation: this.orientation });
+            const orientation = this.orientation;
+            this._orientationSignal.set(orientation);
+
+            // eslint-disable-next-line @typescript-eslint/no-deprecated
+            CoreEvents.trigger(CoreEvents.ORIENTATION_CHANGE, { orientation });
         });
     }
 
@@ -192,6 +208,24 @@ export class CoreScreenService {
         }
 
         return CoreScreenLayout.MOBILE;
+    }
+
+    /**
+     * Initialize the orientation signal value.
+     */
+    protected async initializeOrientation(): Promise<void> {
+        await CorePlatform.ready();
+
+        this._orientationSignal.set(this.orientation);
+    }
+
+    /**
+     * Check if the orientation data exists.
+     *
+     * @returns Whether the orientation data exists.
+     */
+    protected orientationDataExists(): boolean {
+        return !!screen?.orientation;
     }
 
 }

@@ -26,16 +26,16 @@ import { CoreTag } from '@features/tag/services/tag';
 import { FileEntry } from '@awesome-cordova-plugins/file/ngx';
 import { CoreNavigator } from '@services/navigator';
 import { CoreNetwork } from '@services/network';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { Translate } from '@singletons';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { AddonModGlossaryEntriesSource, AddonModGlossaryEntryItem } from '../../classes/glossary-entries-source';
 import {
     AddonModGlossary,
     AddonModGlossaryEntry,
     AddonModGlossaryGlossary,
 } from '../../services/glossary';
-import { CoreTime } from '@singletons/time';
+import { CoreTime } from '@static/time';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
 import {
     ADDON_MOD_GLOSSARY_COMPONENT_LEGACY,
@@ -273,12 +273,15 @@ export default class AddonModGlossaryEntryPage implements OnInit, OnDestroy {
 
     /**
      * Load online entry data.
+     *
+     * @param entryId Entry ID.
      */
     protected async loadOnlineEntry(entryId: number): Promise<void> {
         try {
+            const isOnline = CoreNetwork.isOnline();
             const result = await AddonModGlossary.getEntry(entryId);
-            const canDeleteEntries = CoreNetwork.isOnline() && await AddonModGlossary.canDeleteEntries();
-            const canUpdateEntries = CoreNetwork.isOnline() && await AddonModGlossary.canUpdateEntries();
+            const canDeleteEntries = isOnline && await AddonModGlossary.canDeleteEntries();
+            const canUpdateEntries = isOnline && await AddonModGlossary.canUpdateEntries();
 
             this.onlineEntry = result.entry;
             this.ratingInfo = result.ratinginfo;

@@ -20,8 +20,8 @@ import {
 } from '@addons/mod/data/services/data';
 import { AddonModDataFieldHandler } from '@addons/mod/data/services/data-fields-delegate';
 import { Injectable, Type } from '@angular/core';
-import { CoreFormFields } from '@singletons/form';
-import { CoreTime } from '@singletons/time';
+import { CoreFormFields } from '@static/form';
+import { CoreTime } from '@static/time';
 import { makeSingleton, Translate } from '@singletons';
 import type { AddonModDataFieldPluginBaseComponent } from '@addons/mod/data/classes/base-field-plugin-component';
 
@@ -53,7 +53,7 @@ export class AddonModDataFieldDateHandlerService implements AddonModDataFieldHan
         const fieldName = `f_${field.id}`;
         const enabledName = `f_${field.id}_z`;
 
-        if (inputData[enabledName] && typeof inputData[fieldName] == 'string') {
+        if (inputData[enabledName] && typeof inputData[fieldName] === 'string') {
             const date = inputData[fieldName].substring(0, 10).split('-');
 
             return [
@@ -85,7 +85,7 @@ export class AddonModDataFieldDateHandlerService implements AddonModDataFieldHan
     getFieldEditData(field: AddonModDataField, inputData: CoreFormFields<string>): AddonModDataSubfieldData[] {
         const fieldName = `f_${field.id}`;
 
-        if (typeof inputData[fieldName] != 'string') {
+        if (typeof inputData[fieldName] !== 'string') {
             return [];
         }
 

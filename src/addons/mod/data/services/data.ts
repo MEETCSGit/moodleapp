@@ -22,7 +22,7 @@ import { CoreNetwork } from '@services/network';
 import { CoreFileEntry } from '@services/file-helper';
 import { CoreFilepool } from '@services/filepool';
 import { CoreSites, CoreSitesCommonWSOptions, CoreSitesReadingStrategy } from '@services/sites';
-import { CoreArray } from '@singletons/array';
+import { CoreArray } from '@static/array';
 import { CoreWSExternalFile, CoreWSExternalWarning } from '@services/ws';
 import { makeSingleton } from '@singletons';
 import { AddonModDataFieldsDelegate } from './data-fields-delegate';
@@ -35,12 +35,12 @@ import {
     AddonModDataAction,
 } from '../constants';
 import { CoreCacheUpdateFrequency } from '@/core/constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreWSError } from '@classes/errors/wserror';
-import { CoreTextFormat } from '@singletons/text';
+import { CoreTextFormat } from '@static/text';
 import { CoreCourseModuleHelper } from '@features/course/services/course-module-helper';
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.
@@ -78,10 +78,10 @@ export class AddonModDataProvider {
         entryId: number,
         courseId: number,
         contents: AddonModDataEntryWSField[],
-        groupId: number = 0,
+        groupId = 0,
         fields: AddonModDataField[],
         siteId?: string,
-        forceOffline: boolean = false,
+        forceOffline = false,
     ): Promise<AddonModDataAddEntryResult> {
         siteId = siteId || CoreSites.getCurrentSiteId();
 
@@ -383,7 +383,7 @@ export class AddonModDataProvider {
         contents: AddonModDataEntryWSField[],
         fields: AddonModDataField[],
         siteId?: string,
-        forceOffline: boolean = false,
+        forceOffline = false,
     ): Promise<AddonModDataEditEntryResult> {
         siteId = siteId || CoreSites.getCurrentSiteId();
 
@@ -482,6 +482,9 @@ export class AddonModDataProvider {
      * @param dataId Data ID.
      * @param entries Entries already fetch (just to concatenate them).
      * @param options Other options.
+     * @param pageOptions Pagination options.
+     * @param pageOptions.perPage Number of entries per page.
+     * @param pageOptions.page Page number.
      * @returns Promise resolved when done.
      */
     protected async fetchEntriesRecursive(
@@ -596,7 +599,7 @@ export class AddonModDataProvider {
      * @param groupId Group ID.
      * @returns Cache key.
      */
-    protected getDatabaseAccessInformationDataCacheKey(dataId: number, groupId: number = 0): string {
+    protected getDatabaseAccessInformationDataCacheKey(dataId: number, groupId = 0): string {
         return this.getDatabaseAccessInformationDataPrefixCacheKey(dataId) + groupId;
     }
 
@@ -682,7 +685,7 @@ export class AddonModDataProvider {
      * @param groupId Group ID.
      * @returns Cache key.
      */
-    protected getEntriesCacheKey(dataId: number, groupId: number = 0): string {
+    protected getEntriesCacheKey(dataId: number, groupId = 0): string {
         return this.getEntriesPrefixCacheKey(dataId) + groupId;
     }
 

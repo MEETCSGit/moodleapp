@@ -16,11 +16,11 @@ import { Injectable } from '@angular/core';
 import {
     AddonMessages,
 } from '../messages';
-import { CoreMainMenuHandler, CoreMainMenuHandlerToDisplay } from '@features/mainmenu/services/mainmenu-delegate';
+import { CoreMainMenuHandler, CoreMainMenuPageNavHandlerData } from '@features/mainmenu/services/mainmenu-delegate';
 import { CoreCronHandler } from '@services/cron';
 import { CoreSites } from '@services/sites';
-import { CoreEvents } from '@singletons/events';
-import { CoreUtils } from '@singletons/utils';
+import { CoreEvents } from '@static/events';
+import { CoreUtils } from '@static/utils';
 import {
     CorePushNotificationsNotificationBasicData,
 } from '@features/pushnotifications/services/pushnotifications';
@@ -30,6 +30,8 @@ import {
     ADDON_MESSAGES_UNREAD_CONVERSATION_COUNTS_EVENT,
     ADDON_MESSAGES_CONTACT_REQUESTS_COUNT_EVENT,
     ADDON_MESSAGES_PAGE_NAME,
+    ADDONS_MESSAGES_MENU_FEATURE_NAME,
+    ADDONS_MESSAGES_COMPONENT_NAME,
 } from '@addons/messages/constants';
 import { MAIN_MENU_HANDLER_BADGE_UPDATED_EVENT } from '@features/mainmenu/constants';
 
@@ -39,10 +41,10 @@ import { MAIN_MENU_HANDLER_BADGE_UPDATED_EVENT } from '@features/mainmenu/consta
 @Injectable({ providedIn: 'root' })
 export class AddonMessagesMainMenuHandlerService implements CoreMainMenuHandler, CoreCronHandler {
 
-    name = 'AddonMessages';
+    name = ADDONS_MESSAGES_COMPONENT_NAME;
     priority = 700;
 
-    protected handler: CoreMainMenuHandlerToDisplay = {
+    protected handler: CoreMainMenuPageNavHandlerData = {
         icon: 'fas-comments',
         title: 'addon.messages.messages',
         page: ADDON_MESSAGES_PAGE_NAME,
@@ -85,9 +87,9 @@ export class AddonMessagesMainMenuHandlerService implements CoreMainMenuHandler,
         // If a message push notification is received, refresh the count.
         CorePushNotificationsDelegate.on<CorePushNotificationsNotificationBasicData>('receive').subscribe(
             (notification) => {
-            // New message received. If it's from current site, refresh the data.
+                // New message received. If it's from current site, refresh the data.
                 const isMessage = CoreUtils.isFalseOrZero(notification.notif) ||
-                    notification.name == 'messagecontactrequests';
+                    notification.name === 'messagecontactrequests';
                 if (isMessage && CoreSites.isCurrentSite(notification.site)) {
                     this.refreshBadge(notification.site);
                 }
@@ -112,7 +114,7 @@ export class AddonMessagesMainMenuHandlerService implements CoreMainMenuHandler,
      *
      * @returns Data needed to render the handler.
      */
-    getDisplayData(): CoreMainMenuHandlerToDisplay {
+    getDisplayData(): CoreMainMenuPageNavHandlerData {
         if (this.handler.loading) {
             this.refreshBadge();
         }
@@ -196,7 +198,7 @@ export class AddonMessagesMainMenuHandlerService implements CoreMainMenuHandler,
         if (
             !CoreSites.isCurrentSite(siteId) ||
             !site ||
-            site.isFeatureDisabled('CoreMainMenuDelegate_AddonMessages') ||
+            site.isFeatureDisabled(ADDONS_MESSAGES_MENU_FEATURE_NAME) ||
             !enabled
         ) {
             return;

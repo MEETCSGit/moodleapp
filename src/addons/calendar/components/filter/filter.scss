@@ -1,4 +1,4 @@
-@use "theme/globals" as *;
+@use "src/theme/globals" as *;
 
 :host {
     .item {
@@ -12,5 +12,10 @@
             padding: 8px;
             font-size: var(--mdl-typography-icon-fontSize-sm);
         }
+    }
+
+    ion-item.item.item-lines-default:last-child {
+        --inner-border-width: 0px;
+        --border-width: 0px;
     }
 }

@@ -12,17 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Injectable } from '@angular/core';
+import { Injectable, Type } from '@angular/core';
 import { Subject, BehaviorSubject } from 'rxjs';
 
 import { CoreDelegate, CoreDelegateHandler } from '@classes/delegate';
-import { CorePromiseUtils } from '@singletons/promise-utils';
-import { CoreEvents } from '@singletons/events';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreEvents } from '@static/events';
 import { CoreUserProfile } from './user';
 import { makeSingleton } from '@singletons';
 import { CoreCourses, CoreCourseUserAdminOrNavOptionIndexed } from '@features/courses/services/courses';
 import { CoreSites } from '@services/sites';
-import { CORE_USER_PROFILE_REFRESHED } from '../constants';
+import type { ReloadableComponent } from '@coretypes/reloadable-component';
+import { CORE_USER_FEATURE_PREFIX, CORE_USER_PROFILE_REFRESHED } from '../constants';
 
 export enum CoreUserProfileHandlerType {
     LIST_ITEM = 'listitem', // User profile handler type to be shown as a list item.
@@ -30,7 +31,13 @@ export enum CoreUserProfileHandlerType {
     BUTTON = 'button', // User profile handler type to be shown as a button.
 }
 
-declare module '@singletons/events' {
+type HandlerDataPerType = {
+  [CoreUserProfileHandlerType.LIST_ITEM]: CoreUserProfileListHandlerData;
+  [CoreUserProfileHandlerType.LIST_ACCOUNT_ITEM]: CoreUserProfileListHandlerData;
+  [CoreUserProfileHandlerType.BUTTON]: CoreUserProfileButtonHandlerData;
+};
+
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.
@@ -98,20 +105,21 @@ export interface CoreUserProfileHandler extends CoreDelegateHandler {
      * @param contextId Context ID.
      * @returns Data to be shown.
      */
-    getDisplayData(user: CoreUserProfile, context: CoreUserDelegateContext, contextId: number): CoreUserProfileHandlerData;
+    getDisplayData(user: CoreUserProfile, context: CoreUserDelegateContext, contextId: number): HandlerDataPerType[this['type']];
 }
 
 /**
- * Data needed to render a user profile handler. It's returned by the handler.
+ * Common data shared by the "action" handler data types. The action types are meant to display some basic info (e.g. title, icon)
+ * and perform an action when clicked.
  */
-export interface CoreUserProfileHandlerData {
+type CoreUserProfileActionCommonHandlerData = {
     /**
      * Title to display.
      */
     title: string;
 
     /**
-     * Name of the icon to display. Mandatory for CoreUserProfileHandlerType.BUTTON.
+     * Name of the icon to display.
      */
     icon?: string;
 
@@ -119,38 +127,6 @@ export interface CoreUserProfileHandlerData {
      * Additional class to add to the HTML.
      */
     class?: string;
-
-    /**
-     * If enabled, element will be hidden. Only for CoreUserProfileHandlerType.LIST_ITEM.
-     */
-    hidden?: boolean;
-
-    /**
-     * If enabled will show an spinner.
-     *
-     * @deprecated since 4.4. Not used anymore.
-     */
-    spinner?: boolean;
-
-    /**
-     * If the handler has badge to show or not. Only for CoreUserProfileHandlerType.LIST_ITEM.
-     */
-    showBadge?: boolean;
-
-    /**
-     * Text to display on the badge. Only used if showBadge is true and only for CoreUserProfileHandlerType.LIST_ITEM.
-     */
-    badge?: string;
-
-    /**
-     * Accessibility text to add on the badge. Only used if showBadge is true and only for CoreUserProfileHandlerType.LIST_ITEM.
-     */
-    badgeA11yText?: string;
-
-    /**
-     * If true, the badge number is being loaded. Only used if showBadge is true and only for CoreUserProfileHandlerType.LIST_ITEM.
-     */
-    loading?: boolean;
 
     /**
      * Action to do when clicked.
@@ -161,16 +137,76 @@ export interface CoreUserProfileHandlerData {
      * @param contextId Context ID.
      */
     action(event: Event, user: CoreUserProfile, context: CoreUserDelegateContext, contextId?: number): void;
-}
+};
+
+/**
+ * Data needed to render a button user profile handler. It's returned by the handler.
+ */
+export type CoreUserProfileButtonHandlerData = CoreUserProfileActionCommonHandlerData;
+
+/**
+ * Data needed to render an "action" list item or account list item user profile handler. It's returned by the handler.
+ */
+export type CoreUserProfileListActionHandlerData = CoreUserProfileActionCommonHandlerData & {
+    /**
+     * If enabled, element will be hidden.
+     */
+    hidden?: boolean;
+
+    /**
+     * If the handler has badge to show or not.
+     */
+    showBadge?: boolean;
+
+    /**
+     * Text to display on the badge. Only used if showBadge is true.
+     */
+    badge?: string;
+
+    /**
+     * Accessibility text to add on the badge. Only used if showBadge is true.
+     */
+    badgeA11yText?: string;
+
+    /**
+     * If true, the badge number is being loaded. Only used if showBadge is true
+     */
+    loading?: boolean;
+};
+
+/**
+ * Data needed to render a "component" list item or account list item user profile handler. It's returned by the handler.
+ */
+export type CoreUserProfileListComponentHandlerData =  {
+    /**
+     * Component to render.
+     */
+    component: Type<ReloadableComponent>;
+
+    /**
+     * Data to pass to the component. The app will also provide some default data.
+     */
+    componentData?: Record<string, unknown>;
+};
+
+/**
+ * All possible types of list handler data.
+ */
+export type CoreUserProfileListHandlerData = CoreUserProfileListActionHandlerData | CoreUserProfileListComponentHandlerData;
+
+/**
+ * All possible types of handler data.
+ */
+export type CoreUserProfileHandlerData = CoreUserProfileButtonHandlerData | CoreUserProfileListHandlerData;
 
 /**
  * Data returned by the delegate for each handler.
  */
-export interface CoreUserProfileHandlerToDisplay {
+export type CoreUserProfileHandlerToDisplay = {
     /**
      * Name of the handler.
      */
-    name?: string;
+    name: string;
 
     /**
      * Data to display.
@@ -183,10 +219,10 @@ export interface CoreUserProfileHandlerToDisplay {
     priority?: number;
 
     /**
-     * The type of the handler. See CoreUserProfileHandler.
+     * The type of the handler.
      */
-    type: string;
-}
+    type: CoreUserProfileHandlerType;
+};
 
 /**
  * Delegate update handler event.
@@ -201,30 +237,11 @@ export const USER_DELEGATE_UPDATE_HANDLER_EVENT = 'CoreUserDelegate_update_handl
 export class CoreUserDelegateService extends CoreDelegate<CoreUserProfileHandler> {
 
     /**
-     * User profile handler type for communication.
-     *
-     * @deprecated since 4.4. Use CoreUserProfileHandlerType.BUTTON instead.
-     */
-    static readonly TYPE_COMMUNICATION = 'communication';
-    /**
-     * User profile handler type for new page.
-     *
-     * @deprecated since 4.4. Use CoreUserProfileHandlerType.LIST_ITEM instead.
-     */
-    static readonly TYPE_NEW_PAGE = 'newpage';
-    /**
-     * User profile handler type for actions.
-     *
-     * @deprecated since 4.4. Use CoreUserProfileHandlerType.BUTTON instead.
-     */
-    static readonly TYPE_ACTION = 'action';
-
-    /**
      * Cache object that checks enabled for use.
      */
     protected enabledForUserCache: Record<string, Record<string, boolean>> = {};
 
-    protected featurePrefix = 'CoreUserDelegate_';
+    protected featurePrefix = CORE_USER_FEATURE_PREFIX;
 
     // Hold the handlers and the observable to notify them for each user.
     protected userHandlers: Record<number, Record<string, CoreUserDelegateHandlersData>> = {};
@@ -350,12 +367,22 @@ export class CoreUserDelegateService extends CoreDelegate<CoreUserProfileHandler
                 );
 
                 if (enabled) {
-                    handlersData.handlers.push({
-                        name: name,
-                        data: handler.getDisplayData(user, context, courseId),
-                        priority: handler.priority || 0,
-                        type: handler.type || CoreUserProfileHandlerType.LIST_ITEM,
-                    });
+                    // This is a temporary solution to hide multiple handlers with the same name while we refactor the delegates.
+                    // It should be better to reuse the promise
+                    // @todo Remove this once the delegates code is refactored.
+                    const handlerData = handlersData.handlers.find((handler) => handler.name === name);
+                    if (handlerData) {
+                        // Handler already exists, update the data.
+                        handlerData.data = handler.getDisplayData(user, context, courseId);
+                    } else {
+                        // Add the handler.
+                        handlersData.handlers.push({
+                            name,
+                            data: handler.getDisplayData(user, context, courseId),
+                            priority: handler.priority || 0,
+                            type: handler.type || CoreUserProfileHandlerType.LIST_ITEM,
+                        });
+                    }
                 }
             } catch {
                 // Nothing to do here, it is not enabled for this user.
@@ -496,24 +523,6 @@ export class CoreUserDelegateService extends CoreDelegate<CoreUserProfileHandler
         }
 
         return this.userHandlers[userId][contextKey];
-    }
-
-    /**
-     * @inheritdoc
-     */
-    registerHandler(handler: CoreUserProfileHandler): boolean {
-        const type = handler.type as string;
-
-        // eslint-disable-next-line @typescript-eslint/no-deprecated
-        if (type === CoreUserDelegateService.TYPE_COMMUNICATION || type === CoreUserDelegateService.TYPE_ACTION) {
-            handler.type = CoreUserProfileHandlerType.BUTTON;
-        // eslint-disable-next-line @typescript-eslint/no-deprecated
-        } else if (type === CoreUserDelegateService.TYPE_NEW_PAGE) {
-            handler.type = CoreUserProfileHandlerType.LIST_ITEM;
-
-        }
-
-        return super.registerHandler(handler);
     }
 
 }

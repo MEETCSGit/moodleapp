@@ -19,7 +19,7 @@ import { CoreSites, CoreSitesReadingStrategy } from '@services/sites';
 import { CoreSync, CoreSyncResult } from '@services/sync';
 import { CoreWSError } from '@classes/errors/wserror';
 import { makeSingleton, Translate } from '@singletons';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { ADDON_BLOG_AUTO_SYNCED, ADDON_BLOG_SYNC_ID } from '../constants';
 import { AddonBlog, AddonBlogAddEntryOption, AddonBlogAddEntryWSParams, AddonBlogProvider } from './blog';
 import { AddonBlogOffline, AddonBlogOfflineEntry } from './blog-offline';
@@ -122,7 +122,11 @@ import { AddonBlogOfflineEntryDBRecord } from './database/blog';
                 const option = formattedEntry.options.find(option => option.name === 'attachmentsid');
 
                 if (draftId) {
-                    option ? option.value = draftId : formattedEntry.options.push({ name: 'attachmentsid', value: draftId });
+                    if (option) {
+                        option.value = draftId;
+                    } else {
+                        formattedEntry.options.push({ name: 'attachmentsid', value: draftId });
+                    }
                 }
 
                 await AddonBlog.addEntryOnline(formattedEntry, siteId);
@@ -167,8 +171,8 @@ import { AddonBlogOfflineEntryDBRecord } from './database/blog';
     /**
      * Upload attachments.
      *
-     * @param params entry creation date or entry ID and attachments ID.
-     *
+     * @param params Entry creation date or entry ID and attachments ID.
+     * @param siteId Site ID.
      * @returns draftId.
      */
     protected async uploadAttachments(params: AddonBlogSyncUploadAttachmentsParams, siteId?: string): Promise<number | undefined> {

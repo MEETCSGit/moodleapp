@@ -24,7 +24,7 @@ import { CoreSync, CoreSyncResult } from '@services/sync';
 import { CoreErrorHelper } from '@services/error-helper';
 import { CoreWSError } from '@classes/errors/wserror';
 import { Translate, makeSingleton } from '@singletons';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { AddonModWorkshop,
     AddonModWorkshopData,
 } from './workshop';
@@ -41,7 +41,7 @@ import {
     AddonModWorkshopAction,
     AddonModWorkshopSubmissionType,
 } from '@addons/mod/workshop/constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 
 /**
  * Service to sync workshops.
@@ -70,7 +70,7 @@ export class AddonModWorkshopSyncProvider extends CoreSyncBaseProvider<AddonModW
      * Try to synchronize all workshops that need it and haven't been synchronized in a while.
      *
      * @param siteId Site ID to sync. If not defined, sync all sites.
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @returns Promise resolved when the sync is done.
      */
     syncAllWorkshops(siteId?: string, force?: boolean): Promise<void> {
@@ -80,7 +80,7 @@ export class AddonModWorkshopSyncProvider extends CoreSyncBaseProvider<AddonModW
     /**
      * Sync all workshops on a site.
      *
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @param siteId Site ID to sync.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
@@ -642,7 +642,7 @@ export type AddonModWorkshopAutoSyncData = {
 
 export type AddonModWorkshopSyncResult = CoreSyncResult;
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.

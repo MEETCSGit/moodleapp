@@ -1,4 +1,4 @@
-@addon_mod_assign @app @mod @mod_assign @javascript @lms_from4.5
+@app_parallel_run_assign @addon_mod_assign @app @mod @mod_assign @javascript @lms_from4.5
 Feature: Test marking workflow in assignment activity in app
 
   Background:
@@ -114,12 +114,34 @@ Feature: Test marking workflow in assignment activity in app
     When I go back in the app
     And I press "Student3" in the app
     And I press "Grade" "ion-button" in the app
-    Then I set the field "Grade out of 100" to "80" in the app
+    Then I should find "30" within "Current grade in gradebook" "ion-item" in the app
+    And I should find "This grade is locked or overridden in the gradebook." in the app
+    And I should not find "Current grade in assignment" in the app
+
     When I press "Grade" "ion-button" in the app
     And I wait loading to finish in the app
     Then I should find "Released" within "Marking workflow state" "ion-item" in the app
     And I should find "Teacher teacher" within "Graded by" "ion-item" in the app
-    When I press "Grade" "ion-button" in the app
-    Then I should find "80" within "Current grade in gradebook" "ion-item" in the app
-    And the field "Grade out of 100" matches value "80" in the app
-    And I should not find "Current grade in assignment" in the app
+
+  @lms_from5.2
+  Scenario: Grading with multiple markers is not supported in the app
+    Given the following "activities" exist:
+      | activity | course | idnumber | name             | assignsubmission_onlinetext_enabled | markingworkflow | markingallocation | markercount |
+      | assign   | C1     | assign2  | Mult Mark Assign | 1                                   | 1               | 1                 | 3           |
+    And the following "mod_assign > submissions" exist:
+      | assign  | user      | onlinetext |
+      | assign2 | student1  | Lorem      |
+    And I entered the assign activity "Mult Mark Assign" on course "Course 1" as "teacher1" in the app
+    When I press "Participants" in the app
+    And I press "Student1" in the app
+    Then I should find "Multiple markers are not yet supported by the app and cannot be modified." in the app
+    And I should not be able to press "Grade" "ion-button" in the app
+
+    When I press "Open in browser" in the app
+    Then the app should have opened a browser tab
+
+    When I switch to the browser tab opened by the app
+    And I log in as "teacher1"
+    Then I should see "Lorem"
+    And I should see "Grade out of 100"
+    And I should see "Marker 1"

@@ -1,4 +1,4 @@
-@use "theme/globals" as *;
+@use "src/theme/globals" as *;
 
 :host {
     --core-h5p-placeholder-bg-color: var(--gray-300);
@@ -45,6 +45,15 @@
 
         ion-spinner circle {
             stroke: var(--core-h5p-placeholder-text-color);
+        }
+    }
+
+    core-empty-box {
+        border: 1px solid var(--gray-400);
+        border-radius: 16px;
+
+        ion-button {
+            align-self: stretch;
         }
     }
 }

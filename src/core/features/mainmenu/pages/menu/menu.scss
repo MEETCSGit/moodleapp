@@ -1,4 +1,4 @@
-@use "theme/globals" as *;
+@use "src/theme/globals" as *;
 
 :host {
     ion-tabs {
@@ -41,6 +41,7 @@
 }
 
 ion-tab-bar {
+    order: 100; // Keep at the bottom.
     --background: var(--core-bottom-tabs-background);
     --color: var(--core-bottom-tabs-color);
     --color-selected: var(--core-bottom-tabs-color-selected);
@@ -140,12 +141,10 @@ ion-tabs {
                 transform: translateY(0) !important;
             }
         } @else {
-            &.tabshidden ion-tab-bar {
+            &.tabshidden > ion-tab-bar {
                 pointer-events: none;
-
-                ion-tab-button {
-                    height: auto;
-                }
+                height: 0px;
+                border: 0px;
             }
         }
     }

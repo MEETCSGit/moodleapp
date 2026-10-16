@@ -20,8 +20,8 @@ import { CoreGroupInfo, CoreGroups } from '@services/groups';
 import { CoreNavigator } from '@services/navigator';
 import { CorePlatform } from '@services/platform';
 import { CoreModals } from '@services/overlays/modals';
-import { CoreObject } from '@singletons/object';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreObject } from '@static/object';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { Subscription } from 'rxjs';
 import {
     AddonModWorkshop,
@@ -55,8 +55,8 @@ import {
     ADDON_MOD_WORKSHOP_SUBMISSION_CHANGED,
     AddonModWorkshopPhase,
 } from '@addons/mod/workshop/constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
-import { CoreOpener } from '@singletons/opener';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreOpener } from '@static/opener';
 import { AddonModWorkshopSubmissionComponent } from '../submission/submission';
 import { CoreSharedModule } from '@/core/shared.module';
 import { CoreCourseModuleNavigationComponent } from '@features/course/components/module-navigation/module-navigation';
@@ -244,7 +244,7 @@ export class AddonModWorkshopIndexComponent extends CoreCourseModuleMainActivity
         this.phases = await AddonModWorkshop.getUserPlanPhases(this.workshop.id, { cmId: this.module.id });
 
         this.phases[this.workshop.phase].tasks.forEach((task) => {
-            if (!task.link && (task.code == 'examples' || task.code == 'prepareexamples')) {
+            if (!task.link && (task.code === 'examples' || task.code === 'prepareexamples')) {
                 // Add links to manage examples.
                 task.link = this.module.url || '';
             }

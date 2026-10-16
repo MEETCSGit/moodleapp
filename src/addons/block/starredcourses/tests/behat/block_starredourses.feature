@@ -1,8 +1,10 @@
-@addon_block_starredcourses @app @block @block_starredcourses @javascript
+@app_parallel_run_courses @addon_block_starredcourses @app @block @block_starredcourses @javascript
 Feature: Basic tests of starred courses block
 
   Background:
-    Given the following "users" exist:
+    Given the following config values are set as admin:
+      | enablemycourses | 1 |
+    And the following "users" exist:
       | username | firstname | lastname | email |
       | student1 | Student | 1 | student1@example.com |
     And the following "courses" exist:
@@ -39,6 +41,7 @@ Feature: Basic tests of starred courses block
     When I press "Course 1" within "Starred courses" "ion-card" in the app
     Then the header should be "Course 1" in the app
 
+  @disabled_features
   Scenario: Block is included in disabled features
     # Add another block just to ensure there is something in the block region and the drawer is displayed.
     Given the following "blocks" exist:

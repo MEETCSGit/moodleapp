@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { CoreSites } from '@services/sites';
 import {
     CoreCoursesMyCoursesUpdatedEventData,
@@ -28,7 +28,7 @@ import {
 import { CoreCourseOptionsDelegate } from '@features/course/services/course-options-delegate';
 import { AddonCourseCompletion } from '@addons/coursecompletion/services/coursecompletion';
 import { CoreBlockBaseComponent } from '@features/block/classes/base-block-component';
-import { CoreUtils } from '@singletons/utils';
+import { CoreUtils } from '@static/utils';
 import { CoreSite } from '@classes/sites/site';
 import { CoreSharedModule } from '@/core/shared.module';
 import { CoreCoursesCourseListItemComponent } from '@features/courses/components/course-list-item/course-list-item';
@@ -37,7 +37,7 @@ import {
     CoreCoursesMyCoursesUpdatedEventAction,
     CORE_COURSES_STATE_FAVOURITE,
 } from '@features/courses/constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 
 /**
  * Component to render a recent courses block.
@@ -120,7 +120,7 @@ export class AddonBlockRecentlyAccessedCoursesComponent extends CoreBlockBaseCom
             CorePromiseUtils.allPromises(courseIds.map((courseId) =>
                 AddonCourseCompletion.invalidateCourseCompletion(courseId)))));
 
-        if (courseIds.length  == 1) {
+        if (courseIds.length === 1) {
             promises.push(CoreCourseOptionsDelegate.clearAndInvalidateCoursesOptions(courseIds[0]));
         } else {
             promises.push(CoreCourseOptionsDelegate.clearAndInvalidateCoursesOptions());
@@ -155,7 +155,7 @@ export class AddonBlockRecentlyAccessedCoursesComponent extends CoreBlockBaseCom
         const courses = await CoreCourses.getCoursesByField('ids', courseIds.join(','));
 
         this.courses = recentCourses.map((recentCourse) => {
-            const course = courses.find((course) => recentCourse.id == course.id);
+            const course = courses.find((course) => recentCourse.id === course.id);
 
             return Object.assign(recentCourse, course);
         });
@@ -184,7 +184,7 @@ export class AddonBlockRecentlyAccessedCoursesComponent extends CoreBlockBaseCom
             return this.refreshContent();
         }
 
-        const courseIndex = this.courses.findIndex((course) => course.id == data.courseId);
+        const courseIndex = this.courses.findIndex((course) => course.id === data.courseId);
         const course = this.courses[courseIndex];
         if (data.action === CoreCoursesMyCoursesUpdatedEventAction.VIEW && data.courseId != CoreSites.getCurrentSiteHomeId()) {
             if (!course) {

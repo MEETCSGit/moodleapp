@@ -14,29 +14,23 @@
 
 import { Injectable, SimpleChange, KeyValueChanges } from '@angular/core';
 import { IonContent } from '@ionic/angular';
-import { PopoverOptions, AlertOptions, AlertButton, TextFieldTypes } from '@ionic/core';
+import { AlertOptions, AlertButton, TextFieldTypes } from '@ionic/core';
 
 import { CoreWSExternalWarning } from '@services/ws';
-import { CoreIonLoadingElement } from '@classes/ion-loading';
 import { CoreAnyError, CoreError } from '@classes/errors/error';
-import { AlertController, makeSingleton, Translate } from '@singletons';
+import { AlertController, Translate } from '@singletons';
 import { CoreFileSizeSum } from '@services/plugin-file-delegate';
 import { CoreCancellablePromise } from '@classes/cancellable-promise';
-import { CorePasswordModalParams, CorePasswordModalResponse } from '@components/password-modal/password-modal';
-import { CoreWait } from '@singletons/wait';
-import { CoreToasts, ToastDuration, ShowToastOptions } from '../overlays/toasts';
-import { CoreModals, OpenModalOptions } from '@services/overlays/modals';
-import { CorePopovers, OpenPopoverOptions } from '@services/overlays/popovers';
-import { CoreViewer } from '@features/viewer/services/viewer';
+import { CoreWait } from '@static/wait';
 import { CoreLoadings } from '@services/overlays/loadings';
 import { CoreErrorHelper, CoreErrorObject } from '@services/error-helper';
-import { convertTextToHTMLElement } from '@/core/utils/create-html-element';
-import { CoreHTMLClasses } from '@singletons/html-classes';
-import { CoreDom, VerticalPoint } from '@singletons/dom';
+import { CoreDom, VerticalPoint } from '@static/dom';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { PromptButton } from '@services/overlays/prompts';
-import { CoreBootstrap } from '@singletons/bootstrap';
-import { CoreAngular } from '@singletons/angular';
+import { CoreBootstrap } from '@static/bootstrap';
+import { CoreAngular } from '@static/angular';
+import { CoreIonLoadingElement } from '@classes/ion-loading';
+import { ToastDuration, CoreToasts } from '@services/overlays/toasts';
 
 /**
  * Utils service with helper functions for UI, DOM elements and HTML code.
@@ -67,18 +61,6 @@ export class CoreDomUtilsProvider {
         alwaysConfirm?: boolean,
     ): Promise<void> {
         return CoreAlerts.confirmDownloadSize(size, { message, unknownMessage, wifiThreshold, limitedThreshold, alwaysConfirm });
-    }
-
-    /**
-     * Convert some HTML as text into an HTMLElement. This HTML is put inside a div or a body.
-     *
-     * @param html Text to convert.
-     * @returns Element.
-     *
-     * @deprecated since 4.5. Use convertTextToHTMLElement directly instead.
-     */
-    convertToElement(html: string): HTMLElement {
-        return convertTextToHTMLElement(html);
     }
 
     /**
@@ -294,7 +276,7 @@ export class CoreDomUtilsProvider {
      *            the new class name. Example: {'correct': 'core-question-answer-correct'}.
      * @deprecated since 5.0. Use CoreDom.replaceClassesInElement instead.
      */
-    replaceClassesInElement(element: HTMLElement, map: {[currentValue: string]: string}): void {
+    replaceClassesInElement(element: HTMLElement, map: { [currentValue: string]: string }): void {
         CoreDom.replaceClassesInElement(element, map);
     }
 
@@ -309,7 +291,7 @@ export class CoreDomUtilsProvider {
      */
     restoreSourcesInHtml(
         html: string,
-        paths: {[url: string]: string},
+        paths: { [url: string]: string },
         anchorFn?: (anchor: HTMLElement, href: string) => void,
     ): string {
         return CoreDom.restoreSourcesInHtml(html, paths, anchorFn);
@@ -425,7 +407,7 @@ export class CoreDomUtilsProvider {
      * @deprecated since 5.0. Use CoreAlerts.confirmDelete instead.
      */
     async showDeleteConfirm(
-        translateMessage: string = 'core.areyousure',
+        translateMessage = 'core.areyousure',
         translateArgs: Record<string, unknown> = {},
         options: AlertOptions = {},
     ): Promise<void> {
@@ -526,7 +508,7 @@ export class CoreDomUtilsProvider {
      * @param text The text of the modal window. Default: core.loading.
      * @param needsTranslate Whether the 'text' needs to be translated.
      * @returns Loading element instance.
-     * @deprecated since 4.5. Use CoreLoading.show instead.
+     * @deprecated since 4.5. Use CoreLoadings.show instead.
      */
     async showModalLoading(text?: string, needsTranslate?: boolean): Promise<CoreIonLoadingElement> {
         return CoreLoadings.show(text, needsTranslate);
@@ -636,7 +618,7 @@ export class CoreDomUtilsProvider {
         message: string,
         translateMessage?: boolean,
         duration: ToastDuration | number = ToastDuration.SHORT,
-        cssClass: string = '',
+        cssClass = '',
     ): Promise<HTMLIonToastElement> {
         return CoreToasts.show({
             message,
@@ -645,18 +627,6 @@ export class CoreDomUtilsProvider {
             cssClass,
             position: 'bottom',
         });
-    }
-
-    /**
-     * Show toast with some options.
-     *
-     * @param options Options.
-     * @returns Promise resolved with Toast instance.
-     *
-     * @deprecated since 4.5. Use CoreToasts.show instead.
-     */
-    async showToastWithOptions(options: ShowToastOptions): Promise<HTMLIonToastElement> {
-        return CoreToasts.show(options);
     }
 
     /**
@@ -682,91 +652,6 @@ export class CoreDomUtilsProvider {
     }
 
     /**
-     * Opens a Modal.
-     *
-     * @param options Modal Options.
-     * @returns The modal data when the modal closes.
-     *
-     * @deprecated since 4.5. Use CoreModals.openModal instead.
-     */
-    async openModal<T = unknown>(
-        options: OpenModalOptions,
-    ): Promise<T | undefined> {
-        return CoreModals.openModal(options);
-    }
-
-    /**
-     * Opens a side Modal.
-     *
-     * @param options Modal Options.
-     * @returns The modal data when the modal closes.
-     *
-     * @deprecated since 4.5. Use CoreModals.openSideModal instead.
-     */
-    async openSideModal<T = unknown>(
-        options: OpenModalOptions,
-    ): Promise<T | undefined> {
-        return CoreModals.openSideModal(options);
-    }
-
-    /**
-     * Opens a popover and waits for it to be dismissed to return the result.
-     *
-     * @param options Options.
-     * @returns Promise resolved when the popover is dismissed or will be dismissed.
-     *
-     * @deprecated since 4.5. Use CorePopovers.open instead.
-     */
-    async openPopover<T = void>(options: OpenPopoverOptions): Promise<T | undefined> {
-        return CorePopovers.open(options);
-    }
-
-    /**
-     * Opens a popover.
-     *
-     * @param options Options.
-     * @returns Promise resolved when the popover is displayed.
-     *
-     * @deprecated since 4.5. Use CorePopovers.openWithoutResult instead.
-     */
-    async openPopoverWithoutResult(options: Omit<PopoverOptions, 'showBackdrop'>): Promise<HTMLIonPopoverElement> {
-        return CorePopovers.openWithoutResult(options);
-    }
-
-    /**
-     * Prompts password to the user and returns the entered text.
-     *
-     * @param passwordParams Params to show the modal.
-     * @returns Entered password, error and validation.
-     *
-     * @deprecated since 4.5. Use CorePrompts.promptPassword instead.
-     */
-    async promptPassword<T extends CorePasswordModalResponse>(passwordParams?: CorePasswordModalParams): Promise<T> {
-        const { CorePrompts } = await import('../overlays/prompts');
-
-        return CorePrompts.promptPassword(passwordParams);
-    }
-
-    /**
-     * View an image in a modal.
-     *
-     * @param image URL of the image.
-     * @param title Title of the page or modal.
-     * @param component Component to link the image to if needed.
-     * @param componentId An ID to use in conjunction with the component.
-     *
-     * @deprecated since 4.5. Use CoreViewer.viewImage instead.
-     */
-    async viewImage(
-        image: string,
-        title?: string | null,
-        component?: string,
-        componentId?: string | number,
-    ): Promise<void> {
-        await CoreViewer.viewImage(image, title, component, componentId);
-    }
-
-    /**
      * Wait for images to load.
      *
      * @param element The element to search in.
@@ -788,62 +673,4 @@ export class CoreDomUtilsProvider {
         CoreDom.wrapElement(el, wrapper);
     }
 
-    /**
-     * In iOS the resize event is triggered before the window size changes. Wait for the size to change.
-     * Use of this function is discouraged. Please use CoreDom.onWindowResize to check window resize event.
-     *
-     * @param windowWidth Initial window width.
-     * @param windowHeight Initial window height.
-     * @param retries Number of retries done.
-     * @returns Promise resolved when done.
-     *
-     * @deprecated since 4.5. Use CoreWait.waitForResizeDone instead.
-     */
-    async waitForResizeDone(windowWidth?: number, windowHeight?: number, retries = 0): Promise<void> {
-        return CoreWait.waitForResizeDone(windowWidth, windowHeight, retries);
-    }
-
-    /**
-     * Check whether a CSS class indicating an app mode is set.
-     *
-     * @param className Class name.
-     * @returns Whether the CSS class is set.
-     *
-     * @deprecated since 4.5. Use CoreHTMLClasses.hasModeClass instead.
-     */
-    hasModeClass(className: string): boolean {
-        return CoreHTMLClasses.hasModeClass(className);
-    }
-
-    /**
-     * Get active mode CSS classes.
-     *
-     * @returns Mode classes.
-     *
-     * @deprecated since 4.5. Use CoreHTMLClasses.getModeClasses instead.
-     */
-    getModeClasses(): string[] {
-        return CoreHTMLClasses.getModeClasses();
-    }
-
-    /**
-     * Toggle a CSS class in the root element used to indicate app modes.
-     *
-     * @param className Class name.
-     * @param enable Whether to add or remove the class.
-     *
-     * @deprecated since 4.5. Use CoreHTMLClasses.toggleModeClass instead.
-     */
-    toggleModeClass(
-        className: string,
-        enable = false,
-    ): void {
-        CoreHTMLClasses.toggleModeClass(className, enable);
-    }
-
 }
-/**
- * @deprecated since 4.5. Use CoreDom instead.
- */
-// eslint-disable-next-line @typescript-eslint/no-deprecated
-export const CoreDomUtils = makeSingleton(CoreDomUtilsProvider);

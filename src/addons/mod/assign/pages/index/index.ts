@@ -16,7 +16,7 @@ import { AfterViewInit, Component, viewChild } from '@angular/core';
 import { CoreCourseModuleMainActivityPage } from '@features/course/classes/main-activity-page';
 import { AddonModAssignIndexComponent } from '../../components/index/index';
 import { CoreNavigator } from '@services/navigator';
-import { CoreWait } from '@singletons/wait';
+import { CoreWait } from '@static/wait';
 import { CoreSharedModule } from '@/core/shared.module';
 
 /**
@@ -35,7 +35,7 @@ export default class AddonModAssignIndexPage extends CoreCourseModuleMainActivit
 
     private action?: string;
 
-    readonly activityComponent = viewChild(AddonModAssignIndexComponent);
+    readonly activityComponent = viewChild.required(AddonModAssignIndexComponent);
 
     constructor() {
         super();
@@ -49,8 +49,8 @@ export default class AddonModAssignIndexPage extends CoreCourseModuleMainActivit
     async ngAfterViewInit(): Promise<void> {
         switch (this.action) {
             case 'editsubmission':
-                await CoreWait.waitFor(() => !!this.activityComponent()?.submissionComponent(), { timeout: 5000 });
-                await this.activityComponent()?.submissionComponent()?.goToEdit();
+                await CoreWait.waitFor(() => !!this.activityComponent().submissionComponent(), { timeout: 5000 });
+                await this.activityComponent().submissionComponent()?.goToEdit();
 
                 break;
         }

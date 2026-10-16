@@ -25,12 +25,9 @@
             <ng-template>
                 <!-- Prevent access messages. Only show the first one. -->
                 @if (lesson && preventReasons.length) {
-                    <ion-card class="core-info-card">
-                        <ion-item>
-                            <ion-icon name="fas-circle-info" slot="start" aria-hidden="true" />
-                            <ion-label [innerHTML]="preventReasons[0].message" />
-                        </ion-item>
-                    </ion-card>
+                    <core-alert-card type="info">
+                        <div [innerHTML]="preventReasons[0].message"></div>
+                    </core-alert-card>
                 }
 
                 <!-- Input password for protected lessons. -->
@@ -54,7 +51,8 @@
                 }
 
                 @if (canViewReports) {
-                    <core-loading [hideUntil]="!showSpinner">
+                    <core-loading [hideUntil]="!showSpinner" [fullscreen]="false" placeholderType="column"
+                        placeholderHeight="28px" [placeholderLimit]="1">
                         @if ((lesson && !preventReasons.length) || retakeToReview) {
                             <ion-list>
                                 <ng-container *ngTemplateOutlet="buttons" />
@@ -177,7 +175,7 @@
                                             </ion-col>
                                         }
 
-                                        <ion-col [ngClass]="{'ion-text-center': overview.lessonscored}">
+                                        <ion-col [class.ion-text-center]="overview.lessonscored">
                                             <p class="item-heading">{{ 'addon.mod_lesson.averagetime' | translate }}</p>
                                             @if (overview.avetime !== null && overview.numofattempts) {
                                                 <p>{{ avetimeReadable }}</p>
@@ -202,7 +200,7 @@
                                             </ion-col>
                                         }
 
-                                        <ion-col [ngClass]="{'ion-text-center': overview.lessonscored}">
+                                        <ion-col [class.ion-text-center]="overview.lessonscored">
                                             <p class="item-heading">{{ 'addon.mod_lesson.hightime' | translate }}</p>
                                             @if (overview.hightime !== null) {
                                                 <p>{{ hightimeReadable }}</p>
@@ -225,7 +223,7 @@
                                             </ion-col>
                                         }
 
-                                        <ion-col [ngClass]="{'ion-text-center': overview.lessonscored}">
+                                        <ion-col [class.ion-text-center]="overview.lessonscored">
                                             <p class="item-heading">{{ 'addon.mod_lesson.lowtime' | translate }}</p>
                                             @if (overview.lowtime !== null) {
                                                 <p>{{ lowtimeReadable }}</p>
@@ -245,14 +243,15 @@
                                     <ion-card-title>{{ 'addon.mod_lesson.overview' | translate }}</ion-card-title>
                                 </ion-card-header>
 
-                                <ion-item class="ion-text-wrap" *ngFor="let student of overview.students" button
-                                    (click)="openRetake(student.id)" [detail]="true">
-                                    <core-user-avatar [user]="student" slot="start" [userId]="student.id" [courseId]="courseId" />
-                                    <ion-label>
-                                        <p class="item-heading">{{ student.fullname }}</p>
-                                        <core-progress-bar [progress]="student.bestgrade" a11yText="core.gradenoun" />
-                                    </ion-label>
-                                </ion-item>
+                                @for (student of overview.students; track student.id) {
+                                    <ion-item class="ion-text-wrap" button (click)="openRetake(student.id)" [detail]="true">
+                                        <core-user-avatar [user]="student" slot="start" [courseId]="courseId" />
+                                        <ion-label>
+                                            <p class="item-heading">{{ student.fullname }}</p>
+                                            <core-progress-bar [progress]="student.bestgrade" a11yText="core.gradenoun" />
+                                        </ion-label>
+                                    </ion-item>
+                                }
                             </ion-card>
                         }
                     </core-loading>
@@ -262,10 +261,11 @@
     </core-tabs>
 
     @if (!showLoading) {
-        <div collapsible-footer slot="fixed" [ngClass]="{ 'ion-margin-bottom': showSpinner }">
+        <div collapsible-footer slot="fixed">
             @if (!canViewReports && ((lesson && !preventReasons.length) || retakeToReview)) {
                 <div class="list-item-limited-width">
-                    <core-loading [hideUntil]="!showSpinner">
+                    <core-loading [hideUntil]="!showSpinner" [fullscreen]="false" placeholderType="column"
+                        placeholderHeight="28px" [placeholderLimit]="1">
                         <ng-container *ngTemplateOutlet="buttons" />
                     </core-loading>
                 </div>

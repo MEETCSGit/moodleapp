@@ -16,9 +16,9 @@ import { Component, Input, OnDestroy, OnInit, inject } from '@angular/core';
 import { IonContent } from '@ionic/angular';
 
 import { CoreCourseModuleMainResourceComponent } from './main-resource-component';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { CoreCourse } from '../services/course';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreSites } from '@services/sites';
 import { CoreSyncResult } from '@services/sync';
 import { CoreAlerts } from '@services/overlays/alerts';
@@ -85,10 +85,10 @@ export class CoreCourseModuleMainActivityComponent extends CoreCourseModuleMainR
      * Perform the refresh content function.
      *
      * @param sync If the refresh needs syncing.
-     * @param showErrors Wether to show errors to the user or hide them.
+     * @param showErrors Whether to show errors to the user or hide them.
      * @returns Resolved when done.
      */
-    protected async refreshContent(sync: boolean = false, showErrors: boolean = false): Promise<void> {
+    protected async refreshContent(sync = false, showErrors = false): Promise<void> {
         if (!this.module) {
             // This can happen if course format changes from single activity to weekly/topics.
             return;
@@ -106,10 +106,10 @@ export class CoreCourseModuleMainActivityComponent extends CoreCourseModuleMainR
      * Show loading and perform the load content function.
      *
      * @param sync If the fetch needs syncing.
-     * @param showErrors Wether to show errors to the user or hide them.
+     * @param showErrors Whether to show errors to the user or hide them.
      * @returns Resolved when done.
      */
-    protected async showLoadingAndFetch(sync: boolean = false, showErrors: boolean = false): Promise<void> {
+    protected async showLoadingAndFetch(sync = false, showErrors = false): Promise<void> {
         this.showLoading = true;
         this.content?.scrollToTop();
 
@@ -120,10 +120,10 @@ export class CoreCourseModuleMainActivityComponent extends CoreCourseModuleMainR
      * Show loading and perform the refresh content function.
      *
      * @param sync If the refresh needs syncing.
-     * @param showErrors Wether to show errors to the user or hide them.
+     * @param showErrors Whether to show errors to the user or hide them.
      * @returns Resolved when done.
      */
-    protected showLoadingAndRefresh(sync: boolean = false, showErrors: boolean = false): Promise<void> {
+    protected showLoadingAndRefresh(sync = false, showErrors = false): Promise<void> {
         this.showLoading = true;
         this.content?.scrollToTop();
 
@@ -135,11 +135,11 @@ export class CoreCourseModuleMainActivityComponent extends CoreCourseModuleMainR
      *
      * @param refresh Whether we're refreshing data.
      * @param sync If the refresh needs syncing.
-     * @param showErrors Wether to show errors to the user or hide them.
+     * @param showErrors Whether to show errors to the user or hide them.
      * @returns Promise resolved when done.
      */
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    protected async fetchContent(refresh: boolean = false, sync: boolean = false, showErrors: boolean = false): Promise<void> {
+    protected async fetchContent(refresh = false, sync = false, showErrors = false): Promise<void> {
         return;
     }
 
@@ -148,10 +148,10 @@ export class CoreCourseModuleMainActivityComponent extends CoreCourseModuleMainR
      *
      * @param refresh Whether we're refreshing data.
      * @param sync If the refresh needs syncing.
-     * @param showErrors Wether to show errors to the user or hide them.
+     * @param showErrors Whether to show errors to the user or hide them.
      * @returns Promise resolved when done.
      */
-    protected async loadContent(refresh?: boolean, sync: boolean = false, showErrors: boolean = false): Promise<void> {
+    protected async loadContent(refresh?: boolean, sync = false, showErrors = false): Promise<void> {
         if (!this.module) {
             // This can happen if course format changes from single activity to weekly/topics.
             return;
@@ -205,7 +205,7 @@ export class CoreCourseModuleMainActivityComponent extends CoreCourseModuleMainR
      * @param showErrors If show errors to the user of hide them.
      * @returns Promise resolved with true if sync hast updated data to the server, false otherwise.
      */
-    protected async syncActivity(showErrors: boolean = false): Promise<boolean> {
+    protected async syncActivity(showErrors = false): Promise<boolean> {
         try {
             const result = await this.sync();
 

@@ -21,7 +21,7 @@ import { CoreWSFile } from '@services/ws';
 import { CoreCourse, CoreCourseAnyModuleData, CoreCourseCommonModWSOptions } from '@features/course/services/course';
 import { CoreUser } from '@features/user/services/user';
 import { CoreGroups, CoreGroupsProvider } from '@services/groups';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { AddonModForumSync, AddonModForumSyncResult } from '../forum-sync';
 import { makeSingleton } from '@singletons';
 import { CoreCourses } from '@features/courses/services/courses';
@@ -250,7 +250,7 @@ export class AddonModForumPrefetchHandlerService extends CoreCourseActivityPrefe
         promises.push(AddonModForum.getAccessInformation(forum.id, modOptions));
 
         // Get course data, needed to determine upload max size if it's configured to be course limit.
-        promises.push(CorePromiseUtils.ignoreErrors(CoreCourses.getCourseByField('id', courseId, siteId)));
+        promises.push(CorePromiseUtils.ignoreErrors(CoreCourses.getCourseByField('id', courseId, { siteId })));
 
         await Promise.all(promises);
     }

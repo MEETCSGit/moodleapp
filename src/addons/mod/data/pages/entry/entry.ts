@@ -21,8 +21,8 @@ import { IonContent } from '@ionic/angular';
 import { CoreGroups, CoreGroupInfo } from '@services/groups';
 import { CoreNavigator } from '@services/navigator';
 import { CoreSites } from '@services/sites';
-import { CoreArray } from '@singletons/array';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreArray } from '@static/array';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 
 import {
     AddonModData,
@@ -33,7 +33,7 @@ import {
 } from '../../services/data';
 import { AddonModDataHelper } from '../../services/data-helper';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
-import { CoreTime } from '@singletons/time';
+import { CoreTime } from '@static/time';
 import {
     ADDON_MOD_DATA_AUTO_SYNCED,
     ADDON_MOD_DATA_COMPONENT_LEGACY,
@@ -42,7 +42,7 @@ import {
     AddonModDataTemplateType,
     AddonModDataTemplateMode,
 } from '../../constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { Translate } from '@singletons';
 import { CoreCompileHtmlComponent } from '@features/compile/components/compile-html/compile-html';
@@ -67,10 +67,10 @@ import { CoreRatingAggregateComponent } from '@features/rating/components/aggreg
 })
 export default class AddonModDataEntryPage implements OnInit, OnDestroy {
 
-    readonly content = viewChild(IonContent);
+    readonly content = viewChild.required(IonContent);
     readonly comments = viewChild(CoreCommentsCommentsComponent);
 
-    protected entryId?: number;
+    protected entryId = 0;
     protected syncObserver: CoreEventObserver; // It will observe the sync auto event.
     protected entryChangedObserver: CoreEventObserver; // It will observe the changed entry event.
     protected fields: Record<number, AddonModDataField> = {};
@@ -124,7 +124,7 @@ export default class AddonModDataEntryPage implements OnInit, OnDestroy {
                 return;
             }
 
-            if ((data.entryId == this.entryId || data.offlineEntryId == this.entryId) && this.database?.id == data.dataId) {
+            if ((data.entryId === this.entryId || data.offlineEntryId === this.entryId) && this.database?.id === data.dataId) {
                 if (data.deleted) {
                     // If deleted, go back.
                     CoreNavigator.back();
@@ -138,7 +138,7 @@ export default class AddonModDataEntryPage implements OnInit, OnDestroy {
 
         // Refresh entry on change.
         this.entryChangedObserver = CoreEvents.on(ADDON_MOD_DATA_ENTRY_CHANGED, (data) => {
-            if (data.entryId == this.entryId && this.database?.id == data.dataId) {
+            if (data.entryId === this.entryId && this.database?.id === data.dataId) {
                 if (data.deleted) {
                     // If deleted, go back.
                     CoreNavigator.back();
@@ -159,7 +159,7 @@ export default class AddonModDataEntryPage implements OnInit, OnDestroy {
         try {
             this.moduleId = CoreNavigator.getRequiredRouteNumberParam('cmId');
             this.courseId = CoreNavigator.getRequiredRouteNumberParam('courseId');
-            this.entryId = CoreNavigator.getRouteNumberParam('entryId') || undefined;
+            this.entryId = CoreNavigator.getRequiredRouteNumberParam('entryId');
             this.title = CoreNavigator.getRouteParam<string>('title') || '';
             this.selectedGroup = CoreNavigator.getRouteNumberParam('group') || 0;
             this.offset = CoreNavigator.getRouteNumberParam('offset');
@@ -229,7 +229,7 @@ export default class AddonModDataEntryPage implements OnInit, OnDestroy {
             this.showComments = actions.comments;
 
             const entries: Record<number, AddonModDataEntry> = {};
-            entries[this.entryId!] = this.entry!;
+            entries[this.entryId] = this.entry!;
 
             // Pass the input data to the component.
             this.jsData = {
@@ -250,7 +250,7 @@ export default class AddonModDataEntryPage implements OnInit, OnDestroy {
 
             CoreAlerts.showError(error, { default: Translate.instant('core.course.errorgetmodule') });
         } finally {
-            this.content()?.scrollToTop();
+            this.content().scrollToTop();
             this.entryLoaded = true;
         }
     }
@@ -263,7 +263,7 @@ export default class AddonModDataEntryPage implements OnInit, OnDestroy {
      */
     async gotoEntry(offset: number): Promise<void> {
         this.offset = offset;
-        this.entryId = undefined;
+        this.entryId = 0;
         this.entry = undefined;
         this.entryLoaded = false;
         this.logView = CoreTime.once(() => this.performLogView()); // Log again after loading data.
@@ -282,7 +282,7 @@ export default class AddonModDataEntryPage implements OnInit, OnDestroy {
 
         promises.push(AddonModData.invalidateDatabaseData(this.courseId));
         if (this.database) {
-            promises.push(AddonModData.invalidateEntryData(this.database.id, this.entryId!));
+            promises.push(AddonModData.invalidateEntryData(this.database.id, this.entryId));
             promises.push(CoreGroups.invalidateActivityGroupInfo(this.database.coursemodule));
             promises.push(AddonModData.invalidateEntriesData(this.database.id));
             promises.push(AddonModData.invalidateFieldsData(this.database.id));
@@ -325,7 +325,7 @@ export default class AddonModDataEntryPage implements OnInit, OnDestroy {
         this.selectedGroup = groupId;
         this.offset = undefined;
         this.entry = undefined;
-        this.entryId = undefined;
+        this.entryId = 0;
         this.entryLoaded = false;
 
         await this.fetchEntryData();
@@ -337,7 +337,7 @@ export default class AddonModDataEntryPage implements OnInit, OnDestroy {
      * @returns Resolved when done.
      */
     protected async setEntryFromOffset(): Promise<void> {
-        if (this.offset === undefined && this.entryId !== undefined) {
+        if (this.offset === undefined && this.entryId !== 0) {
             // Entry id passed as navigation parameter instead of the offset.
             // We don't display next/previous buttons in this case.
             this.hasNext = false;
@@ -409,6 +409,8 @@ export default class AddonModDataEntryPage implements OnInit, OnDestroy {
 
     /**
      * Function called when entry is being rendered.
+     *
+     * @param rendering Whether the entry is being rendered or not.
      */
     setRenderingEntry(rendering: boolean): void {
         this.renderingEntry = rendering;
@@ -417,6 +419,8 @@ export default class AddonModDataEntryPage implements OnInit, OnDestroy {
 
     /**
      * Function called when comments component is loading data.
+     *
+     * @param loading Whether the comments component is loading data or not.
      */
     setLoadingComments(loading: boolean): void {
         this.loadingComments = loading;
@@ -425,6 +429,8 @@ export default class AddonModDataEntryPage implements OnInit, OnDestroy {
 
     /**
      * Function called when rate component is loading data.
+     *
+     * @param loading Whether the rate component is loading data or not.
      */
     setLoadingRating(loading: boolean): void {
         this.loadingRating = loading;
@@ -435,7 +441,7 @@ export default class AddonModDataEntryPage implements OnInit, OnDestroy {
      * Function called when rating is updated online.
      */
     ratingUpdated(): void {
-        AddonModData.invalidateEntryData(this.database!.id, this.entryId!);
+        AddonModData.invalidateEntryData(this.database!.id, this.entryId);
     }
 
     /**

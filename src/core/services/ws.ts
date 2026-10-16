@@ -13,24 +13,24 @@
 // limitations under the License.
 
 import { Injectable } from '@angular/core';
-import { HttpResponse, HttpParams, HttpErrorResponse } from '@angular/common/http';
+import { HttpResponse, HttpParams, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 
 import { FileEntry } from '@awesome-cordova-plugins/file/ngx';
-import { HTTPResponse as NativeHttpResponse } from '@awesome-cordova-plugins/http';
-import { Md5 } from 'ts-md5/dist/md5';
+import { HTTPResponse as NativeHttpResponse } from '@awesome-cordova-plugins/http/ngx';
+import { Md5 } from 'ts-md5';
 import { Observable, firstValueFrom } from 'rxjs';
 import { timeout } from 'rxjs/operators';
 
 import { CoreNativeToAngularHttpResponse } from '@classes/native-to-angular-http';
 import { CoreNetwork } from '@services/network';
 import { CoreFile, CoreFileFormat } from '@services/file';
-import { CoreMimetype } from '@singletons/mimetype';
-import { CoreText } from '@singletons/text';
-import { CoreConstants, MINIMUM_MOODLE_VERSION } from '@/core/constants';
+import { CoreMimetype } from '@static/mimetype';
+import { CoreText } from '@static/text';
+import { MINIMUM_MOODLE_VERSION } from '@/core/constants';
 import { CoreError } from '@classes/errors/error';
 import { CoreInterceptor } from '@classes/interceptor';
 import { makeSingleton, Translate, Http, NativeHttp } from '@singletons';
-import { CoreLogger } from '@singletons/logger';
+import { CoreLogger } from '@static/logger';
 import { CoreWSError } from '@classes/errors/wserror';
 import { CoreAjaxError } from '@classes/errors/ajaxerror';
 import { CoreAjaxWSError } from '@classes/errors/ajaxwserror';
@@ -42,9 +42,10 @@ import { CoreSiteError, CoreSiteErrorOptions } from '@classes/errors/siteerror';
 import { CoreUserGuestSupportConfig } from '@features/user/classes/support/guest-support-config';
 import { CoreSites } from '@services/sites';
 import { CoreLang, CoreLangFormat } from './lang';
-import { CoreErrorLogs } from '@singletons/error-logs';
+import { CoreErrorLogs } from '@static/error-logs';
 import { CoreErrorHelper, CoreErrorObject } from './error-helper';
-import { CoreDom } from '@singletons/dom';
+import { CoreDom } from '@static/dom';
+import { CoreUserNullSupportConfig } from '@features/user/classes/support/null-support-config';
 
 /**
  * This service allows performing WS calls and download/upload files.
@@ -52,10 +53,14 @@ import { CoreDom } from '@singletons/dom';
 @Injectable({ providedIn: 'root' })
 export class CoreWSProvider {
 
+    // WS constants.
+    static readonly WS_TIMEOUT = 30000; // Timeout when not in WiFi.
+    static readonly WS_TIMEOUT_WIFI = 30000; // Timeout when in WiFi.
+
     protected logger: CoreLogger;
-    protected mimeTypeCache: {[url: string]: string | null} = {}; // A "cache" to store file mimetypes to decrease HEAD requests.
+    protected mimeTypeCache: { [url: string]: string | null } = {}; // A "cache" to store file mimetypes to decrease HEAD requests.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    protected ongoingCalls: {[queueItemId: string]: Promise<any>} = {};
+    protected ongoingCalls: { [queueItemId: string]: Promise<any> } = {};
     protected retryCalls: RetryCall[] = [];
     protected retryTimeout = 0;
 
@@ -132,7 +137,7 @@ export class CoreWSProvider {
      *
      * @param method The WebService method to be called.
      * @param data Arguments to pass to the method.
-     * @param preSets Extra settings and information. Only some
+     * @param preSets Extra settings and information.
      * @returns Promise resolved with the response data in success and rejected with CoreAjaxError.
      */
     callAjax<T = unknown>(method: string, data: Record<string, unknown>, preSets: CoreWSAjaxPreSets): Promise<T> {
@@ -179,21 +184,21 @@ export class CoreWSProvider {
             } else if (typeof value === 'string') {
                 if (stripUnicode) {
                     const stripped = CoreText.stripUnicode(value);
-                    if (stripped != value && stripped.trim().length == 0) {
+                    if (stripped != value && stripped.trim().length === 0) {
                         return null;
                     }
                     value = stripped;
                 }
-            } else if (typeof value == 'boolean') {
+            } else if (typeof value === 'boolean') {
                 /* Moodle does not allow "true" or "false" in WS parameters, only in POST parameters.
                    We've been using "true" and "false" for WS settings "filter" and "fileurl",
                    we keep it this way to avoid changing cache keys. */
-                if (key == 'moodlewssettingfilter' || key == 'moodlewssettingfileurl') {
+                if (key === 'moodlewssettingfilter' || key === 'moodlewssettingfileurl') {
                     value = value ? 'true' : 'false';
                 } else {
                     value = value ? '1' : '0';
                 }
-            } else if (typeof value == 'number') {
+            } else if (typeof value === 'number') {
                 value = String(value);
             } else {
                 // Unknown type.
@@ -247,6 +252,12 @@ export class CoreWSProvider {
             throw new CoreNetworkError();
         }
 
+        if (url.startsWith('data:')) {
+            this.logger.error(`Won't download file because URL starts with data: ${url}`);
+
+            throw new CoreError(`Invalid URL, cannot download file: ${url}`);
+        }
+
         // Use a tmp path to download the file and then move it to final location.
         // This is because if the download fails, the local file is deleted.
         const tmpPath = `${path}.tmp`;
@@ -255,8 +266,8 @@ export class CoreWSProvider {
             // Create the tmp file as an empty file.
             const fileEntry = await CoreFile.createFile(tmpPath);
 
-            let fileDownloaded: { entry: globalThis.FileEntry; headers: Record<string, string> | undefined};
-            let redirectUrl: string | undefined;
+            let headers: HttpHeaders | undefined;
+            let redirectUrl: string | null = null;
             let maxRedirects = 5;
             do {
                 const transfer = new window.FileTransfer();
@@ -265,21 +276,23 @@ export class CoreWSProvider {
                 }
 
                 // Download the file in the tmp file.
-                fileDownloaded = await new Promise((resolve, reject) => {
+                const responseHeaders = await new Promise<Record<string, string> | undefined>((resolve, reject) => {
                     transfer.download(
                         redirectUrl ?? url,
                         CoreFile.getFileEntryURL(fileEntry),
-                        (result) => resolve(result),
+                        (result) => resolve(result.headers),
                         (error: FileTransferError) => reject(error),
                         true,
                         { headers: { 'User-Agent': navigator.userAgent } },
                     );
                 });
 
+                headers = new HttpHeaders(responseHeaders); // Convert to HttpHeaders because names are normalised.
+
                 // Redirections should have been handled by the platform,
                 // but Android does not follow redirections between HTTP and HTTPS.
                 // See: https://developer.android.com/reference/java/net/HttpURLConnection#response-handling
-                redirectUrl = fileDownloaded.headers?.['location'];
+                redirectUrl = headers.get('Location');
                 maxRedirects--;
             } while (redirectUrl && maxRedirects >= 0);
 
@@ -292,13 +305,13 @@ export class CoreWSProvider {
                 if (!extension || ['gdoc', 'gsheet', 'gslides', 'gdraw', 'php'].includes(extension)) {
 
                     // Not valid, get the file's mimetype.
-                    const requestContentType = fileDownloaded.headers?.['Content-Type']?.split(';')[0];
+                    const requestContentType = headers.get('Content-Type')?.split(';')[0];
                     const mimetype = requestContentType ?? await this.getRemoteFileMimeType(url);
 
                     if (mimetype) {
                         const remoteExtension = CoreMimetype.getExtension(mimetype, url);
                         // If the file is from Google Drive, ignore mimetype application/json.
-                        if (remoteExtension && (!extension || mimetype != 'application/json')) {
+                        if (remoteExtension && (!extension || mimetype !== 'application/json')) {
                             if (extension) {
                                 // Remove existing extension since we will use another one.
                                 path = CoreMimetype.removeExtension(path);
@@ -359,6 +372,7 @@ export class CoreWSProvider {
         try {
             const response = await this.performHead(url);
 
+            // HttpHeaders get is already case insensitive, no need to check different values.
             let mimeType = response.headers.get('Content-Type');
             if (mimeType) {
                 // Remove "parameters" like charset.
@@ -379,17 +393,17 @@ export class CoreWSProvider {
      * @param url File URL.
      * @returns Promise resolved with the size or -1 if failure.
      */
-    getRemoteFileSize(url: string): Promise<number> {
-        return this.performHead(url).then((response) => {
+    async getRemoteFileSize(url: string): Promise<number> {
+        try {
+            const response = await this.performHead(url);
+
             const contentLength = response.headers.get('Content-Length');
             const size = contentLength ? parseInt(contentLength, 10) : 0;
 
-            if (size) {
-                return size;
-            }
-
+            return size || -1;
+        } catch {
             return -1;
-        }).catch(() => -1);
+        }
     }
 
     /**
@@ -398,7 +412,7 @@ export class CoreWSProvider {
      * @returns Timeout in ms.
      */
     getRequestTimeout(): number {
-        return CoreNetwork.isCellular() ? CoreConstants.WS_TIMEOUT : CoreConstants.WS_TIMEOUT_WIFI;
+        return CoreNetwork.isCellular() ? CoreWSProvider.WS_TIMEOUT : CoreWSProvider.WS_TIMEOUT_WIFI;
     }
 
     /**
@@ -425,7 +439,7 @@ export class CoreWSProvider {
      * @param preSets Extra settings and information. Only some
      * @returns Promise resolved with the response data in success and rejected with CoreAjaxError.
      */
-    protected async performAjax<T = unknown> (
+    protected async performAjax<T = unknown>(
         method: string,
         data: Record<string, unknown>,
         preSets: CoreWSAjaxPreSets,
@@ -459,7 +473,7 @@ export class CoreWSProvider {
             preSets.responseExpected = true;
         }
 
-        const script = preSets.noLogin ? 'service-nologin.php' : 'service.php';
+        const script = 'service-nologin.php';
         const ajaxData = [{
             index: 0,
             methodname: method,
@@ -505,7 +519,9 @@ export class CoreWSProvider {
 
                 throw new CoreAjaxError({
                     message,
-                    supportConfig: await CoreUserGuestSupportConfig.forSite(preSets.siteUrl),
+                    supportConfig: preSets.omitSupport ?
+                        new CoreUserNullSupportConfig() :
+                        await CoreUserGuestSupportConfig.forSite(preSets.siteUrl),
                     debug: {
                         code: 'invalidresponse',
                         details: Translate.instant('core.serverconnection', {
@@ -532,8 +548,10 @@ export class CoreWSProvider {
 
             const options: CoreSiteErrorOptions = {
                 message,
-                supportConfig: await CoreUserGuestSupportConfig.forSite(preSets.siteUrl),
-            };
+                supportConfig: preSets.omitSupport ?
+                    new CoreUserNullSupportConfig() :
+                    await CoreUserGuestSupportConfig.forSite(preSets.siteUrl),
+                };
 
             if (CorePlatform.isMobile()) {
                 switch (data.status) {
@@ -609,7 +627,7 @@ export class CoreWSProvider {
                 }
             }
 
-            throw new CoreAjaxError(options, 1, data.status);
+            throw new CoreAjaxError(options, data.status);
         }).catch(error => {
             const type = `CoreAjaxError - ${error.errorcode}`;
             CoreErrorLogs.addErrorLog({ method, type, message: error, time: new Date().getTime(), data });
@@ -657,7 +675,7 @@ export class CoreWSProvider {
         const options: any = {};
 
         // This is done because some returned values like 0 are treated as null if responseType is json.
-        if (preSets.typeExpected == 'number' || preSets.typeExpected == 'boolean' || preSets.typeExpected == 'string') {
+        if (preSets.typeExpected === 'number' || preSets.typeExpected === 'boolean' || preSets.typeExpected === 'string') {
             options.responseType = 'text';
         }
 
@@ -754,7 +772,7 @@ export class CoreWSProvider {
                 });
             } else if (typeof data !== typeExpected) {
                 // If responseType is text an string will be returned, parse before returning.
-                if (typeof data == 'string') {
+                if (typeof data === 'string') {
                     if (typeExpected === 'number') {
                         data = Number(data);
                         if (isNaN(data)) {
@@ -806,7 +824,7 @@ export class CoreWSProvider {
 
             if (data.exception !== undefined) {
                 // Special debugging for site plugins, otherwise it's hard to debug errors if the data is cached.
-                if (method == 'tool_mobile_get_content') {
+                if (method === 'tool_mobile_get_content') {
                     this.logger.error('Error calling WS', method, data);
                 }
 
@@ -824,7 +842,7 @@ export class CoreWSProvider {
                 const retryPromise = this.addToRetryQueue<T>(method, siteUrl, ajaxData, preSets);
 
                 // Only process the queue one time.
-                if (this.retryTimeout == 0) {
+                if (this.retryTimeout === 0) {
                     this.retryTimeout = parseInt(error.headers.get('Retry-After'), 10) || 5;
                     this.logger.warn(`${error.statusText}. Retrying in ${this.retryTimeout} seconds. ` +
                         `${this.retryCalls.length} calls left.`);
@@ -873,7 +891,7 @@ export class CoreWSProvider {
      * This function uses recursion in order to add a delay between requests to reduce stress.
      */
     protected processRetryQueue(): void {
-        if (this.retryCalls.length > 0 && this.retryTimeout == 0) {
+        if (this.retryCalls.length > 0 && this.retryTimeout === 0) {
             const call = this.retryCalls[0];
             this.retryCalls.shift();
 
@@ -986,7 +1004,7 @@ export class CoreWSProvider {
                 throw new CoreError(Translate.instant('core.serverconnection', {
                     details: Translate.instant('core.errorinvalidresponse', { method }),
                 }));
-            } else if (typeof data != preSets.typeExpected) {
+            } else if (typeof data !== preSets.typeExpected) {
                 this.logger.warn(`Response of type "${typeof data}" received, expecting "${preSets.typeExpected}"`);
                 throw new CoreError(Translate.instant('core.errorinvalidresponse', { method }));
             }
@@ -1177,9 +1195,9 @@ export class CoreWSProvider {
 
         if (CorePlatform.isMobile()) {
             // Use the cordova plugin.
-            if (url.indexOf('file://') === 0) {
+            if (url.startsWith('file://')) {
                 // We cannot load local files using the http native plugin. Use file provider instead.
-                const content = options.responseType == 'json' ?
+                const content = options.responseType === 'json' ?
                     await CoreFile.readFile<T>(url, CoreFileFormat.FORMATJSON) :
                     await CoreFile.readFile(url, CoreFileFormat.FORMATTEXT);
 
@@ -1193,23 +1211,22 @@ export class CoreWSProvider {
             }
 
             let response: NativeHttpResponse;
-            let redirectUrl: string | undefined;
+            let redirectUrl: string | null = null;
             let maxRedirects = 5;
             do {
                 try {
                     response = await NativeHttp.sendRequest(redirectUrl ?? url, options);
-                    redirectUrl = undefined;
+                    redirectUrl = null;
                 } catch (error) {
                     // Error is a response object.
                     response = error as NativeHttpResponse;
 
-                    // If it's a SSL error, the response doesn't contain headers. Make sure it always exists, even if it's empty.
-                    response.headers = response.headers || {};
+                    const headers = new HttpHeaders(response.headers); // Convert to HttpHeaders because names are normalised.
 
                     // Redirections should have been handled by the platform,
                     // but Android does not follow redirections between HTTP and HTTPS.
                     // See: https://developer.android.com/reference/java/net/HttpURLConnection#response-handling
-                    redirectUrl = response.headers['location'];
+                    redirectUrl = headers.get('Location');
                     maxRedirects--;
                     if (!redirectUrl || maxRedirects < 0) {
                         throw error;
@@ -1236,7 +1253,7 @@ export class CoreWSProvider {
                     break;
 
                 case 'post':
-                    if (angularOptions.serializer == 'json') {
+                    if (angularOptions.serializer === 'json') {
                         angularOptions.data = JSON.stringify(angularOptions.data);
                     }
 
@@ -1312,7 +1329,7 @@ export const CoreWS = makeSingleton(CoreWSProvider);
 /**
  * File upload options.
  */
-export interface CoreWSFileUploadOptions extends FileUploadOptions {
+export type CoreWSFileUploadOptions = FileUploadOptions & {
     /**
      * The file area where to put the file. By default, 'draft'.
      */
@@ -1322,7 +1339,7 @@ export interface CoreWSFileUploadOptions extends FileUploadOptions {
      * Item ID of the area where to put the file. By default, 0.
      */
     itemId?: number;
-}
+};
 
 /**
  * Structure of warnings returned by WS.
@@ -1516,6 +1533,11 @@ export type CoreWSAjaxPreSets = {
      * Whether to send the parameters via GET. Only if noLogin is true.
      */
     useGet?: boolean;
+
+    /**
+     * Whether to omit the support config.
+     */
+    omitSupport?: boolean;
 };
 
 /**

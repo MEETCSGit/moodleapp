@@ -23,7 +23,7 @@ import { Injectable, Type } from '@angular/core';
 import { CoreFileUploader, CoreFileUploaderStoreFilesResult } from '@features/fileuploader/services/fileuploader';
 import { FileEntry } from '@awesome-cordova-plugins/file/ngx';
 import { CoreFileSession } from '@services/file-session';
-import { CoreFormFields } from '@singletons/form';
+import { CoreFormFields } from '@static/form';
 import { makeSingleton, Translate } from '@singletons';
 import { CoreFileEntry } from '@services/file-helper';
 import type { AddonModDataFieldPluginBaseComponent } from '@addons/mod/data/classes/base-field-plugin-component';
@@ -137,7 +137,7 @@ export class AddonModDataFieldPictureHandlerService implements AddonModDataField
         }
 
         const found = inputData.some((input) => {
-            if (input.subfield !== undefined && input.subfield == 'file') {
+            if (input.subfield !== undefined && input.subfield === 'file') {
                 return !!input.value;
             }
 
@@ -158,7 +158,7 @@ export class AddonModDataFieldPictureHandlerService implements AddonModDataField
         offlineFiles?: FileEntry[],
     ): AddonModDataEntryField {
         const uploadedFilesResult: CoreFileUploaderStoreFilesResult | undefined =
-            <CoreFileUploaderStoreFilesResult | undefined> offlineContent?.file;
+            <CoreFileUploaderStoreFilesResult | undefined>offlineContent?.file;
 
         if (uploadedFilesResult && uploadedFilesResult.offline > 0 && offlineFiles && offlineFiles?.length > 0) {
             originalContent.content = offlineFiles[0].name;
@@ -168,7 +168,7 @@ export class AddonModDataFieldPictureHandlerService implements AddonModDataField
             originalContent.files = [uploadedFilesResult.online[0]];
         }
 
-        originalContent.content1 = <string> offlineContent.alttext || '';
+        originalContent.content1 = <string>offlineContent.alttext || '';
 
         return originalContent;
     }

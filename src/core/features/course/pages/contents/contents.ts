@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Component, OnInit, OnDestroy, forwardRef, ChangeDetectorRef, inject, viewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, forwardRef, ChangeDetectorRef, inject, viewChild, HostBinding } from '@angular/core';
 import { IonContent } from '@ionic/angular';
 
-import { CoreUtils } from '@singletons/utils';
+import { CoreUtils } from '@static/utils';
 import { CoreCourses, CoreCourseAnyCourseData } from '@features/courses/services/courses';
 import {
     CoreCourse,
@@ -34,19 +34,19 @@ import { CoreCourseFormatComponent } from '../../components/course-format/course
 import {
     CoreEvents,
     CoreEventObserver,
-} from '@singletons/events';
+} from '@static/events';
 import { CoreNavigator } from '@services/navigator';
 import { CoreRefreshContext, CORE_REFRESH_CONTEXT } from '@/core/utils/refresh-context';
 import { CoreCourseCompletion } from '@features/course/services/course-completion';
 import { CoreSites } from '@services/sites';
-import { CoreWait } from '@singletons/wait';
+import { CoreWait } from '@static/wait';
 import {
     CoreCourseModuleCompletionStatus,
     CORE_COURSE_AUTO_SYNCED,
     CORE_COURSE_PROGRESS_UPDATED_EVENT,
 } from '@features/course/constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
-import { CoreObject } from '@singletons/object';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreObject } from '@static/object';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { Translate } from '@singletons';
 import { CoreSharedModule } from '@/core/shared.module';
@@ -68,7 +68,7 @@ import { CoreSharedModule } from '@/core/shared.module';
 })
 export default class CoreCourseContentsPage implements OnInit, OnDestroy, CoreRefreshContext {
 
-    readonly content = viewChild(IonContent);
+    readonly content = viewChild.required(IonContent);
     readonly formatComponent = viewChild(CoreCourseFormatComponent);
 
     course!: CoreCourseAnyCourseData;
@@ -92,6 +92,14 @@ export default class CoreCourseContentsPage implements OnInit, OnDestroy, CoreRe
     protected modulesHaveCompletion = false;
     protected debouncedUpdateCachedCompletion?: () => void; // Update the cached completion after a certain time.
     protected changeDetectorRef = inject(ChangeDetectorRef);
+
+    @HostBinding('attr.data-course-id') protected get courseId(): number | null {
+        return this.course?.id ?? null;
+    }
+
+    @HostBinding('attr.data-category-id') protected get courseCategoryId(): number | null {
+        return this.course?.categoryid ?? null;
+    }
 
     /**
      * @inheritdoc
@@ -343,7 +351,7 @@ export default class CoreCourseContentsPage implements OnInit, OnDestroy, CoreRe
 
         if (!shouldReload) {
 
-            if (!this.course || !('progress' in this.course) || typeof this.course.progress != 'number') {
+            if (!this.course || !('progress' in this.course) || typeof this.course.progress !== 'number') {
                 return;
             }
 

@@ -25,10 +25,15 @@
 @import "components/reading-mode";
 @import "components/format-text";
 @import "components/iframe";
+@import "components/mod-forum";
 @import "components/mod-label";
 @import "components/rubrics";
 @import "components/table";
 @import "components/videojs";
+
+/* Animations */
+@import "animations/show-hide";
+@import "animations/slide";
 
 /* Ionic components overrides */
 @import "components/ionic";

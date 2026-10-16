@@ -2,7 +2,7 @@
     @if (!summary) {
         <div>
             <ion-item class="ion-text-wrap addon-workshop-submission-title">
-                <core-user-avatar [user]="profile" [courseId]="courseId" [userId]="profile?.id" slot="start" />
+                <core-user-avatar [user]="profile" [courseId]="courseId" slot="start" />
                 <ion-label>
                     @if (submission.title) {
                         <h2>
@@ -14,12 +14,12 @@
                         <p>{{profile.fullname}}</p>
                     }
                     @if (showGrade(submission.grade)) {
-                        <p [class.addon-has-overriden-grade]="showGrade(submission.gradeover)">
+                        <p [class.addon-has-overridden-grade]="showGrade(submission.gradeover)">
                             {{ 'addon.mod_workshop.submissiongradeof' | translate:{$a: workshop.grade } }}: {{submission.grade}}
                         </p>
                     }
                     @if (showGrade(submission.gradeover)) {
-                        <p class="addon-overriden-grade">
+                        <p class="addon-overridden-grade">
                             {{ 'addon.mod_workshop.gradeover' | translate }}: {{submission.gradeover}}
                         </p>
                     }
@@ -61,7 +61,7 @@
             @if (viewDetails && submission.feedbackauthor) {
                 <ion-item class="ion-text-wrap">
                     @if (evaluateByProfile) {
-                        <core-user-avatar [user]="evaluateByProfile" slot="start" [courseId]="courseId" [userId]="evaluateByProfile.id" />
+                        <core-user-avatar [user]="evaluateByProfile" slot="start" [courseId]="courseId" />
                     }
 
                     <ion-label>
@@ -90,7 +90,7 @@
 
     @if (summary) {
         <ion-item class="ion-text-wrap" [detail]="submission.timemodified" (click)="gotoSubmission()" [button]="submission.timemodified">
-            <core-user-avatar [user]="profile" slot="start" [courseId]="courseId" [userId]="profile?.id" />
+            <core-user-avatar [user]="profile" slot="start" [courseId]="courseId"/>
             <ion-label>
                 @if (submission.title) {
                     <h2>
@@ -118,7 +118,7 @@
                     </p>
                 }
                 @if (showGrade(submission.gradeover)) {
-                    <p class="addon-overriden-grade">
+                    <p class="addon-overridden-grade">
                         {{ 'addon.mod_workshop.submissiongradeof' | translate:{$a: workshop.grade } }}: {{submission.gradeover}}
                     </p>
                 }

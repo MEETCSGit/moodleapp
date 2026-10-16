@@ -15,10 +15,10 @@
 import { CoreFile } from '@services/file';
 import { CoreFilepool } from '@services/filepool';
 import { CoreSites } from '@services/sites';
-import { CoreMimetype } from '@singletons/mimetype';
-import { CoreText } from '@singletons/text';
-import { CorePromiseUtils } from '@singletons/promise-utils';
-import { CorePath } from '@singletons/path';
+import { CoreMimetype } from '@static/mimetype';
+import { CoreText } from '@static/text';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CorePath } from '@static/path';
 import {
     CoreH5PCore,
     CoreH5PDependencyAsset,
@@ -29,7 +29,7 @@ import {
 } from './core';
 import { CONTENTS_LIBRARIES_TABLE_NAME, CONTENT_TABLE_NAME, CoreH5PLibraryCachedAssetsDBRecord } from '../services/database/h5p';
 import { CoreH5PLibraryBeingSaved } from './storage';
-import { CoreFileUtils } from '@singletons/file-utils';
+import { CoreFileUtils } from '@static/file-utils';
 
 /**
  * Equivalent to Moodle's implementation of H5PFileStorage.
@@ -61,7 +61,7 @@ export class CoreH5PFileStorage {
             }
 
             // Create new file for cached assets.
-            const fileName = `${key}.${type == 'scripts' ? 'js' : 'css'}`;
+            const fileName = `${key}.${type === 'scripts' ? 'js' : 'css'}`;
             const path = CorePath.concatenatePaths(cachedAssetsPath, fileName);
 
             // Store concatenated content.
@@ -95,7 +95,7 @@ export class CoreH5PFileStorage {
 
             let fileContent = await CoreFile.readFile(asset.path);
 
-            if (type == 'scripts') {
+            if (type === 'scripts') {
                 // No need to treat scripts, just append the content.
                 content += `${fileContent};\n`;
 
@@ -200,9 +200,9 @@ export class CoreH5PFileStorage {
                     'WHERE hcl.libraryid = ?';
         const queryArgs = [libraryId];
 
-        const result = await db.execute(query, queryArgs);
+        const entries = await db.getRecordsSql<{ foldername: string }>(query, queryArgs);
 
-        await Promise.all(Array.from(result.rows).map(async (entry: {foldername: string}) => {
+        await Promise.all(entries.map(async (entry) => {
             try {
                 // Delete the index.html.
                 await this.deleteContentIndex(entry.foldername, site.getId());
@@ -234,7 +234,7 @@ export class CoreH5PFileStorage {
      * @param key Hashed key for cached asset
      * @returns Promise resolved with the files.
      */
-    async getCachedAssets(key: string): Promise<{scripts?: CoreH5PDependencyAsset[]; styles?: CoreH5PDependencyAsset[]} | null> {
+    async getCachedAssets(key: string): Promise<{ scripts?: CoreH5PDependencyAsset[]; styles?: CoreH5PDependencyAsset[] } | null> {
 
         // Get JS and CSS cached assets if they exist.
         const results = await Promise.all([

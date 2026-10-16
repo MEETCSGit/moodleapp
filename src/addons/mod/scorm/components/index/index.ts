@@ -19,9 +19,9 @@ import { CoreCourseModuleMainActivityComponent } from '@features/course/classes/
 import { CoreCourse } from '@features/course/services/course';
 import { CoreNavigator } from '@services/navigator';
 import { CoreSync } from '@services/sync';
-import { CoreObject } from '@singletons/object';
-import { NgZone, Translate } from '@singletons';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreObject } from '@static/object';
+import { Translate } from '@singletons';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { AddonModScormPrefetchHandler } from '../../services/handlers/prefetch';
 import {
     AddonModScorm,
@@ -47,10 +47,9 @@ import {
     ADDON_MOD_SCORM_PAGE_NAME,
     ADDON_MOD_SCORM_COMPONENT,
 } from '../../constants';
-import { CoreWait } from '@singletons/wait';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CoreWait } from '@static/wait';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreNetwork } from '@services/network';
-import { Subscription } from 'rxjs';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreCourseModuleNavigationComponent } from '@features/course/components/module-navigation/module-navigation';
 import { CoreCourseModuleInfoComponent } from '@features/course/components/module-info/module-info';
@@ -77,7 +76,7 @@ export class AddonModScormIndexComponent extends CoreCourseModuleMainActivityCom
     pluginName = 'scorm';
 
     scorm?: AddonModScormScorm; // The SCORM object.
-    currentOrganization: Partial<AddonModScormOrganization> & { identifier: string} = {
+    currentOrganization: Partial<AddonModScormOrganization> & { identifier: string } = {
         identifier: '',
     }; // Selected organization.
 
@@ -104,7 +103,7 @@ export class AddonModScormIndexComponent extends CoreCourseModuleMainActivityCom
     onlineAttempts: AttemptGrade[] = []; // Grades for online attempts.
     offlineAttempts: AttemptGrade[] = []; // Grades for offline attempts.
     gradesExpanded = false;
-    isOnline: boolean;
+    readonly isOnline = CoreNetwork.onlineSignal;
 
     protected fetchContentDefaultError = 'addon.mod_scorm.errorgetscorm'; // Default error to show when loading contents.
     protected syncEventName = ADDON_MOD_SCORM_DATA_AUTO_SYNCED;
@@ -115,19 +114,6 @@ export class AddonModScormIndexComponent extends CoreCourseModuleMainActivityCom
     protected dataSentObserver?: CoreEventObserver; // To detect data sent to server.
     protected dataSent = false; // Whether some data was sent to server while playing the SCORM.
     protected useOnlinePlayer = false; // Whether the SCORM needs to be played using an online player.
-    protected onlineObserver: Subscription;
-
-    constructor() {
-        super();
-
-        this.isOnline = CoreNetwork.isOnline();
-        this.onlineObserver = CoreNetwork.onChange().subscribe(() => {
-            // Execute the callback in the Angular zone, so change detection doesn't stop working.
-            NgZone.run(() => {
-                this.isOnline = CoreNetwork.isOnline();
-            });
-        });
-    }
 
     /**
      * @inheritdoc
@@ -266,7 +252,7 @@ export class AddonModScormIndexComponent extends CoreCourseModuleMainActivityCom
         this.attemptsLeft = AddonModScorm.countAttemptsLeft(scorm, this.attempts.lastAttempt.num);
 
         if (scorm.forcenewattempt === AddonModScormForceAttempt.ALWAYS ||
-                (scorm.forcenewattempt && !this.incomplete)) {
+            (scorm.forcenewattempt && !this.incomplete)) {
             this.startNewAttempt = true;
         }
 
@@ -281,6 +267,7 @@ export class AddonModScormIndexComponent extends CoreCourseModuleMainActivityCom
     /**
      * Load SCORM package size if needed.
      *
+     * @param scorm Scorm.
      * @returns Promise resolved when done.
      */
     protected async loadPackageSize(scorm: AddonModScormScorm): Promise<void> {
@@ -295,6 +282,7 @@ export class AddonModScormIndexComponent extends CoreCourseModuleMainActivityCom
     /**
      * Fetch the structure of the SCORM (TOC).
      *
+     * @param scorm Scorm.
      * @returns Promise resolved when done.
      */
     protected async fetchStructure(scorm: AddonModScormScorm): Promise<void> {
@@ -331,6 +319,8 @@ export class AddonModScormIndexComponent extends CoreCourseModuleMainActivityCom
     /**
      * Get the grades of each attempt and the grade of the SCORM.
      *
+     * @param scorm Scorm.
+     * @param attempts Data about online and offline attempts.
      * @returns Promise resolved when done.
      */
     protected async getReportedGrades(scorm: AddonModScormScorm, attempts: AddonModScormAttemptCountResult): Promise<void> {
@@ -341,7 +331,7 @@ export class AddonModScormIndexComponent extends CoreCourseModuleMainActivityCom
         // Calculate the grade for each attempt.
         attempts.online.forEach((attempt) => {
             // Check that attempt isn't in offline to prevent showing the same attempt twice. Offline should be more recent.
-            if (attempts.offline.indexOf(attempt) == -1) {
+            if (!attempts.offline.includes(attempt)) {
                 promises.push(this.getAttemptGrade(attempt, false, onlineAttempts));
             }
         });
@@ -507,16 +497,16 @@ export class AddonModScormIndexComponent extends CoreCourseModuleMainActivityCom
      * Open a SCORM. It will download the SCORM package if it's not downloaded or it has changed.
      *
      * @param event Event.
-     * @param preview Wether open screen in preview mode or not.
+     * @param preview Whether open screen in preview mode or not.
      * @param scoId SCO that needs to be loaded when the SCORM is opened. If not defined, load first SCO.
      */
-    async open(event?: Event, preview: boolean = false, scoId?: number): Promise<void> {
+    async open(event?: Event, preview = false, scoId?: number): Promise<void> {
         event?.preventDefault();
         event?.stopPropagation();
 
         if (this.useOnlinePlayer) {
             // No need to download the package, just open it.
-            if (this.isOnline) {
+            if (this.isOnline()) {
                 this.openScorm(scoId, preview);
             }
 
@@ -571,8 +561,9 @@ export class AddonModScormIndexComponent extends CoreCourseModuleMainActivityCom
      * Open a SCORM package.
      *
      * @param scoId SCO ID.
+     * @param preview Whether to open the SCORM in preview mode or not.
      */
-    protected openScorm(scoId?: number, preview: boolean = false): void {
+    protected openScorm(scoId?: number, preview = false): void {
         const autoPlayData = this.autoPlayData;
 
         this.autoPlayData = undefined;
@@ -664,13 +655,6 @@ export class AddonModScormIndexComponent extends CoreCourseModuleMainActivityCom
         }
 
         return result;
-    }
-
-    /**
-     * @inheritdoc
-     */
-    ngOnDestroy(): void {
-        this.onlineObserver.unsubscribe();
     }
 
 }

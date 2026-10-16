@@ -1,8 +1,10 @@
-@addon_block_recentlyaccessedcourses @app @block @block_recentlyaccessedcourses @javascript
+@app_parallel_run_courses @addon_block_recentlyaccessedcourses @app @block @block_recentlyaccessedcourses @javascript
 Feature: Basic tests of recent accessed courses block
 
   Background:
-    Given the following "users" exist:
+    Given the following config values are set as admin:
+      | enablemycourses | 1 |
+    And the following "users" exist:
       | username | firstname | lastname | email                |
       | student1 | Student   | 1        | student1@example.com |
     And the following "categories" exist:
@@ -81,6 +83,7 @@ Feature: Basic tests of recent accessed courses block
     And I should not find "C1" within "Recently accessed courses" "ion-card" in the app
     And I should not find "C4" within "Recently accessed courses" "ion-card" in the app
 
+  @disabled_features
   Scenario: Block is included in disabled features
     # Add another block just to ensure there is something in the block region and the drawer is displayed.
     Given the following "blocks" exist:

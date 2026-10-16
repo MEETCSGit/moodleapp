@@ -16,10 +16,10 @@ import { DownloadStatus } from '@/core/constants';
 import { OnInit, OnDestroy, Input, Output, EventEmitter, Component, inject } from '@angular/core';
 import { CoreNetwork } from '@services/network';
 import { CoreSites } from '@services/sites';
-import { CoreUtils } from '@singletons/utils';
+import { CoreUtils } from '@static/utils';
 import { Translate } from '@singletons';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
-import { CoreLogger } from '@singletons/logger';
+import { CoreEventObserver, CoreEvents } from '@static/events';
+import { CoreLogger } from '@static/logger';
 import { CoreCourseModuleSummaryResult } from '../components/module-summary/module-summary';
 import CoreCourseContentsPage from '../pages/contents/contents';
 import { CoreCourse, CoreCourseModuleContentFile } from '../services/course';
@@ -27,14 +27,15 @@ import { CoreCourseHelper, CoreCourseModuleData } from '../services/course-helpe
 import { CoreCourseModuleDelegate, CoreCourseModuleMainComponent } from '../services/module-delegate';
 import { CoreCourseModulePrefetchDelegate } from '../services/module-prefetch-delegate';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
-import { CoreUrl } from '@singletons/url';
-import { CoreTime } from '@singletons/time';
-import { CoreText } from '@singletons/text';
+import { CoreUrl } from '@static/url';
+import { CoreTime } from '@static/time';
+import { CoreText } from '@static/text';
 import { CoreModals } from '@services/overlays/modals';
 import { CoreErrorHelper, CoreErrorObject } from '@services/error-helper';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreCourseModuleHelper } from '../services/course-module-helper';
+import { CoreCoursePrefetch } from '../services/course-prefetch';
 
 /**
  * Result of a resource download.
@@ -74,7 +75,7 @@ export class CoreCourseModuleMainResourceComponent implements OnInit, OnDestroy,
     protected logger: CoreLogger;
     protected debouncedUpdateModule?: () => void; // Update the module after a certain time.
     protected showCompletion = false; // Whether to show completion inside the activity.
-    protected displayDescription = true; // Wether to show Module description on module page, and not on summary or the contrary.
+    protected displayDescription = true; // Whether to show Module description on module page, and not on summary or the contrary.
     protected isDestroyed = false; // Whether the component is destroyed.
     protected checkCompletionAfterLog = true; // Whether to check if completion has changed after calling logActivity.
     protected finishSuccessfulFetch: () => void;
@@ -142,11 +143,11 @@ export class CoreCourseModuleMainResourceComponent implements OnInit, OnDestroy,
      * Perform the refresh content function.
      *
      * @param sync If the refresh needs syncing.
-     * @param showErrors Wether to show errors to the user or hide them.
+     * @param showErrors Whether to show errors to the user or hide them.
      * @returns Resolved when done.
      */
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    protected async refreshContent(sync: boolean = false, showErrors: boolean = false): Promise<void> {
+    protected async refreshContent(sync = false, showErrors = false): Promise<void> {
         if (!this.module) {
             // This can happen if course format changes from single activity to weekly/topics.
             return;
@@ -221,7 +222,7 @@ export class CoreCourseModuleMainResourceComponent implements OnInit, OnDestroy,
         }
 
         const lastDownloaded =
-                await CoreCourseHelper.getModulePackageLastDownloaded(this.module, this.component);
+                await CoreCoursePrefetch.getModulePackageLastDownloaded(this.module, this.component);
 
         this.downloadTimeReadable = CoreText.capitalize(lastDownloaded.downloadTimeReadable);
     }
@@ -323,7 +324,8 @@ export class CoreCourseModuleMainResourceComponent implements OnInit, OnDestroy,
      * If module.contents cannot be loaded then the Promise will be rejected.
      *
      * @param refresh Whether we're refreshing data.
-     * @returns Promise resolved when done.
+     * @param contentsAlreadyLoaded Whether the module contents have already been loaded.
+     * @returns The result of the download.
      */
     protected async downloadResourceIfNeeded(
         refresh?: boolean,

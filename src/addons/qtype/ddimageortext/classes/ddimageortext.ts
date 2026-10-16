@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { CoreDom } from '@singletons/dom';
-import { CoreEventObserver } from '@singletons/events';
-import { CoreLogger } from '@singletons/logger';
+import { CoreDom } from '@static/dom';
+import { CoreEventObserver } from '@static/events';
+import { CoreLogger } from '@static/logger';
 import { AddonModQuizDdImageOrTextQuestionData } from '../component/ddimageortext';
 import { CoreLinkDirective } from '@directives/link';
 import { ElementRef } from '@angular/core';
@@ -116,7 +116,7 @@ export class AddonQtypeDdImageOrTextQuestion {
             const group = this.doc.getClassnameNumericSuffix(dragItemHome, 'group') ?? -1;
 
             // Images need to be inside a div element to admit padding with width and height.
-            if (dragItemHome.tagName == 'IMG') {
+            if (dragItemHome.tagName === 'IMG') {
                 const wrap = document.createElement('div');
                 wrap.className = dragItemHome.className;
                 dragItemHome.className = '';
@@ -348,7 +348,7 @@ export class AddonQtypeDdImageOrTextQuestion {
 
             const itemHomes = this.doc.dragItemHomes();
             itemHomes.forEach((item) => {
-                if (item.tagName != 'IMG') {
+                if (item.tagName !== 'IMG') {
                     return;
                 }
                 // Wait for drag images to be loaded.
@@ -593,7 +593,7 @@ export class AddonQtypeDdImageOrTextQuestion {
         const groupItems = this.doc.topNode ?
             Array.from(this.doc.topNode.querySelectorAll<HTMLElement>(`.draghome.group${groupNo}`)) : [];
 
-        if (groupItems.length == 0) {
+        if (groupItems.length === 0) {
             return;
         }
 

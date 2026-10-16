@@ -19,7 +19,7 @@ import {
     CoreReminderValueAndUnit,
 } from '@features/reminders/services/reminders';
 import { CorePopovers } from '@services/overlays/popovers';
-import { CoreWait } from '@singletons/wait';
+import { CoreWait } from '@static/wait';
 import { PopoverController } from '@singletons';
 import { CoreSharedModule } from '@/core/shared.module';
 import { CoreRemindersUnits, REMINDERS_DISABLED } from '@features/reminders/constants';
@@ -134,7 +134,7 @@ export class CoreRemindersSetReminderMenuComponent implements OnInit {
      *
      * @param unit Time unit.
      * @param value Time value.
-     * @returns Wether is a valid time or not.
+     * @returns Whether is a valid time or not.
      */
     protected isValidTime(unit: number, value: number): boolean {
         const eventTime = this.eventTime();

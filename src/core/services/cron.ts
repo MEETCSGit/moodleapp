@@ -17,12 +17,12 @@ import { Injectable } from '@angular/core';
 import { CoreAppDB } from '@services/app-db';
 import { CoreNetwork } from '@services/network';
 import { CoreConfig } from '@services/config';
-import { CorePromiseUtils } from '@singletons/promise-utils';
-import { CoreConstants } from '@/core/constants';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreConfigSettingKey, CoreTimeConstants } from '@/core/constants';
 import { CoreError } from '@classes/errors/error';
 
 import { makeSingleton, Translate } from '@singletons';
-import { CoreLogger } from '@singletons/logger';
+import { CoreLogger } from '@static/logger';
 import { APP_SCHEMA, CRON_TABLE_NAME, CronDBEntry } from '@services/database/cron';
 import { asyncInstance } from '../utils/async-instance';
 import { CoreDatabaseTable } from '@classes/database/database-table';
@@ -34,10 +34,13 @@ import { CoreDatabaseCachingStrategy, CoreDatabaseTableProxy } from '@classes/da
 @Injectable({ providedIn: 'root' })
 export class CoreCronDelegateService {
 
-    // Constants.
-    static readonly DEFAULT_INTERVAL = 3600000; // Default interval is 1 hour.
-    static readonly MIN_INTERVAL = 240000; // Minimum interval is 4 minutes.
-    static readonly MAX_TIME_PROCESS = 120000; // Max time a process can block the queue. Defaults to 2 minutes.
+    static readonly DEFAULT_INTERVAL = CoreTimeConstants.MILLISECONDS_HOUR;
+    static readonly MIN_INTERVAL = CoreTimeConstants.MILLISECONDS_MINUTE * 4;
+
+    /**
+     * Max time a process can block the queue.
+     */
+    static readonly MAX_TIME_PROCESS = CoreTimeConstants.MILLISECONDS_MINUTE * 2;
 
     protected logger: CoreLogger;
     protected handlers: { [s: string]: CoreCronHandler } = {};
@@ -54,7 +57,7 @@ export class CoreCronDelegateService {
     async initializeDatabase(): Promise<void> {
         await CoreAppDB.createTablesFromSchema(APP_SCHEMA);
 
-        const table = new CoreDatabaseTableProxy<CronDBEntry>(
+        const table = CoreDatabaseTableProxy.createInstance<CronDBEntry>(
             { cachingStrategy: CoreDatabaseCachingStrategy.Eager },
             CoreAppDB.getDB(),
             CRON_TABLE_NAME,
@@ -70,7 +73,7 @@ export class CoreCronDelegateService {
      * If the handler cannot be executed or it fails, it will be re-executed after mmCoreCronMinInterval.
      *
      * @param name Name of the handler.
-     * @param force Wether the execution is forced (manual sync).
+     * @param force Whether the execution is forced (manual sync).
      * @param siteId Site ID. If not defined, all sites.
      * @returns Promise resolved if handler is executed successfully, rejected otherwise.
      */
@@ -97,7 +100,7 @@ export class CoreCronDelegateService {
 
         if (isSync) {
             // Check network connection.
-            const syncOnlyOnWifi = await CoreConfig.get(CoreConstants.SETTINGS_SYNC_ONLY_ON_WIFI, false);
+            const syncOnlyOnWifi = await CoreConfig.get(CoreConfigSettingKey.SYNC_ONLY_ON_WIFI, false);
 
             if (syncOnlyOnWifi && !CoreNetwork.isWifi()) {
                 // Cannot execute in this network connection, retry soon.
@@ -136,7 +139,7 @@ export class CoreCronDelegateService {
      * Run a handler, cancelling the execution if it takes more than MAX_TIME_PROCESS.
      *
      * @param name Name of the handler.
-     * @param force Wether the execution is forced (manual sync).
+     * @param force Whether the execution is forced (manual sync).
      * @param siteId Site ID. If not defined, all sites.
      * @returns Promise resolved when the handler finishes or reaches max time, rejected if it fails.
      */

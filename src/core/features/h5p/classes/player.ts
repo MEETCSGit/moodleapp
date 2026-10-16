@@ -14,15 +14,15 @@
 
 import { CoreFile } from '@services/file';
 import { CoreSites } from '@services/sites';
-import { CoreUrl } from '@singletons/url';
-import { CoreUtils } from '@singletons/utils';
+import { CoreUrl } from '@static/url';
+import { CoreUtils } from '@static/utils';
 import { CoreH5P } from '../services/h5p';
 import { CoreH5PCore, CoreH5PDisplayOptions, CoreH5PContentData, CoreH5PDependenciesFiles } from './core';
 import { CoreH5PCoreSettings, CoreH5PHelper } from './helper';
 import { CoreH5PStorage } from './storage';
-import { CorePath } from '@singletons/path';
+import { CorePath } from '@static/path';
 import { CoreXAPIIRI } from '@features/xapi/classes/iri';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 
 /**
  * Equivalent to Moodle's H5P player class.
@@ -213,7 +213,7 @@ export class CoreH5PPlayer {
         content: CoreH5PContentData,
         embedType: string,
         siteId?: string,
-    ): Promise<{settings: AssetsSettings; cssRequires: string[]; jsRequires: string[]}> {
+    ): Promise<{ settings: AssetsSettings; cssRequires: string[]; jsRequires: string[] }> {
 
         siteId = siteId || CoreSites.getCurrentSiteId();
 
@@ -265,6 +265,7 @@ export class CoreH5PPlayer {
      * @param component Component to send xAPI events to.
      * @param contextId Context ID where the H5P is. Required for tracking.
      * @param siteId The site ID. If not defined, current site.
+     * @param otherOptions Other options like state and save frequency.
      * @returns Promise resolved with the file URL if exists, rejected otherwise.
      */
     async getContentIndexFileUrl(
@@ -334,7 +335,7 @@ export class CoreH5PPlayer {
      * @param params URL params.
      * @returns Display options as object.
      */
-    getDisplayOptionsFromUrlParams(params?: {[name: string]: string}): CoreH5PDisplayOptions {
+    getDisplayOptionsFromUrlParams(params?: { [name: string]: string }): CoreH5PDisplayOptions {
         const displayOptions: CoreH5PDisplayOptions = {};
 
         if (!params) {
@@ -404,8 +405,8 @@ export class CoreH5PPlayer {
      * @param options Display options.
      * @returns Object with URL params.
      */
-    getUrlParamsFromDisplayOptions(options?: CoreH5PDisplayOptions): {[name: string]: string} {
-        const params: {[name: string]: string} = {};
+    getUrlParamsFromDisplayOptions(options?: CoreH5PDisplayOptions): { [name: string]: string } {
+        const params: { [name: string]: string } = {};
 
         if (!options) {
             return params;

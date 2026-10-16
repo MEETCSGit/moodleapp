@@ -19,13 +19,13 @@ import { CoreModalComponent } from '@classes/modal-component';
 import { CoreModalLateralTransitionEnter, CoreModalLateralTransitionLeave } from '@classes/modal-lateral-transition';
 import { CoreSheetModalComponent } from '@components/sheet-modal/sheet-modal';
 import { AngularFrameworkDelegate, makeSingleton, ModalController, Router } from '@singletons';
-import { CoreDirectivesRegistry } from '@singletons/directives-registry';
+import { CoreDirectivesRegistry } from '@static/directives-registry';
 import { Subscription, filter } from 'rxjs';
 import { Md5 } from 'ts-md5';
 import { fixOverlayAriaHidden } from '../../utils/fix-aria-hidden';
 import { ModalOptions } from '@ionic/angular';
 import { CorePasswordModalResponse, CorePasswordModalParams } from '@components/password-modal/password-modal';
-import { CoreObject } from '@singletons/object';
+import { CoreObject } from '@static/object';
 
 /**
  * Handles application modals.
@@ -44,7 +44,7 @@ export class CoreModalsService {
         // This has to be done manually because Ionic's overlay mechanisms are not exposed externally, thus making it more difficult
         // to implement custom overlays.
         //
-        // eslint-disable-next-line max-len
+        // eslint-disable-next-line @stylistic/max-len
         // See https://github.com/ionic-team/ionic-framework/blob/a9b12a5aa4c150a1f8a80a826dda0df350bc0092/core/src/utils/overlays.ts#L39
 
         const overlays = document.body.querySelectorAll<HTMLElement>(
@@ -110,7 +110,7 @@ export class CoreModalsService {
      * Opens a Modal.
      *
      * @param options Modal Options.
-     * @returns The modal data when the modal closes.
+     * @returns The modal data when the modal closes. Undefined if the modal is dismissed without data.
      */
     async openModal<T = unknown>(
         options: OpenModalOptions,
@@ -152,6 +152,15 @@ export class CoreModalsService {
             await modal.present();
         }
 
+        // Ensure the modal is accessible to screen readers by focusing the element with aria-modal="true".
+        // Since the surrounding app content is hidden (aria-hidden="true"), the modal must have focus
+        // to be accessible. We focus this wrapper element since the first input field may not exist yet.
+        const ariaModal = modal.shadowRoot?.querySelector<HTMLElement>('[part=content]');
+        if (ariaModal) {
+            ariaModal.tabIndex = -1;
+            ariaModal.focus();
+        }
+
         if (!alreadyDisplayed) {
             fixOverlayAriaHidden(modal);
         }
@@ -161,16 +170,14 @@ export class CoreModalsService {
         navSubscription?.unsubscribe();
         delete this.displayedModals[modalId];
 
-        if (result?.data) {
-            return result?.data;
-        }
+        return result?.data;
     }
 
     /**
      * Opens a side Modal.
      *
      * @param options Modal Options.
-     * @returns The modal data when the modal closes.
+     * @returns The modal data when the modal closes. Undefined if the modal is dismissed without data.
      */
     async openSideModal<T = unknown>(
         options: OpenModalOptions,

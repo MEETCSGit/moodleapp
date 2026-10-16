@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { Directive, ElementRef, OnInit, Output, EventEmitter, OnDestroy, inject } from '@angular/core';
-import { CoreUtils } from '@singletons/utils';
+import { CoreUtils } from '@static/utils';
 
 /**
  * Directive to listen for element resize events.
@@ -33,9 +33,11 @@ export class CoreOnResizeDirective implements OnInit, OnDestroy {
      * @inheritdoc
      */
     ngOnInit(): void {
-        'ResizeObserver' in window
-            ? this.watchResize()
-            : this.watchMutations();
+        if ('ResizeObserver' in window) {
+            this.watchResize();
+        } else {
+            this.watchMutations();
+        }
     }
 
     /**

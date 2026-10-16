@@ -20,17 +20,17 @@ import { CoreCourseModuleData } from '@features/course/services/course-helper';
 import { CoreCourseModuleHandler, CoreCourseModuleHandlerData } from '@features/course/services/module-delegate';
 import { CoreNavigationOptions } from '@services/navigator';
 import { CoreLoadings } from '@services/overlays/loadings';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { makeSingleton } from '@singletons';
 import { AddonModUrl } from '../url';
 import { AddonModUrlHelper } from '../url-helper';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
-import { CoreUrl } from '@singletons/url';
-import { CoreMimetype } from '@singletons/mimetype';
+import { CoreUrl } from '@static/url';
+import { CoreMimetype } from '@static/mimetype';
 import { ADDON_MOD_URL_COMPONENT, ADDON_MOD_URL_MODNAME, ADDON_MOD_URL_PAGE_NAME } from '../../constants';
 import { ModFeature, ModArchetype, ModPurpose, ModResourceDisplay } from '@addons/mod/constants';
 import { CoreCourseModuleHelper } from '@features/course/services/course-module-helper';
-import { CoreSites } from '@services/sites';
+import { CoreSites, CoreSitesReadingStrategy } from '@services/sites';
 
 /**
  * Handler to support url modules.
@@ -237,6 +237,8 @@ export class AddonModUrlModuleHandlerService extends CoreModuleHandlerBase imple
 
     /**
      * Log module viewed.
+     *
+     * @param module Module.
      */
     protected async logView(module: CoreCourseModuleData): Promise<void> {
         try {
@@ -255,6 +257,19 @@ export class AddonModUrlModuleHandlerService extends CoreModuleHandlerBase imple
             data: { id: module.instance, category: 'url' },
             url: `/mod/url/view.php?id=${module.id}`,
         });
+    }
+
+    /**
+     * @inheritdoc
+     */
+    async getModuleForcedLang(module: CoreCourseModuleData): Promise<string | undefined> {
+        const mod = await AddonModUrl.getUrl(
+            module.course,
+            module.id,
+            { readingStrategy: CoreSitesReadingStrategy.PREFER_CACHE },
+        );
+
+        return mod?.lang;
     }
 
 }

@@ -1,8 +1,10 @@
-@core_course @app @enrol @enrol_guest @javascript
+@app_parallel_run_enrol @core_course @app @enrol @enrol_guest @javascript
 Feature: Test basic usage of guest access course in app
 
   Background:
     Given the Moodle site is compatible with this feature
+    And the following config values are set as admin:
+      | enablemyhome | 1 |
     And the following "users" exist:
       | username | firstname | lastname | email |
       | teacher1 | Teacher | teacher | teacher1@example.com |

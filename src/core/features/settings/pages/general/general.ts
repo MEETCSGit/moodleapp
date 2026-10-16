@@ -13,15 +13,14 @@
 // limitations under the License.
 
 import { Component, Type } from '@angular/core';
-import { CoreConstants } from '@/core/constants';
+import { CoreConstants, CoreConfigSettingKey } from '@/core/constants';
 import { CoreConfig } from '@services/config';
-import { CoreEvents } from '@singletons/events';
 import { CoreLang } from '@services/lang';
 import { CoreSettingsHelper, CoreColorScheme, CoreZoomLevel } from '../../services/settings-helper';
-import { CoreIframe } from '@singletons/iframe';
+import { CoreIframe } from '@static/iframe';
 import { Translate } from '@singletons';
 import { CoreSites } from '@services/sites';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { AlertButton } from '@ionic/angular';
 import { CoreNavigator } from '@services/navigator';
 import { CorePlatform } from '@services/platform';
@@ -91,7 +90,7 @@ export default class CoreSettingsGeneralPage {
             } else {
                 this.isAndroid = CorePlatform.isAndroid();
                 this.colorSchemes = CoreSettingsHelper.getAllowedColorSchemes();
-                this.selectedScheme = await CoreConfig.get(CoreConstants.SETTINGS_COLOR_SCHEME, CoreColorScheme.LIGHT);
+                this.selectedScheme = await CoreConfig.get(CoreConfigSettingKey.COLOR_SCHEME, CoreColorScheme.LIGHT);
             }
         }
 
@@ -109,11 +108,11 @@ export default class CoreSettingsGeneralPage {
 
         this.editorSettingsComponentClass = await CoreEditorService.getSettingsComponentClass();
 
-        this.debugDisplay = await CoreConfig.get(CoreConstants.SETTINGS_DEBUG_DISPLAY, false);
+        this.debugDisplay = await CoreConfig.get(CoreConfigSettingKey.DEBUG_DISPLAY, false);
 
         this.analyticsAvailable = await CoreAnalytics.isAnalyticsAvailable();
         if (this.analyticsAvailable) {
-            this.analyticsEnabled = await CoreConfig.get(CoreConstants.SETTINGS_ANALYTICS_ENABLED, true);
+            this.analyticsEnabled = await CoreConfig.get(CoreConfigSettingKey.ANALYTICS_ENABLED, true);
         }
 
         this.displayIframeHelp = CoreIframe.shouldDisplayHelp();
@@ -186,8 +185,6 @@ export default class CoreSettingsGeneralPage {
         const sites = await CoreSites.getSitesInstances();
         await CorePromiseUtils.ignoreErrors(Promise.all(sites.map((site) => site.invalidateWsCache())));
 
-        CoreEvents.trigger(CoreEvents.LANGUAGE_CHANGED, this.selectedLanguage);
-
         CoreNavigator.navigate('/reload', {
             reset: true,
         });
@@ -212,7 +209,7 @@ export default class CoreSettingsGeneralPage {
         });
 
         CoreSettingsHelper.applyZoomLevel(this.selectedZoomLevel);
-        CoreConfig.set(CoreConstants.SETTINGS_ZOOM_LEVEL, this.selectedZoomLevel);
+        CoreConfig.set(CoreConfigSettingKey.ZOOM_LEVEL, this.selectedZoomLevel);
     }
 
     /**
@@ -225,7 +222,7 @@ export default class CoreSettingsGeneralPage {
         ev.preventDefault();
 
         CoreSettingsHelper.applyPinchToZoom(this.pinchToZoom);
-        CoreConfig.set(CoreConstants.SETTINGS_PINCH_TO_ZOOM, this.pinchToZoom ? 1 : 0);
+        CoreConfig.set(CoreConfigSettingKey.PINCH_TO_ZOOM, this.pinchToZoom ? 1 : 0);
     }
 
     /**
@@ -238,7 +235,7 @@ export default class CoreSettingsGeneralPage {
         ev.preventDefault();
 
         CoreSettingsHelper.setColorScheme(this.selectedScheme);
-        CoreConfig.set(CoreConstants.SETTINGS_COLOR_SCHEME, this.selectedScheme);
+        CoreConfig.set(CoreConfigSettingKey.COLOR_SCHEME, this.selectedScheme);
     }
 
     /**
@@ -250,7 +247,7 @@ export default class CoreSettingsGeneralPage {
         ev.stopPropagation();
         ev.preventDefault();
 
-        CoreConfig.set(CoreConstants.SETTINGS_DEBUG_DISPLAY, this.debugDisplay ? 1 : 0);
+        CoreConfig.set(CoreConfigSettingKey.DEBUG_DISPLAY, this.debugDisplay ? 1 : 0);
         CoreAlerts.setDebugDisplay(this.debugDisplay);
     }
 
@@ -265,7 +262,7 @@ export default class CoreSettingsGeneralPage {
 
         await CoreAnalytics.enableAnalytics(this.analyticsEnabled);
 
-        CoreConfig.set(CoreConstants.SETTINGS_ANALYTICS_ENABLED, this.analyticsEnabled ? 1 : 0);
+        CoreConfig.set(CoreConfigSettingKey.ANALYTICS_ENABLED, this.analyticsEnabled ? 1 : 0);
     }
 
     /**

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { IonContent } from '@ionic/angular';
-import Faker from 'faker';
+import { faker } from '@faker-js/faker';
 
 import { CoreConfig } from '@services/config';
 import { CoreContentLinksHelper } from '@features/contentlinks/services/contentlinks-helper';
@@ -23,7 +23,7 @@ import { CoreFilterHelper } from '@features/filter/services/filter-helper';
 import { CoreFormatTextDirective } from '@directives/format-text';
 import { CoreSite } from '@classes/sites/site';
 import { CoreSites } from '@services/sites';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 
 import { mock, mockSingleton, RenderConfig, renderTemplate, renderWrapperComponent } from '@/testing/utils';
 import { ContextLevel } from '@/core/constants';
@@ -55,7 +55,7 @@ describe('CoreFormatTextDirective', () => {
 
     it('should render', async () => {
         // Arrange
-        const sentence = Faker.lorem.sentence();
+        const sentence = faker.lorem.sentence();
 
         // Act
         const fixture = await renderWrapperComponent(
@@ -91,7 +91,7 @@ describe('CoreFormatTextDirective', () => {
             'Lorem ipsum dolor',
             expect.anything(),
             expect.anything(),
-            undefined,
+            '',
         );
     });
 
@@ -187,13 +187,133 @@ describe('CoreFormatTextDirective', () => {
         anchor?.click();
 
         // Assert
+        // eslint-disable-next-line @typescript-eslint/no-deprecated
         expect(CoreContentLinksHelper.handleLink).toHaveBeenCalledTimes(1);
+        // eslint-disable-next-line @typescript-eslint/no-deprecated
         expect(CoreContentLinksHelper.handleLink).toHaveBeenCalledWith(
             'https://anchor-url/',
-            undefined,
-            expect.anything(),
             expect.anything(),
         );
+    });
+
+    describe('script handling', () => {
+
+        const allowedBaseUrl = 'https://allowed.example.com';
+        const allowedScriptUrl = 'https://allowed.example.com/script.js';
+        const disallowedScriptUrl = 'https://other.example.com/script.js';
+
+        let allowedScriptUrls: string[];
+
+        beforeEach(() => {
+            allowedScriptUrls = [allowedBaseUrl];
+
+            const site = mock(new CoreSite('42', 'https://mysite.com', 'token'), {
+                getId: () => site.id,
+                getContentAllowedScriptUrls: () => allowedScriptUrls,
+            });
+
+            mockSingleton(CoreSites, {
+                getSite: () => Promise.resolve(site),
+                getCurrentSite: () => site,
+                getCurrentSiteId: () => site.id,
+            });
+        });
+
+        it('should activate allowed scripts in their original DOM position after render', async () => {
+            // Act
+            const { nativeElement } = await renderWrapperComponent(
+                CoreFormatTextDirective,
+                'core-format-text',
+                { text: `<p>Before</p><script src="${allowedScriptUrl}"></script><p>After</p>` },
+                config,
+            );
+
+            // Assert
+            const formatText = nativeElement.querySelector('core-format-text');
+            const script = formatText?.querySelector<HTMLScriptElement>('script');
+            expect(script).not.toBeNull();
+            expect(script?.src).toEqual(allowedScriptUrl);
+            expect(script?.dataset['originalSrc']).toBeUndefined();
+
+            // Verify the script is between the two paragraphs (original position preserved).
+            const children = Array.from(formatText?.childNodes ?? []).filter(
+                (n): n is Element => n.nodeType === Node.ELEMENT_NODE,
+            );
+            const scriptIndex = children.findIndex(el => el.tagName === 'SCRIPT');
+            expect(children[scriptIndex - 1]?.textContent).toEqual('Before');
+            expect(children[scriptIndex + 1]?.textContent).toEqual('After');
+        });
+
+        it('should remove disallowed scripts after render', async () => {
+            // Act
+            const { nativeElement } = await renderWrapperComponent(
+                CoreFormatTextDirective,
+                'core-format-text',
+                { text: `<script src="${disallowedScriptUrl}"></script><p>Content</p>` },
+                config,
+            );
+
+            // Assert
+            const formatText = nativeElement.querySelector('core-format-text');
+            expect(formatText?.querySelector('script')).toBeNull();
+            expect(formatText?.querySelector('p')?.textContent).toEqual('Content');
+        });
+
+        it('should remove all scripts when the site has no allowed script URLs configured', async () => {
+            // Arrange
+            allowedScriptUrls = [];
+
+            // Act
+            const { nativeElement } = await renderWrapperComponent(
+                CoreFormatTextDirective,
+                'core-format-text',
+                { text: `<script src="${allowedScriptUrl}"></script>` },
+                config,
+            );
+
+            // Assert
+            const formatText = nativeElement.querySelector('core-format-text');
+            expect(formatText?.querySelector('script')).toBeNull();
+        });
+
+        it('should preserve data attributes on activated scripts', async () => {
+            // Act
+            const { nativeElement } = await renderWrapperComponent(
+                CoreFormatTextDirective,
+                'core-format-text',
+                { text: `<script src="${allowedScriptUrl}" data-custom="value" data-other="123" defer></script>` },
+                config,
+            );
+
+            // Assert
+            const script = nativeElement.querySelector<HTMLScriptElement>('script');
+            expect(script).not.toBeNull();
+            expect(script?.src).toEqual(allowedScriptUrl);
+            expect(script?.dataset['custom']).toEqual('value');
+            expect(script?.dataset['other']).toEqual('123');
+            expect(script?.hasAttribute('defer')).toBe(true);
+            expect(script?.dataset['originalSrc']).toBeUndefined();
+        });
+
+        it('should activate allowed scripts and remove disallowed ones when both are present', async () => {
+            // Act
+            const { nativeElement } = await renderWrapperComponent(
+                CoreFormatTextDirective,
+                'core-format-text',
+                {
+                    text: `<script src="${allowedScriptUrl}"></script>` +
+                          `<script src="${disallowedScriptUrl}"></script>`,
+                },
+                config,
+            );
+
+            // Assert
+            const formatText = nativeElement.querySelector('core-format-text');
+            const scripts = formatText?.querySelectorAll('script');
+            expect(scripts?.length).toEqual(1);
+            expect(scripts?.[0].src).toEqual(allowedScriptUrl);
+        });
+
     });
 
 });

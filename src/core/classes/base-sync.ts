@@ -15,17 +15,17 @@
 import { CoreNetwork } from '@services/network';
 import { CoreSites } from '@services/sites';
 import { CoreSync } from '@services/sync';
-import { CoreText } from '@singletons/text';
-import { CoreTime } from '@singletons/time';
+import { CoreText } from '@static/text';
+import { CoreTime } from '@static/time';
 import { Translate } from '@singletons';
-import { CoreLogger } from '@singletons/logger';
+import { CoreLogger } from '@static/logger';
 import { CoreAnyError, CoreError } from '@classes/errors/error';
 import { CoreErrorHelper } from '@services/error-helper';
 
 /**
  * Blocked sync error.
  */
-export class CoreSyncBlockedError extends CoreError {}
+export class CoreSyncBlockedError extends CoreError { }
 
 /**
  * Base class to create sync providers. It provides some common functions.
@@ -75,7 +75,7 @@ export class CoreSyncBaseProvider<T = void> {
     protected addOfflineDataDeletedWarning(warnings: string[], name: string, error: CoreAnyError): void {
         const warning = this.getOfflineDataDeletedWarning(name, error);
 
-        if (warnings.indexOf(warning) == -1) {
+        if (!warnings.includes(warning)) {
             warnings.push(warning);
         }
     }
@@ -196,7 +196,7 @@ export class CoreSyncBaseProvider<T = void> {
         try {
             const entry = await CoreSync.getSyncRecord(this.component, id, siteId);
 
-            return <string[]> CoreText.parseJSON(entry.warnings, []);
+            return <string[]>CoreText.parseJSON(entry.warnings, []);
         } catch {
             return [];
         }
@@ -324,7 +324,7 @@ export class CoreSyncBaseProvider<T = void> {
      */
     protected get componentTranslate(): string {
         if (!this.componentTranslateInternal) {
-            this.componentTranslateInternal = <string> Translate.instant(this.componentTranslatableString);
+            this.componentTranslateInternal = <string>Translate.instant(this.componentTranslatableString);
         }
 
         return this.componentTranslateInternal;

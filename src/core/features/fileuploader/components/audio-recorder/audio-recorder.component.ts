@@ -24,7 +24,7 @@ import { SafeUrl } from '@angular/platform-browser';
 import { CAPTURE_ERROR_NO_MEDIA_FILES, CoreCaptureError } from '@classes/errors/captureerror';
 import { CoreFileUploaderAudioRecording } from '@features/fileuploader/services/fileuploader';
 import { CoreFile, CoreFileProvider } from '@services/file';
-import { CorePath } from '@singletons/path';
+import { CorePath } from '@static/path';
 import { CoreNative } from '@features/native/services/native';
 import { CoreSharedModule } from '@/core/shared.module';
 import { CoreFileUploaderAudioHistogramComponent } from '../audio-histogram/audio-histogram';
@@ -73,16 +73,15 @@ export class CoreFileUploaderAudioRecorderComponent extends CoreModalComponent<C
         }));
         this.status$ = combineLatest([this.media$.pipe(recorderStatus(), shareReplay()), this.recording$])
             .pipe(map(([recordingStatus, recording]) => {
+                if (recording) {
+                    return 'done';
+                }
                 if (recordingStatus === 'recording') {
                     return 'recording-ongoing';
                 }
 
                 if (recordingStatus === 'paused') {
                     return 'recording-paused';
-                }
-
-                if (recording) {
-                    return 'done';
                 }
 
                 return 'empty';

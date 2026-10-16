@@ -22,9 +22,9 @@ import { CoreNetwork } from '@services/network';
 import { CoreGroups } from '@services/groups';
 import { CoreSites } from '@services/sites';
 import { CoreSync, CoreSyncResult } from '@services/sync';
-import { CoreUtils } from '@singletons/utils';
+import { CoreUtils } from '@static/utils';
 import { makeSingleton, Translate } from '@singletons';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import {
     AddonModForum,
     AddonModForumAddDiscussionPostWSOptionsObject,
@@ -39,10 +39,10 @@ import {
     ADDON_MOD_FORUM_COMPONENT_LEGACY,
     ADDON_MOD_FORUM_MANUAL_SYNCED,
 } from '../constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreWSError } from '@classes/errors/wserror';
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.
@@ -72,7 +72,7 @@ export class AddonModForumSyncProvider extends CoreCourseActivitySyncBaseProvide
      * Try to synchronize all the forums in a certain site or in all sites.
      *
      * @param siteId Site ID to sync. If not defined, sync all sites.
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
     async syncAllForums(siteId?: string, force?: boolean): Promise<void> {
@@ -82,7 +82,7 @@ export class AddonModForumSyncProvider extends CoreCourseActivitySyncBaseProvide
     /**
      * Sync all forums on a site.
      *
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @param siteId Site ID to sync.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
@@ -318,7 +318,7 @@ export class AddonModForumSyncProvider extends CoreCourseActivitySyncBaseProvide
      *
      * @param cmId Course module to be synced. If not defined, sync all forums.
      * @param discussionId Discussion id to be synced. If not defined, sync all discussions.
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @param siteId Site ID. If not defined, current site.
      * @returns Promise resolved if sync is successful, rejected otherwise.
      */

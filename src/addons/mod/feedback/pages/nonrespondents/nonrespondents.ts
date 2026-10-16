@@ -15,10 +15,10 @@
 import { Component, OnInit } from '@angular/core';
 import { CoreGroupInfo, CoreGroups } from '@services/groups';
 import { CoreNavigator } from '@services/navigator';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { AddonModFeedback, AddonModFeedbackWSFeedback } from '../../services/feedback';
 import { AddonModFeedbackHelper, AddonModFeedbackNonRespondent } from '../../services/feedback-helper';
-import { CoreTime } from '@singletons/time';
+import { CoreTime } from '@static/time';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { Translate } from '@singletons';
@@ -90,7 +90,7 @@ export default class AddonModFeedbackNonRespondentsPage implements OnInit {
      * @param refresh Empty events array first.
      * @returns Promise resolved when done.
      */
-    protected async fetchData(refresh: boolean = false): Promise<void> {
+    protected async fetchData(refresh = false): Promise<void> {
         this.page = 0;
         this.total = 0;
         this.users = [];

@@ -21,11 +21,11 @@ import { CoreFile } from '@services/file';
 import { CoreFilepool } from '@services/filepool';
 import { CoreFileHelper } from '@services/file-helper';
 import { CoreSites } from '@services/sites';
-import { CoreUrl } from '@singletons/url';
+import { CoreUrl } from '@static/url';
 import { CoreH5P } from '@features/h5p/services/h5p';
 import { DownloadStatus } from '@/core/constants';
 import { CoreSite } from '@classes/sites/site';
-import { CoreLogger } from '@singletons/logger';
+import { CoreLogger } from '@static/logger';
 import { CoreH5PCore, CoreH5PDisplayOptions } from '../../classes/core';
 import { CoreH5PHelper } from '../../classes/helper';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
@@ -56,7 +56,7 @@ export class CoreH5PIframeComponent implements OnChanges, OnDestroy {
     @Input() component?: string; // Component the file is linked to.
     @Input() componentId?: string | number; // Component ID.
     @Input() fileTimemodified?: number; // The timemodified of the file.
-    @Output() onIframeUrlSet = new EventEmitter<{src: string; online: boolean}>();
+    @Output() onIframeUrlSet = new EventEmitter<{ src: string; online: boolean }>();
     @Output() onIframeLoaded = new EventEmitter<void>();
 
     iframeSrc?: string;
@@ -93,7 +93,7 @@ export class CoreH5PIframeComponent implements OnChanges, OnDestroy {
     /**
      * @inheritdoc
      */
-    ngOnChanges(changes: {[name: string]: SimpleChange}): void {
+    ngOnChanges(changes: { [name: string]: SimpleChange }): void {
         // If it's already playing don't change it.
         if ((changes.fileUrl || changes.onlinePlayerUrl) && !this.iframeSrc) {
             this.play();

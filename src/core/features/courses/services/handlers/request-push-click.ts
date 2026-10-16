@@ -19,12 +19,12 @@ import { CorePushNotificationsClickHandler } from '@features/pushnotifications/s
 import { CorePushNotificationsNotificationBasicData } from '@features/pushnotifications/services/pushnotifications';
 import { CoreNavigator } from '@services/navigator';
 import { CoreSites } from '@services/sites';
-import { CoreUtils } from '@singletons/utils';
+import { CoreUtils } from '@static/utils';
 import { makeSingleton } from '@singletons';
-import { CorePath } from '@singletons/path';
+import { CorePath } from '@static/path';
 import { CoreCourses } from '../courses';
 import { CoreLoadings } from '@services/overlays/loadings';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreAlerts } from '@services/overlays/alerts';
 
 /**
@@ -44,8 +44,8 @@ export class CoreCoursesRequestPushClickHandlerService implements CorePushNotifi
      */
     async handles(notification: CorePushNotificationsNotificationBasicData): Promise<boolean> {
         // Don't support 'courserequestrejected', that way the app will open the notifications page.
-        return CoreUtils.isTrueOrOne(notification.notif) && notification.moodlecomponent == 'moodle' &&
-            (notification.name == 'courserequested' || notification.name == 'courserequestapproved');
+        return CoreUtils.isTrueOrOne(notification.notif) && notification.moodlecomponent === 'moodle' &&
+            (notification.name === 'courserequested' || notification.name === 'courserequestapproved');
     }
 
     /**
@@ -57,7 +57,7 @@ export class CoreCoursesRequestPushClickHandlerService implements CorePushNotifi
     async handleClick(notification: CoreCoursesRequestNotificationData): Promise<void> {
         const courseId = notification.courseid;
 
-        if (notification.name == 'courserequested') {
+        if (notification.name === 'courserequested') {
             // Feature not supported in the app, open in browser.
             const site = await CoreSites.getSite(notification.site);
             const url = CorePath.concatenatePaths(site.getURL(), 'course/pending.php');

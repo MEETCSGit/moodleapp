@@ -19,7 +19,7 @@ import { CoreUserSummary } from '@features/user/services/user';
 import { CoreSites, CoreSitesCommonWSOptions } from '@services/sites';
 import { CoreWSExternalWarning } from '@services/ws';
 import { makeSingleton } from '@singletons';
-import { CoreTextFormat } from '@singletons/text';
+import { CoreTextFormat } from '@static/text';
 
 /**
  * Service to handle data privacy.
@@ -32,10 +32,11 @@ export class CoreDataPrivacyService {
     /**
      * Check if data privacy is enabled on current site.
      *
+     * @param siteId Site ID. If not defined, current site.
      * @returns Whether data privacy is enabled.
      */
-    async isEnabled(): Promise<boolean> {
-        const site = CoreSites.getCurrentSite();
+    async isEnabled(siteId?: string): Promise<boolean> {
+        const site = await CoreSites.getSite(siteId);
 
         // Check if the privacy data WS are available in the site.
         if (!site?.wsAvailable('tool_dataprivacy_get_data_requests')) {
@@ -43,7 +44,7 @@ export class CoreDataPrivacyService {
         }
 
         // If the user can contact the DPO, then data privacy is enabled.
-        const accessInformation = await this.getAccessInformation();
+        const accessInformation = await this.getAccessInformation({ siteId: site.id });
 
         return accessInformation.cancontactdpo;
     }

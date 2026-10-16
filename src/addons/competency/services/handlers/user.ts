@@ -12,14 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ADDON_COMPETENCY_COMPETENCIES_PAGE, ADDON_COMPETENCY_LEARNING_PLANS_PAGE } from '@addons/competency/constants';
+import {
+    ADDON_COMPETENCY_COMPETENCIES_PAGE,
+    ADDON_COMPETENCY_LEARNING_PLANS_PAGE,
+    ADDONS_COMPETENCY_COMPONENT_NAME,
+    ADDONS_COMPETENCY_USER_PROFILE_FEATURE_NAME,
+    ADDONS_COMPETENCY_USER_MENU_FEATURE_NAME,
+} from '@addons/competency/constants';
 import { Injectable } from '@angular/core';
 import { CORE_COURSE_PAGE_NAME } from '@features/course/constants';
 import { CoreUserProfile } from '@features/user/services/user';
 import {
     CoreUserProfileHandler,
     CoreUserProfileHandlerType,
-    CoreUserProfileHandlerData,
+    CoreUserProfileListHandlerData,
     CoreUserDelegateContext,
 } from '@features/user/services/user-delegate';
 import { PARTICIPANTS_PAGE_NAME } from '@features/user/constants';
@@ -34,9 +40,10 @@ import { AddonCompetency } from '../competency';
 @Injectable( { providedIn: 'root' })
 export class AddonCompetencyUserHandlerService implements CoreUserProfileHandler {
 
-    name = 'AddonCompetency'; // This name doesn't match any disabled feature, they'll be checked in isEnabledForContext.
+    readonly type = CoreUserProfileHandlerType.LIST_ITEM;
+    // This name doesn't match any disabled feature, they'll be checked in isEnabledForContext.
+    name = `${ADDONS_COMPETENCY_COMPONENT_NAME}:fakename`;
     priority = 100;
-    type = CoreUserProfileHandlerType.LIST_ITEM;
     cacheEnabled = true;
 
     /**
@@ -57,11 +64,10 @@ export class AddonCompetencyUserHandlerService implements CoreUserProfileHandler
         }
 
         if (context === CoreUserDelegateContext.USER_MENU) {
-            // This option used to belong to main menu, check the original disabled feature value.
-            if (currentSite.isFeatureDisabled('CoreMainMenuDelegate_AddonCompetency')) {
+            if (currentSite.isFeatureDisabled(ADDONS_COMPETENCY_USER_MENU_FEATURE_NAME)) {
                 return false;
             }
-        } else if (currentSite.isFeatureDisabled('CoreUserDelegate_AddonCompetency:learningPlan')) {
+        } else if (currentSite.isFeatureDisabled(ADDONS_COMPETENCY_USER_PROFILE_FEATURE_NAME)) {
             return false;
         }
 
@@ -89,7 +95,7 @@ export class AddonCompetencyUserHandlerService implements CoreUserProfileHandler
     /**
      * @inheritdoc
      */
-    getDisplayData(user: CoreUserProfile, context: CoreUserDelegateContext): CoreUserProfileHandlerData {
+    getDisplayData(user: CoreUserProfile, context: CoreUserDelegateContext): CoreUserProfileListHandlerData {
         if (context !== CoreUserDelegateContext.COURSE) {
             return {
                 icon: 'fas-route',

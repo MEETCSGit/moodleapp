@@ -2,6 +2,25 @@ This file describes API changes in the Moodle App that affect site plugins, info
 
 For more information about upgrading, read the official documentation: https://moodledev.io/general/app/upgrading/
 
+5.3.0
+=====
+
+- The CoreLoginHelper functions openBrowserForSSOLogin, openBrowserForOAuthLogin and prepareForSSOLogin have been modified to group all optional parameters in a single object.
+- CoreSiteBasicInfo userId attribute has changed to userid to match user fields.
+
+5.2.1
+=====
+
+- The CoreContentLinksHelper.confirmSiteChange function has been removed because it's no longer used. It was removed without deprecation because it required breaking changes to continue working properly.
+
+5.2.0
+=====
+
+ - The core-files component now treats the `files` input array as immutable to simplify the change detection strategy and improve performance. To trigger an update, you must provide a new array reference (e.g. using `concat()` or the spread operator) rather than mutating the existing one with `push()` or `splice()`.
+ - CoreCourses.getCoursesByField and CoreCourses.getCourseByField now accepts CoreSitesCommonWSOptions, direct usage of siteId has been deprecated.
+ - CoreCoursesDashboard.isAvailable now checks blocks and settings on site, if you want to check only if the WS is present, use isWSAvailable instead.
+ - SplashScreen singleton has been deprecated, use navigator.splashscreen directly.
+
 5.1.0
 =====
 
@@ -9,6 +28,7 @@ For more information about upgrading, read the official documentation: https://m
  - The (onChange) output in core-combobox has been deprecated, please use (selectionChange) instead.
  - The CoreUserOfflineProvider service has been renamed to CoreUserPreferencesOfflineService and is no longer available for plugins. To read or write preferences please use the new CoreUserPreferencesService service.
  - The AddonCalendarCalendarComponent no longer checks for changes inside the 'filter' input. If you change a property of the object passed to the 'filter' input, make sure to create a new object to make sure Angular detects the changes. E.g. this.filter = { ...this.filter, courseId: 1 };
+ - CoreEvents.SELECT_COURSE_TAB has been deprecated in favour of CORE_COURSE_SELECT_TAB with different structure data.
 
 5.0.0
 =====

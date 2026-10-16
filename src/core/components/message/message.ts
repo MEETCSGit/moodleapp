@@ -14,9 +14,8 @@
 
 import { ContextLevel } from '@/core/constants';
 import { Component, computed, input, output } from '@angular/core';
-import { CoreAnimations } from '@components/animations';
 import { CoreSites } from '@services/sites';
-import { CoreText } from '@singletons/text';
+import { CoreText } from '@static/text';
 import { CoreUserAvatarComponent, CoreUserWithAvatar } from '@components/user-avatar/user-avatar';
 import { toBoolean } from '@/core/transforms/boolean';
 import { CoreBaseModule } from '@/core/base.module';
@@ -33,7 +32,6 @@ import { CoreFormatDatePipe } from '@pipes/format-date';
     selector: 'core-message',
     templateUrl: 'message.html',
     styleUrl: 'message.scss',
-    animations: [CoreAnimations.SLIDE_IN_OUT],
     imports: [
         CoreBaseModule,
         CoreLongPressDirective,
@@ -44,15 +42,16 @@ import { CoreFormatDatePipe } from '@pipes/format-date';
         CoreFormatDatePipe,
     ],
     host: {
-        '[@coreSlideInOut]': 'isMine() ? "" : "fromLeft"',
+        '[animate.enter]': 'isMine() ? "" : "slide-in-left-animation"',
+        '[animate.leave]': 'isMine() ? "" : "slide-out-left-animation"',
         '[class.is-mine]': 'isMine()',
         '[class.no-user]': '!message()?.showUserData',
     },
 })
 export class CoreMessageComponent {
 
-    readonly message = input<CoreMessageData>(); // The message object.
-    readonly user = input<CoreUserWithAvatar>(); // The user object.
+    readonly message = input.required<CoreMessageData>(); // The message object.
+    readonly user = input.required<CoreUserWithAvatar>(); // The user object.
 
     readonly text = input(''); // Message text.
     readonly time = input(0); // Message time.
@@ -104,7 +103,7 @@ export class CoreMessageComponent {
 /**
  * Conversation message with some calculated data.
  *
- * @todo: The properties that are used in the template should be signals, otherwise if they change the template might not
+ * @todo The properties that are used in the template should be signals, otherwise if they change the template might not
  * update in some cases. E.g. showTail, pending, deleted, etc.
  */
 type CoreMessageData = {

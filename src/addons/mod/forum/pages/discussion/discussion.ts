@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ContextLevel, CoreConstants } from '@/core/constants';
+import { ContextLevel, CoreRefreshIcon, CoreSyncIcon } from '@/core/constants';
 import { Component, OnDestroy, OnInit, AfterViewInit, ElementRef, inject, viewChild } from '@angular/core';
 import { ActivatedRoute, ActivatedRouteSnapshot } from '@angular/router';
 import { CoreRoutedItemsManagerSourcesTracker } from '@classes/items-management/routed-items-manager-sources-tracker';
@@ -27,11 +27,10 @@ import { CoreNetwork } from '@services/network';
 import { CoreNavigator } from '@services/navigator';
 import { CoreScreen } from '@services/screen';
 import { CoreSites } from '@services/sites';
-import { CoreUtils } from '@singletons/utils';
-import { NgZone, Translate } from '@singletons';
-import { CoreDom } from '@singletons/dom';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
-import { Subscription } from 'rxjs';
+import { CoreUtils } from '@static/utils';
+import { Translate } from '@singletons';
+import { CoreDom } from '@static/dom';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { AddonModForumDiscussionsSource } from '../../classes/forum-discussions-source';
 import { AddonModForumDiscussionsSwipeManager } from '../../classes/forum-discussions-swipe-manager';
 import {
@@ -60,8 +59,8 @@ import {
 import CoreCourseContentsPage from '@features/course/pages/contents/contents';
 import { CoreToasts } from '@services/overlays/toasts';
 import { CoreLoadings } from '@services/overlays/loadings';
-import { CorePromiseUtils } from '@singletons/promise-utils';
-import { CoreObject } from '@singletons/object';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreObject } from '@static/object';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { AddonModForumPostComponent } from '../../components/post/post';
 import { CoreSharedModule } from '@/core/shared.module';
@@ -102,7 +101,7 @@ export default class AddonModForumDiscussionPage implements OnInit, AfterViewIni
     posts: Post[] = [];
     discussionLoaded = false;
     postSubjects!: { [id: string]: string };
-    isOnline!: boolean;
+    readonly isOnline = CoreNetwork.onlineSignal;
     postHasOffline!: boolean;
     sort: SortType = 'nested';
     trackPosts!: boolean;
@@ -122,8 +121,8 @@ export default class AddonModForumDiscussionPage implements OnInit, AfterViewIni
         isprivatereply: false,
     };
 
-    refreshIcon = CoreConstants.ICON_LOADING;
-    syncIcon = CoreConstants.ICON_LOADING;
+    refreshIcon = CoreRefreshIcon.LOADING;
+    syncIcon = CoreSyncIcon.LOADING;
     discussionStr = '';
     component = ADDON_MOD_FORUM_COMPONENT_LEGACY;
     cmId?: number;
@@ -136,7 +135,6 @@ export default class AddonModForumDiscussionPage implements OnInit, AfterViewIni
     protected forumId?: number;
     protected postId?: number;
     protected parent?: number;
-    protected onlineObserver?: Subscription;
     protected syncObserver?: CoreEventObserver;
     protected syncManualObserver?: CoreEventObserver;
 
@@ -183,16 +181,9 @@ export default class AddonModForumDiscussionPage implements OnInit, AfterViewIni
         }
 
         const currentSite = CoreSites.getCurrentSite();
-        this.isOnline = CoreNetwork.isOnline();
         this.externalUrl = currentSite && currentSite.shouldDisplayInformativeLinks() ?
             currentSite.createSiteUrl('/mod/forum/discuss.php', { d: this.discussionId.toString() }) :
             undefined;
-        this.onlineObserver = CoreNetwork.onChange().subscribe(() => {
-            // Execute the callback in the Angular zone, so change detection doesn't stop working.
-            NgZone.run(() => {
-                this.isOnline = CoreNetwork.isOnline();
-            });
-        });
 
         this.discussionStr = Translate.instant('addon.mod_forum.discussion');
     }
@@ -236,7 +227,7 @@ export default class AddonModForumDiscussionPage implements OnInit, AfterViewIni
         // Refresh data if this discussion is synchronized automatically.
         this.syncObserver = CoreEvents.on(ADDON_MOD_FORUM_AUTO_SYNCED, data => {
             if (data.forumId == this.forumId && this.discussionId == data.discussionId
-                    && data.userId == CoreSites.getCurrentSiteUserId()) {
+                && data.userId == CoreSites.getCurrentSiteUserId()) {
                 // Refresh the data.
                 this.discussionLoaded = false;
                 this.refreshPosts();
@@ -245,7 +236,7 @@ export default class AddonModForumDiscussionPage implements OnInit, AfterViewIni
 
         // Refresh data if this forum discussion is synchronized from discussions list.
         this.syncManualObserver = CoreEvents.on(ADDON_MOD_FORUM_MANUAL_SYNCED, data => {
-            if (data.source != 'discussion' && data.forumId == this.forumId &&
+            if (data.source !== 'discussion' && data.forumId == this.forumId &&
                     data.userId == CoreSites.getCurrentSiteUserId()) {
                 // Refresh the data.
                 this.discussionLoaded = false;
@@ -260,15 +251,15 @@ export default class AddonModForumDiscussionPage implements OnInit, AfterViewIni
 
         // Listen for offline ratings saved and synced.
         this.ratingOfflineObserver = CoreEvents.on(CoreRatingProvider.RATING_SAVED_EVENT, (data) => {
-            if (data.component == 'mod_forum' && data.ratingArea == 'post' && data.contextLevel == ContextLevel.MODULE &&
-                    data.instanceId == this.cmId && data.itemSetId == this.discussionId) {
+            if (data.component === 'mod_forum' && data.ratingArea === 'post' && data.contextLevel == ContextLevel.MODULE &&
+                data.instanceId == this.cmId && data.itemSetId == this.discussionId) {
                 this.hasOfflineRatings = true;
             }
         });
 
         this.ratingSyncObserver = CoreEvents.on(CoreRatingSyncProvider.SYNCED_EVENT, async (data) => {
-            if (data.component == 'mod_forum' && data.ratingArea == 'post' && data.contextLevel == ContextLevel.MODULE &&
-                    data.instanceId == this.cmId && data.itemSetId == this.discussionId) {
+            if (data.component === 'mod_forum' && data.ratingArea === 'post' && data.contextLevel == ContextLevel.MODULE &&
+                data.instanceId == this.cmId && data.itemSetId == this.discussionId) {
                 this.hasOfflineRatings = false;
             }
         });
@@ -349,7 +340,6 @@ export default class AddonModForumDiscussionPage implements OnInit, AfterViewIni
      * @inheritdoc
      */
     ngOnDestroy(): void {
-        this.onlineObserver?.unsubscribe();
         this.discussions?.destroy();
     }
 
@@ -475,7 +465,7 @@ export default class AddonModForumDiscussionPage implements OnInit, AfterViewIni
             this.startingPost = AddonModForum.extractStartingPost(posts);
 
             // If sort type is nested, normal sorting is disabled and nested posts will be displayed.
-            if (this.sort == 'nested') {
+            if (this.sort === 'nested') {
                 // Sort first by creation date to make format tree work.
                 AddonModForum.sortDiscussionPosts(posts, 'ASC');
 
@@ -483,7 +473,7 @@ export default class AddonModForumDiscussionPage implements OnInit, AfterViewIni
                 posts = CoreUtils.formatTree(posts, 'parentid', 'id', rootId);
             } else {
                 // Set default reply subject.
-                const direction = this.sort == 'flat-newest' ? 'DESC' : 'ASC';
+                const direction = this.sort === 'flat-newest' ? 'DESC' : 'ASC';
                 AddonModForum.sortDiscussionPosts(posts, direction);
             }
 
@@ -578,8 +568,8 @@ export default class AddonModForumDiscussionPage implements OnInit, AfterViewIni
             CoreAlerts.showError(error);
         } finally {
             this.discussionLoaded = true;
-            this.refreshIcon = CoreConstants.ICON_REFRESH;
-            this.syncIcon = CoreConstants.ICON_SYNC;
+            this.refreshIcon = CoreRefreshIcon.REFRESH;
+            this.syncIcon = CoreSyncIcon.SYNC;
 
             if (forceMarkAsRead || (hasUnreadPosts && this.trackPosts)) {
                 // Add log in Moodle and mark unread posts as readed.
@@ -598,7 +588,7 @@ export default class AddonModForumDiscussionPage implements OnInit, AfterViewIni
      */
     protected async loadDiscussion(discussionId: number, forumId?: number, cmId?: number): Promise<void> {
         // Fetch the discussion if not passed as parameter.
-        if (this.discussion || !forumId || ! cmId) {
+        if (this.discussion || !forumId || !cmId) {
             return;
         }
 
@@ -667,7 +657,7 @@ export default class AddonModForumDiscussionPage implements OnInit, AfterViewIni
      * @param showErrors If show errors to the user of hide them.
      * @returns Promise resolved when done.
      */
-    async doRefresh(refresher?: HTMLIonRefresherElement | null, done?: () => void, showErrors: boolean = false): Promise<void> {
+    async doRefresh(refresher?: HTMLIonRefresherElement | null, done?: () => void, showErrors = false): Promise<void> {
         if (this.discussionLoaded) {
             await this.refreshPosts(true, showErrors).finally(() => {
                 refresher?.complete();
@@ -685,8 +675,8 @@ export default class AddonModForumDiscussionPage implements OnInit, AfterViewIni
      */
     async refreshPosts(sync?: boolean, showErrors?: boolean): Promise<void> {
         this.content().scrollToTop();
-        this.refreshIcon = CoreConstants.ICON_LOADING;
-        this.syncIcon = CoreConstants.ICON_LOADING;
+        this.refreshIcon = CoreRefreshIcon.LOADING;
+        this.syncIcon = CoreSyncIcon.LOADING;
 
         const promises: Promise<void>[] = [];
 

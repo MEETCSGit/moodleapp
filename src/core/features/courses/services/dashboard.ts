@@ -24,8 +24,9 @@ import { firstValueFrom } from 'rxjs';
 import { asyncObservable } from '@/core/utils/rxjs';
 import { CoreSiteWSPreSets, WSObservable } from '@classes/sites/authenticated-site';
 import { CoreCacheUpdateFrequency } from '@/core/constants';
-import { CoreCoursesMyPageName } from '../constants';
+import { CORE_COURSES_DASHBOARD_MENU_FEATURE_NAME, CoreCoursesMyPageName } from '../constants';
 import { CORE_BLOCKS_DASHBOARD_FALLBACK_MYOVERVIEW_BLOCK, CoreBlocksRegion } from '@features/block/constants';
+import { CoreBlockDelegate } from '@features/block/services/block-delegate';
 
 /**
  * Service that provides some features regarding course overview.
@@ -51,7 +52,7 @@ export class CoreCoursesDashboardProvider {
      * @param userId User ID. Default, 0 means current user.
      * @returns Cache key.
      */
-    protected getDashboardBlocksCacheKey(myPage = CoreCoursesMyPageName.DEFAULT, userId: number = 0): string {
+    protected getDashboardBlocksCacheKey(myPage = CoreCoursesMyPageName.DEFAULT, userId = 0): string {
         return `${CoreCoursesDashboardProvider.ROOT_CACHE_KEY}blocks:${myPage}:${userId}`;
     }
 
@@ -149,6 +150,24 @@ export class CoreCoursesDashboardProvider {
     }
 
     /**
+     * Check if the dashboard / my courses page has blocks.
+     *
+     * @param siteId Site ID. If not defined, current site.
+     * @param myPage What my page to return blocks of. Default CoreCoursesMyPageName.DEFAULT.
+     * @returns Promise resolved with true if it has blocks, false if not or rejected on error.
+     */
+    async hasBlocks(siteId?: string, myPage = CoreCoursesMyPageName.DEFAULT): Promise<boolean> {
+        const blocks = await this.getDashboardBlocks(
+            undefined,
+            siteId,
+            myPage,
+        );
+
+        return CoreBlockDelegate.hasSupportedBlock(blocks.mainBlocks) ||
+            CoreBlockDelegate.hasSupportedBlock(blocks.sideBlocks);
+    }
+
+    /**
      * Get dashboard blocks.
      *
      * @param options Options.
@@ -167,7 +186,7 @@ export class CoreCoursesDashboardProvider {
                 }
             });
 
-            if (mainBlocks.length == 0) {
+            if (mainBlocks.length === 0) {
                 mainBlocks = [];
                 sideBlocks = [];
 
@@ -208,7 +227,7 @@ export class CoreCoursesDashboardProvider {
      * @returns Promise resolved with true if available, resolved with false or rejected otherwise.
      * @since 3.6
      */
-    async isAvailable(siteId?: string): Promise<boolean> {
+    async isWSAvailable(siteId?: string): Promise<boolean> {
         const site = await CoreSites.getSite(siteId);
 
         return site.wsAvailable('core_block_get_dashboard_blocks');
@@ -235,11 +254,50 @@ export class CoreCoursesDashboardProvider {
     isDisabledInSite(site?: CoreSite): boolean {
         site = site || CoreSites.getCurrentSite();
 
-        return !!site?.isFeatureDisabled('CoreMainMenuDelegate_CoreCoursesDashboard');
+        return !!site?.isFeatureDisabled(CORE_COURSES_DASHBOARD_MENU_FEATURE_NAME);
+    }
+
+    /**
+     * Check if the dashboard / my courses page is available for a certain site.
+     *
+     * @param siteId Site ID. If not defined, current site.
+     * @returns Promise resolved with true if available, false if not or rejected on error.
+     */
+    async isAvailable(siteId?: string): Promise<boolean> {
+        const site = await CoreSites.getSite(siteId);
+        siteId = siteId || site.getId();
+
+        if (this.isDisabledInSite(site)) {
+            return false;
+        }
+
+        const enabled = await site.getBooleanConfig('enabledashboard', false, true);
+        if (!enabled) {
+            return false;
+        }
+
+        // Check if blocks and 3.6 dashboard is enabled.
+        const blocksDisabled = await CoreBlockDelegate.areBlocksDisabled(siteId);
+        if (blocksDisabled) {
+            // Blocks are disabled, dashboard cannot be available.
+            return false;
+        }
+
+        const wsAvailable = await this.isWSAvailable(siteId);
+        if (wsAvailable) {
+            try {
+                return await this.hasBlocks(siteId);
+            } catch {
+                // Error getting blocks, assume it's enabled.
+                return true;
+            }
+        }
+
+        // Dashboard is enabled but not available, we will fake blocks.
+        return true;
     }
 
 }
-
 export const CoreCoursesDashboard = makeSingleton(CoreCoursesDashboardProvider);
 
 export type CoreCoursesDashboardBlocks = {

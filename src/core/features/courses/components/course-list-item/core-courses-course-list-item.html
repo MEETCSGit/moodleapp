@@ -1,6 +1,6 @@
 <ion-card class="ion-activatable" [class.core-course-list-item]="layout === 'list' || layout === 'listwithenrol'"
     [class.core-course-list-card]="layout === 'card' || layout === 'summarycard'" [class.item-dimmed]="course.hidden" (click)="openCourse()"
-    tappable [attr.aria-label]="course.displayname || course.fullname">
+    tappable>
 
     @if (layout === 'card' || layout === 'summarycard') {
         <core-course-image [course]="course" class="card-top" />
@@ -22,8 +22,7 @@
 
                 <p class="item-heading">
                     @if (course.isfavourite) {
-                        <ion-icon name="fas-star" [attr.aria-label]="'core.courses.favourite' | translate" />
-                        <span class="sr-only">{{ 'core.courses.aria:favourite' | translate }}</span>
+                        <ion-icon name="fas-star" [attr.aria-label]="'core.courses.aria:favourite' | translate" />
                     }
 
                     <span (ariaButtonClick)="openCourse()">
@@ -35,7 +34,7 @@
                         <span class="core-course-enrol-icons">
                             @for (icon of enrolmentIcons; track icon.label) {
                                 <ion-icon color="medium" [name]="icon.icon" [title]="icon.label | translate"
-                                    [attr.aria-label]="icon.label | translate" [ngClass]="[icon.className]" />
+                                    [attr.aria-label]="icon.label | translate" [class]="icon.className" />
                             }
                         </span>
                     }
@@ -48,8 +47,8 @@
 
                 @if (course.categoryname) {
                     <ion-chip color="primary" class="core-course-category core-course-additional-info ion-text-nowrap">
-                        <span class="sr-only">{{ 'core.courses.aria:coursecategory' | translate }}</span>
-                        <ion-label>
+                        <ion-label role="group">
+                            <span class="sr-only">{{ 'core.courses.aria:coursecategory' | translate }}</span>
                             <core-format-text [text]="course.categoryname" contextLevel="coursecat"
                                 [contextInstanceId]="course.categoryid" />
                         </ion-label>

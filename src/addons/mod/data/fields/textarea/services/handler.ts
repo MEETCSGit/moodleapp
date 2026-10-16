@@ -14,14 +14,14 @@
 
 import { AddonModDataEntryField, AddonModDataField, AddonModDataSubfieldData } from '@addons/mod/data/services/data';
 import { Injectable, Type } from '@angular/core';
-import { CoreFormFields } from '@singletons/form';
-import { CoreText } from '@singletons/text';
+import { CoreFormFields } from '@static/form';
+import { CoreText } from '@static/text';
 import { CoreWSFile } from '@services/ws';
 import { makeSingleton, Translate } from '@singletons';
 import { AddonModDataFieldTextHandlerService } from '../../text/services/handler';
 import { CoreFileEntry, CoreFileHelper } from '@services/file-helper';
 import type { AddonModDataFieldPluginBaseComponent } from '@addons/mod/data/classes/base-field-plugin-component';
-import { CoreDom } from '@singletons/dom';
+import { CoreDom } from '@static/dom';
 
 /**
  * Handler for textarea data field plugin.
@@ -52,7 +52,7 @@ export class AddonModDataFieldTextareaHandlerService extends AddonModDataFieldTe
         const fieldName = `f_${field.id}`;
         const files = this.getFieldEditFiles(field, inputData, originalFieldData);
 
-        let text = CoreFileHelper.restorePluginfileUrls(inputData[fieldName] || '', <CoreWSFile[]> files);
+        let text = CoreFileHelper.restorePluginfileUrls(inputData[fieldName] || '', <CoreWSFile[]>files);
         // Add some HTML to the text if needed.
         text = CoreText.formatHtmlLines(text);
 
@@ -119,7 +119,7 @@ export class AddonModDataFieldTextareaHandlerService extends AddonModDataFieldTe
             // Take the original files since we cannot edit them on the app.
             originalContent.content = CoreFileHelper.replacePluginfileUrls(
                 originalContent.content,
-                <CoreWSFile[]> originalContent.files,
+                <CoreWSFile[]>originalContent.files,
             );
         }
 

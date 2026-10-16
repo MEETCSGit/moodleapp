@@ -23,7 +23,7 @@ import { CoreSites, CoreSitesReadingStrategy } from '@services/sites';
 import { CoreSync, CoreSyncResult } from '@services/sync';
 import { CoreWSError } from '@classes/errors/wserror';
 import { makeSingleton, Translate } from '@singletons';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { AddonModFeedback, AddonModFeedbackWSFeedback } from './feedback';
 import { AddonModFeedbackOffline, AddonModFeedbackOfflineResponse } from './feedback-offline';
 import {
@@ -32,7 +32,7 @@ import {
     ADDON_MOD_FEEDBACK_COMPONENT_LEGACY,
     ADDON_MOD_FEEDBACK_MODNAME,
 } from '../constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 
 /**
  * Service to sync feedbacks.
@@ -64,7 +64,7 @@ export class AddonModFeedbackSyncProvider extends CoreCourseActivitySyncBaseProv
      * Try to synchronize all the feedbacks in a certain site or in all sites.
      *
      * @param siteId Site ID to sync. If not defined, sync all sites.
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
     syncAllFeedbacks(siteId?: string, force?: boolean): Promise<void> {
@@ -74,7 +74,7 @@ export class AddonModFeedbackSyncProvider extends CoreCourseActivitySyncBaseProv
     /**
      * Sync all pending feedbacks on a site.
      *
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @param siteId Site ID to sync. If not defined, sync all sites.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
@@ -307,7 +307,7 @@ export type AddonModFeedbackAutoSyncData = {
     warnings: string[];
 };
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.

@@ -13,11 +13,11 @@
         </ion-title>
         <ion-buttons slot="end">
             <core-context-menu>
-                <core-context-menu-item [hidden]="!eventLoaded || (!hasOffline && event && !event.deleted) || !isOnline" [priority]="400"
+                <core-context-menu-item [hidden]="!eventLoaded || (!hasOffline && event && !event.deleted) || !isOnline()" [priority]="400"
                     [content]="'core.settings.synchronizenow' | translate" (action)="doRefresh(undefined, $event, true)"
                     [iconAction]="syncIcon" [closeOnClick]="false" />
-                <core-context-menu-item [hidden]="!event || !event.canedit || event.deleted || (!canEdit && event.id > 0)" [priority]="300"
-                    [content]="'core.edit' | translate" (action)="openEdit()" iconAction="fas-pen" />
+                <core-context-menu-item [hidden]="!event || !event.canedit || event.deleted || (!canEdit && event.id > 0) || !isOnline()"
+                    [priority]="300" [content]="'core.edit' | translate" (action)="openEdit()" iconAction="fas-pen" />
                 <core-context-menu-item [hidden]="!event || !event.candelete || event.deleted" [priority]="200"
                     [content]="'core.delete' | translate" (action)="deleteEvent()" iconAction="fas-trash" />
                 <core-context-menu-item [hidden]="!event || !event.deleted" [priority]="200" [content]="'core.restore' | translate"
@@ -33,7 +33,7 @@
     <core-loading [hideUntil]="eventLoaded">
         @if (event) {
             <ion-list>
-                <ion-item class="ion-text-wrap addon-calendar-event" collapsible [ngClass]="['addon-calendar-eventtype-'+event.eventtype]">
+                <ion-item collapsible [class]="['ion-text-wrap', 'addon-calendar-event', 'addon-calendar-eventtype-'+event.eventtype]">
                     @if (event.moduleIcon) {
                         <core-mod-icon [modicon]="event.moduleIcon" [showAlt]="false" [modname]="event.modulename"
                             [componentId]="event.instance" slot="start" [purpose]="event.purpose" [isBranded]="event.branded" />
@@ -56,12 +56,8 @@
                 </ion-item>
                 <!-- There is data to be synchronized -->
                 @if (hasOffline || event.deleted) {
-                    <ion-card class="core-warning-card">
-                        <ion-item>
-                            <ion-icon name="fas-triangle-exclamation" slot="start" aria-hidden="true" />
-                            <ion-label>{{ 'core.hasdatatosync' | translate:{$a: 'addon.calendar.calendarevent' | translate} }}</ion-label>
-                        </ion-item>
-                    </ion-card>
+                    <core-alert-card type="warning"
+                        [message]="'core.hasdatatosync' | translate:{$a: 'addon.calendar.calendarevent' | translate}" />
                 }
                 <ion-item class="ion-text-wrap">
                     <ion-label>
@@ -81,7 +77,7 @@
                     </ion-label>
                 </ion-item>
                 @if (courseName) {
-                    <ion-item class="ion-text-wrap" [href]="courseUrl" core-link capture="true" [detail]="true">
+                    <ion-item class="ion-text-wrap" [href]="courseUrl" core-link [capture]="true" [detail]="true">
                         <ion-label>
                             <p class="item-heading">{{ 'core.course' | translate}}</p>
                             <p>
@@ -137,7 +133,7 @@
                 @if (moduleUrl) {
                     <ion-item>
                         <ion-label>
-                            <ion-button expand="block" [href]="moduleUrl" core-link capture="true">
+                            <ion-button expand="block" [href]="moduleUrl" core-link [capture]="true">
                                 {{ 'addon.calendar.gotoactivity' | translate }}
                             </ion-button>
                         </ion-label>
@@ -148,21 +144,16 @@
 
         @if (remindersEnabled && event) {
             @if (!canScheduleExactAlarms && !scheduleExactWarningHidden) {
-                <ion-card class="core-warning-card core-card-with-buttons">
-                    <ion-item class="ion-text-wrap">
-                        <ion-icon name="fas-circle-info" slot="start" aria-hidden="true" />
-                        <ion-label>
-                            <p><strong>{{ 'core.exactalarmsturnedoff' | translate }}</strong></p>
-                            <p>{{ 'core.exactalarmsturnedoffmessage' | translate }}</p>
-                        </ion-label>
-                    </ion-item>
-                    <div class="core-card-buttons">
+                <core-alert-card type="warning"
+                    [title]="'core.exactalarmsturnedoff' | translate"
+                    [message]="'core.exactalarmsturnedoffmessage' | translate">
+                    <div buttons>
                         <ion-button fill="clear" (click)="hideAlarmWarning()">
                             {{ 'core.dontshowagain' | translate | coreNoPeriod }}
                         </ion-button>
                         <ion-button fill="outline" (click)="openAlarmSettings()">{{ 'core.turnon' | translate }}</ion-button>
                     </div>
-                </ion-card>
+                </core-alert-card>
             }
 
             <ion-card>

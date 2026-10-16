@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { CoreDom } from '@singletons/dom';
+import { CoreDom } from '@static/dom';
 import { AddonQtypeDdMarkerQuestion } from './ddmarker';
 
 /**
@@ -29,10 +29,12 @@ export class AddonQtypeDdMarkerGraphicsApi {
      * Add a shape.
      *
      * @param shapeAttribs Attributes for the shape: type and color.
+     * @param shapeAttribs.type Shape type (rect, circle, etc.).
+     * @param shapeAttribs.color Shape color.
      * @param styles Object with the styles for the shape (name -> value).
      * @returns The new shape.
      */
-    addShape(shapeAttribs: {type: string; color: string}, styles: {[name: string]: number | string}): SVGElement {
+    addShape(shapeAttribs: { type: string; color: string }, styles: { [name: string]: number | string }): SVGElement {
         const shape = document.createElementNS(AddonQtypeDdMarkerGraphicsApi.NS, shapeAttribs.type);
         shape.setAttribute('fill', shapeAttribs.color);
         shape.setAttribute('fill-opacity', '0.5');

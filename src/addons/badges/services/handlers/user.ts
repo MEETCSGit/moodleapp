@@ -17,13 +17,18 @@ import { CoreCourseUserAdminOrNavOptionIndexed } from '@features/courses/service
 import {
     CoreUserDelegateContext,
     CoreUserProfileHandler,
-    CoreUserProfileHandlerData,
+    CoreUserProfileListHandlerData,
     CoreUserProfileHandlerType,
 } from '@features/user/services/user-delegate';
 import { CoreNavigator } from '@services/navigator';
 import { CoreSites } from '@services/sites';
 import { makeSingleton } from '@singletons';
 import { AddonBadges } from '../badges';
+import {
+    ADDONS_BADGES_USER_MENU_FEATURE_NAME,
+    ADDONS_BADGES_COMPONENT_NAME,
+    ADDONS_BADGES_USER_PROFILE_FEATURE_NAME,
+} from '@addons/badges/constants';
 
 /**
  * Profile badges handler.
@@ -31,9 +36,10 @@ import { AddonBadges } from '../badges';
 @Injectable({ providedIn: 'root' })
 export class AddonBadgesUserHandlerService implements CoreUserProfileHandler {
 
-    name = 'AddonBadges:fakename'; // This name doesn't match any disabled feature, they'll be checked in isEnabledForContext.
+    readonly type = CoreUserProfileHandlerType.LIST_ITEM;
+    // This name doesn't match any disabled feature, they'll be checked in isEnabledForContext.
+    name = `${ADDONS_BADGES_COMPONENT_NAME}:fakename`;
     priority = 300;
-    type = CoreUserProfileHandlerType.LIST_ITEM;
 
     /**
      * @inheritdoc
@@ -57,10 +63,10 @@ export class AddonBadgesUserHandlerService implements CoreUserProfileHandler {
         }
 
         if (context === CoreUserDelegateContext.USER_MENU) {
-            if (currentSite.isFeatureDisabled('CoreUserDelegate_AddonBadges:account')) {
+            if (currentSite.isFeatureDisabled(ADDONS_BADGES_USER_MENU_FEATURE_NAME)) {
                 return false;
             }
-        } else if (currentSite.isFeatureDisabled('CoreUserDelegate_AddonBadges')) {
+        } else if (currentSite.isFeatureDisabled(ADDONS_BADGES_USER_PROFILE_FEATURE_NAME)) {
             return false;
         }
 
@@ -74,7 +80,7 @@ export class AddonBadgesUserHandlerService implements CoreUserProfileHandler {
     /**
      * @inheritdoc
      */
-    getDisplayData(): CoreUserProfileHandlerData {
+    getDisplayData(): CoreUserProfileListHandlerData {
         return {
             icon: 'fas-trophy',
             title: 'addon.badges.badges',

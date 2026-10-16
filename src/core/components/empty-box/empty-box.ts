@@ -40,13 +40,8 @@ import { CoreFaIconDirective } from '@directives/fa-icon';
 export class CoreEmptyBoxComponent {
 
     readonly message = input(''); // Message to display.
-    readonly dimmed = input(false, { transform: toBoolean }); // Wether the box is dimmed or not.
+    readonly dimmed = input(false, { transform: toBoolean }); // Whether the box is dimmed or not.
     readonly icon = input(); // Name of the icon to use.
     readonly image = input(); // Image source. If an icon is provided, image won't be used.
-
-    /**
-     * @deprecated since 4.4. Not used anymore.
-     */
-    readonly flipIconRtl = input(false, { transform: toBoolean });
 
 }

@@ -15,11 +15,11 @@
 import { Injectable, Type } from '@angular/core';
 
 import { CoreUserProfileFieldHandler, CoreUserProfileFieldHandlerData } from '@features/user/services/user-profile-field-delegate';
-import { CoreText } from '@singletons/text';
-import { AuthEmailSignupProfileField } from '@features/login/services/login-helper';
+import { CoreText } from '@static/text';
+import { AuthEmailSignupProfileField } from '@features/login/services/signup';
 import { CoreUserProfileField } from '@features/user/services/user';
 import { makeSingleton } from '@singletons';
-import { CoreFormFields } from '@singletons/form';
+import { CoreFormFields } from '@static/form';
 
 /**
  * Text user profile field handlers.
@@ -31,22 +31,14 @@ export class AddonUserProfileFieldTextHandlerService implements CoreUserProfileF
     type = 'text';
 
     /**
-     * Whether or not the handler is enabled on a site level.
-     *
-     * @returns True or promise resolved with true if enabled.
+     * @inheritdoc
      */
     async isEnabled(): Promise<boolean> {
         return true;
     }
 
     /**
-     * Get the data to send for the field based on the input data.
-     *
-     * @param field User field to get the data for.
-     * @param signup True if user is in signup page.
-     * @param registerAuth Register auth method. E.g. 'email'.
-     * @param formValues Form Values.
-     * @returns Data to send for the field.
+     * @inheritdoc
      */
     async getData(
         field: AuthEmailSignupProfileField | CoreUserProfileField,

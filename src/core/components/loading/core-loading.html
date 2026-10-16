@@ -1,5 +1,6 @@
 @if (!hideUntil()) {
-    <div class="core-loading-container" role="status" @coreShowHideAnimation [attr.aria-label]="message()">
+    <div class="core-loading-container" role="status" animate.enter="show-animation" animate.leave="hide-animation"
+        [attr.aria-label]="message()">
         @if (!placeholderType()) {
             <ion-spinner aria-hidden="true" />
             @if (message()) {
@@ -29,18 +30,17 @@
                     <ion-skeleton-text class="large-avatar ion-text-center round" [animated]="true" />
                     @for (i of placeholderLimit()|coreTimes; track i) {
                         <ion-skeleton-text class="placeholder-element" [animated]="true"
-                            [ngStyle]="{'width': placeholderWidth(), 'height': placeholderHeight()}" />
+                            [style.width]="placeholderWidth()" [style.height]="placeholderHeight()" />
                     }
                 } @else {
                     @for (i of placeholderLimit()|coreTimes; track i) {
                         <ion-skeleton-text class="placeholder-element" [animated]="true"
-                            [ngStyle]="{'width': placeholderWidth(), 'height': placeholderHeight()}" />
+                            [style.width]="placeholderWidth()" [style.height]="placeholderHeight()" />
                     }
                 }
             </div>
         }
     </div>
-}
-@if (hideUntil()) {
-    <ng-content @coreShowHideAnimation />
+} @else {
+    <ng-content />
 }

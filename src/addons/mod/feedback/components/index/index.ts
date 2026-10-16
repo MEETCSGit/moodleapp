@@ -19,10 +19,10 @@ import { CoreCourseModuleMainActivityComponent } from '@features/course/classes/
 import { CoreGroupInfo, CoreGroups } from '@services/groups';
 import { CoreNavigator } from '@services/navigator';
 import { CoreSites } from '@services/sites';
-import { CoreText } from '@singletons/text';
-import { CoreTime } from '@singletons/time';
-import { CorePromiseUtils } from '@singletons/promise-utils';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreText } from '@static/text';
+import { CoreTime } from '@static/time';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import {
     AddonModFeedback,
     AddonModFeedbackGetFeedbackAccessInformationWSResponse,
@@ -261,8 +261,8 @@ export class AddonModFeedbackIndexComponent extends CoreCourseModuleMainActivity
         const site = await CoreSites.getSite(this.siteId);
 
         if (!site.isVersionGreaterEqualThan('4.2')
-                || !this.feedback?.page_after_submit
-                || !this.feedback.pageaftersubmitfiles) {
+            || !this.feedback?.page_after_submit
+            || !this.feedback.pageaftersubmitfiles) {
             return;
         }
 
@@ -355,11 +355,14 @@ export class AddonModFeedbackIndexComponent extends CoreCourseModuleMainActivity
                 break;
 
             case AddonModFeedbackQuestionType.INFO:
-                item.data = <string[]> item.data.map((dataItem) => {
-                    const parsed = <Record<string, string>> CoreText.parseJSON(dataItem);
+                item.data = <string[]>item.data.map((dataItem) => {
+                    const parsed = <Record<string, string>>CoreText.parseJSON(dataItem);
 
                     return parsed.show !== undefined ? parsed.show : false;
                 }).filter((dataItem) => dataItem); // Filter false entries.
+
+                item.templateName = AddonModFeedbackAnalysisTemplateNames.LIST;
+                break;
 
             case AddonModFeedbackQuestionType.TEXTFIELD:
             case AddonModFeedbackQuestionType.TEXTAREA:
@@ -368,15 +371,15 @@ export class AddonModFeedbackIndexComponent extends CoreCourseModuleMainActivity
 
             case AddonModFeedbackQuestionType.MULTICHOICERATED:
             case AddonModFeedbackQuestionType.MULTICHOICE: {
-                const parsedData = <Record<string, string | number>[]> item.data.map((dataItem) => {
-                    const parsed = <Record<string, string | number>> CoreText.parseJSON(dataItem);
+                const parsedData = <Record<string, string | number>[]>item.data.map((dataItem) => {
+                    const parsed = <Record<string, string | number>>CoreText.parseJSON(dataItem);
 
                     return parsed.answertext !== undefined ? parsed : false;
                 }).filter((dataItem) => dataItem); // Filter false entries.
 
                 // Format labels.
                 item.labels = parsedData.map((dataItem) => {
-                    dataItem.quotient = (<number> dataItem.quotient * 100).toFixed(2);
+                    dataItem.quotient = (<number>dataItem.quotient * 100).toFixed(2);
                     let label = '';
 
                     if (dataItem.value !== undefined) {
@@ -415,7 +418,7 @@ export class AddonModFeedbackIndexComponent extends CoreCourseModuleMainActivity
      *
      * @param preview Preview or edit the form.
      */
-    gotoAnswerQuestions(preview: boolean = false): void {
+    gotoAnswerQuestions(preview = false): void {
         CoreNavigator.navigateToSitePath(
             `${ADDON_MOD_FEEDBACK_PAGE_NAME}/${this.courseId}/${this.module.id}/form`,
             {
@@ -463,10 +466,6 @@ export class AddonModFeedbackIndexComponent extends CoreCourseModuleMainActivity
      * Open attempts page.
      */
     openAttempts(): void {
-        if (!this.access || !this.access.canviewreports || this.completedCount <= 0) {
-            return;
-        }
-
         CoreNavigator.navigateToSitePath(
             `${ADDON_MOD_FEEDBACK_PAGE_NAME}/${this.courseId}/${this.module.id}/attempts`,
             {
@@ -515,7 +514,7 @@ export class AddonModFeedbackIndexComponent extends CoreCourseModuleMainActivity
         if (this.selectedTab === AddonModFeedbackIndexTabName.ANALYSIS) {
             let num = 1;
 
-            this.items = <AddonModFeedbackItem[]> analysis.itemsdata.map((itemData) => {
+            this.items = <AddonModFeedbackItem[]>analysis.itemsdata.map((itemData) => {
                 const item: AddonModFeedbackItem = Object.assign(itemData.item, {
                     data: itemData.data,
                     num: num++,
@@ -531,7 +530,7 @@ export class AddonModFeedbackIndexComponent extends CoreCourseModuleMainActivity
 
             this.warning = '';
             if (analysis.warnings?.length) {
-                const warning = analysis.warnings.find((warning) => warning.warningcode == 'insufficientresponsesforthisgroup');
+                const warning = analysis.warnings.find((warning) => warning.warningcode === 'insufficientresponsesforthisgroup');
                 this.warning = warning?.message;
             }
         }

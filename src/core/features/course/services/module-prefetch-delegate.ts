@@ -14,27 +14,27 @@
 
 import { Injectable } from '@angular/core';
 import { Subject, BehaviorSubject, Subscription } from 'rxjs';
-import { Md5 } from 'ts-md5/dist/md5';
+import { Md5 } from 'ts-md5';
 
 import { CoreFile } from '@services/file';
 import { CoreFileHelper } from '@services/file-helper';
 import { CoreFilepool } from '@services/filepool';
 import { CoreSites } from '@services/sites';
-import { CoreTime } from '@singletons/time';
-import { CoreArray } from '@singletons/array';
+import { CoreTime } from '@static/time';
+import { CoreArray } from '@static/array';
 import { CoreCourse, CoreCourseAnyModuleData, CoreCourseModuleContentFile } from './course';
 import { CoreCache } from '@classes/cache';
 import { CoreSiteWSPreSets } from '@classes/sites/authenticated-site';
 import { DownloadStatus, DownloadedStatus, ContextLevel } from '@/core/constants';
 import { CoreDelegate, CoreDelegateHandler } from '@classes/delegate';
 import { makeSingleton } from '@singletons';
-import { CoreEvents, CoreEventSectionStatusChangedData } from '@singletons/events';
+import { CoreEvents, CoreEventSectionStatusChangedData } from '@static/events';
 import { CoreError } from '@classes/errors/error';
 import { CoreWSFile, CoreWSExternalWarning } from '@services/ws';
 import { CHECK_UPDATES_TIMES_TABLE, CoreCourseCheckUpdatesDBRecord } from './database/module-prefetch';
 import { CoreFileSizeSum } from '@services/plugin-file-delegate';
 import { CoreCourseHelper, CoreCourseModuleData } from './course-helper';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CORE_COURSE_MODULE_FEATURE_PREFIX } from '../constants';
 
 /**
@@ -619,7 +619,7 @@ export class CoreCourseModulePrefetchDelegateService extends CoreDelegate<CoreCo
         courseId: number,
         updates?: CourseUpdates | false,
         sectionId?: number,
-    ): Promise<{status: DownloadStatus; updateStatus: boolean}> {
+    ): Promise<{ status: DownloadStatus; updateStatus: boolean }> {
         // Check if the module is downloadable.
         const downloadable = await this.isModuleDownloadable(module, courseId);
         if (!downloadable) {
@@ -656,7 +656,7 @@ export class CoreCourseModulePrefetchDelegateService extends CoreDelegate<CoreCo
         courseId: number,
         updates?: CourseUpdates | false,
         sectionId?: number,
-    ): Promise<{status: DownloadedStatus | null; updateStatus: boolean}> {
+    ): Promise<{ status: DownloadedStatus | null; updateStatus: boolean }> {
         // Get the saved package status.
         const siteId = CoreSites.getCurrentSiteId();
         const currentStatus = await CoreFilepool.getPackageStatus(siteId, handler.component, module.id);
@@ -757,7 +757,7 @@ export class CoreCourseModulePrefetchDelegateService extends CoreDelegate<CoreCo
         sectionId?: number,
         refresh?: boolean,
         onlyToDisplay?: boolean,
-        checkUpdates: boolean = true,
+        checkUpdates = true,
     ): Promise<CoreCourseModulesStatus> {
 
         let updates: CourseUpdates | false = false;
@@ -1318,7 +1318,7 @@ export class CoreCourseModulePrefetchDelegateService extends CoreDelegate<CoreCo
 
         // Treat warnings, adding the not supported modules.
         response.warnings?.forEach((warning) => {
-            if (warning.warningcode == 'missingcallback') {
+            if (warning.warningcode === 'missingcallback') {
                 result[warning.itemid || -1] = false;
             }
         });

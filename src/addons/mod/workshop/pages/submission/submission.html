@@ -66,7 +66,7 @@
             <ion-list>
                 <ion-item class="ion-text-wrap">
                     @if (evaluateByProfile) {
-                        <core-user-avatar [user]="evaluateByProfile" slot="start" [courseId]="courseId" [userId]="evaluateByProfile.id" />
+                        <core-user-avatar [user]="evaluateByProfile" slot="start" [courseId]="courseId" />
                     }
                     <ion-label>
                         @if (evaluateByProfile && evaluateByProfile.fullname) {
@@ -129,12 +129,7 @@
                         <h2>{{ 'addon.mod_workshop.feedbackauthor' | translate }}</h2>
                     </ion-label>
                 </ion-item-divider>
-                <ion-card class="core-warning-card">
-                    <ion-item>
-                        <ion-icon name="fas-triangle-exclamation" slot="start" aria-hidden="true" />
-                        <ion-label>{{ loadFeedbackToEditErrorMessage }}</ion-label>
-                    </ion-item>
-                </ion-card>
+                <core-alert-card type="warning" [message]="loadFeedbackToEditErrorMessage"/>
             } @else {
                 <form [formGroup]="feedbackForm" #feedbackFormEl>
                     <ion-item-divider class="ion-text-wrap">
@@ -180,12 +175,11 @@
             <addon-mod-workshop-assessment-strategy [workshop]="workshop" [access]="access" [assessmentId]="assessmentId"
                 [userId]="assessmentUserId" [strategy]="strategy" [edit]="access.assessingallowed" />
 
-            @if (!access.assessingallowed && assessment?.feedbackreviewer) {
+            @if (!access.assessingallowed && assessment?.feedbackreviewer && workshop.phase === phaseClosed) {
                 <ion-list>
                     <ion-item class="ion-text-wrap">
                         @if (evaluateGradingByProfile) {
-                            <core-user-avatar [user]="evaluateGradingByProfile" slot="start" [courseId]="courseId"
-                                [userId]="evaluateGradingByProfile.id" />
+                           <core-user-avatar [user]="evaluateGradingByProfile" slot="start" [courseId]="courseId" />
                         }
                         <ion-label>
                             @if (evaluateGradingByProfile && evaluateGradingByProfile.fullname) {

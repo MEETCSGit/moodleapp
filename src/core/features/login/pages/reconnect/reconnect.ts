@@ -16,14 +16,14 @@ import { Component, OnInit, OnDestroy, ElementRef, inject, viewChild, effect } f
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 import { CoreNetwork } from '@services/network';
-import { CoreSiteBasicInfo, CoreSites, CoreSitesReadingStrategy } from '@services/sites';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CoreSites, CoreSitesReadingStrategy } from '@services/sites';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreLoginHelper } from '@features/login/services/login-helper';
 import { CoreSite } from '@classes/sites/site';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { CoreError } from '@classes/errors/error';
 import { CoreNavigator, CoreRedirectPayload } from '@services/navigator';
-import { CoreForms } from '@singletons/form';
+import { CoreForms } from '@static/form';
 import { CoreUserSupport } from '@features/user/services/support';
 import { CoreUserSupportConfig } from '@features/user/classes/support/support-config';
 import { CoreUserAuthenticatedSupportConfig } from '@features/user/classes/support/authenticated-support-config';
@@ -31,7 +31,7 @@ import { Translate } from '@singletons';
 import { SafeHtml } from '@angular/platform-browser';
 import { CoreSitePublicConfigResponse } from '@classes/sites/unauthenticated-site';
 import { ALWAYS_SHOW_LOGIN_FORM_CHANGED, FORGOTTEN_PASSWORD_FEATURE_NAME } from '@features/login/constants';
-import { CoreKeyboard } from '@singletons/keyboard';
+import { CoreKeyboard } from '@static/keyboard';
 import { CoreLoadings } from '@services/overlays/loadings';
 import { CoreLoginMethodsComponent, CoreLoginMethodsCurrentLogin } from '@features/login/components/login-methods/login-methods';
 import { CoreAlerts } from '@services/overlays/alerts';
@@ -39,6 +39,7 @@ import { CoreSharedModule } from '@/core/shared.module';
 import { CoreSiteLogoComponent } from '../../../../components/site-logo/site-logo';
 import { CoreLoginExceededAttemptsComponent } from '../../components/exceeded-attempts/exceeded-attempts';
 import { CoreLoginIdentityProviderComponent } from '../../components/identity-provider/identity-provider';
+import { CoreUserWithAvatar } from '@components/user-avatar/user-avatar';
 
 /**
  * Page to enter the user password to reconnect to a site.
@@ -69,7 +70,7 @@ export default class CoreLoginReconnectPage implements OnInit, OnDestroy {
     currentLogin?: CoreLoginMethodsCurrentLogin;
     isLoggedOut: boolean;
     siteId!: string;
-    siteInfo?: CoreSiteBasicInfo;
+    user?: CoreUserWithAvatar;
     showLoading = true;
     reconnectAttempts = 0;
     supportConfig?: CoreUserSupportConfig;
@@ -136,16 +137,12 @@ export default class CoreLoginReconnectPage implements OnInit, OnDestroy {
                 throw new CoreError('Invalid site');
             }
 
-            this.siteInfo = {
-                id: this.siteId,
-                siteUrl: this.site.getURL(),
-                siteUrlWithoutProtocol: this.site.getURL().replace(/^https?:\/\//, '').toLowerCase(),
-                fullname: this.site.infos.fullname,
+            this.user = {
+                id: this.site.getUserId(),
                 firstname: this.site.infos.firstname,
                 lastname: this.site.infos.lastname,
-                siteName: await this.site.getSiteName(),
-                userpictureurl: this.site.infos.userpictureurl,
-                loggedOut: true, // Not used.
+                fullname: this.site.infos.fullname,
+                profileimageurl: this.site.infos.userpictureurl,
             };
 
             this.displaySiteUrl = this.site.shouldDisplayInformativeLinks();
@@ -227,7 +224,9 @@ export default class CoreLoginReconnectPage implements OnInit, OnDestroy {
 
         this.isBrowserSSO = CoreLoginHelper.isSSOLoginNeeded(this.siteConfig.typeoflogin);
 
-        await CoreSites.checkApplication(this.siteConfig);
+        // Ignore errors to avoid leaving the page if the check fails.
+        // In that case, we want to logout after the user has dismissed the modal.
+        await CorePromiseUtils.ignoreErrors(CoreSites.checkApplication(this.siteConfig, this.site));
     }
 
     /**
@@ -349,9 +348,11 @@ export default class CoreLoginReconnectPage implements OnInit, OnDestroy {
         CoreLoginHelper.openBrowserForSSOLogin(
             this.site.getURL(),
             this.siteConfig.typeoflogin,
-            undefined,
-            this.siteConfig.launchurl,
-            this.redirectData,
+            {
+                launchUrl: this.siteConfig.launchurl,
+                redirectData: this.redirectData,
+                siteId: this.siteId,
+            },
         );
     }
 

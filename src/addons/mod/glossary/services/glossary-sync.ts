@@ -24,14 +24,14 @@ import { CoreSites } from '@services/sites';
 import { CoreSync, CoreSyncResult } from '@services/sync';
 import { CoreWSError } from '@classes/errors/wserror';
 import { makeSingleton, Translate } from '@singletons';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { AddonModGlossary } from './glossary';
 import { AddonModGlossaryHelper } from './glossary-helper';
 import { AddonModGlossaryOffline, AddonModGlossaryOfflineEntry } from './glossary-offline';
 import { CoreFileUploader } from '@features/fileuploader/services/fileuploader';
 import { CoreFileEntry } from '@services/file-helper';
 import { ADDON_MOD_GLOSSARY_COMPONENT, ADDON_MOD_GLOSSARY_COMPONENT_LEGACY, GLOSSARY_AUTO_SYNCED } from '../constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 
 /**
  * Service to sync glossaries.
@@ -49,7 +49,7 @@ export class AddonModGlossarySyncProvider extends CoreCourseActivitySyncBaseProv
      * Try to synchronize all the glossaries in a certain site or in all sites.
      *
      * @param siteId Site ID to sync. If not defined, sync all sites.
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      */
     async syncAllGlossaries(siteId?: string, force?: boolean): Promise<void> {
         await this.syncOnSites('all glossaries', (siteId) => this.syncAllGlossariesFunc(!!force, siteId), siteId);
@@ -58,7 +58,7 @@ export class AddonModGlossarySyncProvider extends CoreCourseActivitySyncBaseProv
     /**
      * Sync all glossaries on a site.
      *
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @param siteId Site ID to sync.
      */
     protected async syncAllGlossariesFunc(force: boolean, siteId: string): Promise<void> {
@@ -73,7 +73,7 @@ export class AddonModGlossarySyncProvider extends CoreCourseActivitySyncBaseProv
     /**
      * Sync entries of all glossaries on a site.
      *
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @param siteId Site ID to sync.
      */
     protected async syncAllGlossariesEntries(force: boolean, siteId: string): Promise<void> {
@@ -245,7 +245,7 @@ export class AddonModGlossarySyncProvider extends CoreCourseActivitySyncBaseProv
      * Synchronize offline ratings.
      *
      * @param cmId Course module to be synced. If not defined, sync all glossaries.
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @param siteId Site ID. If not defined, current site.
      * @returns Promise resolved if sync is successful, rejected otherwise.
      */
@@ -339,7 +339,7 @@ export class AddonModGlossarySyncProvider extends CoreCourseActivitySyncBaseProv
 
 export const AddonModGlossarySync = makeSingleton(AddonModGlossarySyncProvider);
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.

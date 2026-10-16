@@ -19,14 +19,14 @@ import { CoreWSExternalWarning, CoreWS } from '@services/ws';
 import { makeSingleton } from '@singletons';
 import { CoreCourseLogHelper } from '@features/course/services/log-helper';
 import { CoreCourse, CoreCourseModuleContentFile } from '@features/course/services/course';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreFilepool } from '@services/filepool';
-import { CoreText } from '@singletons/text';
-import { CoreDom } from '@singletons/dom';
+import { CoreText } from '@static/text';
+import { CoreDom } from '@static/dom';
 import { CoreError } from '@classes/errors/error';
 import { CoreSiteWSPreSets } from '@classes/sites/authenticated-site';
 import { ADDON_MOD_BOOK_COMPONENT } from '../constants';
-import { CoreUrl } from '@singletons/url';
+import { CoreUrl } from '@static/url';
 import { CoreCacheUpdateFrequency } from '@/core/constants';
 import { CoreCourseModuleHelper, CoreCourseModuleStandardElements } from '@features/course/services/course-module-helper';
 
@@ -126,12 +126,12 @@ export class AddonModBookProvider {
             }
             let key: string;
             const chapter: string = matches[1];
-            const filepathIsChapter = content.filepath == `/${chapter}/`;
+            const filepathIsChapter = content.filepath === `/${chapter}/`;
 
             // Init the chapter if it's not defined yet.
             map[chapter] = map[chapter] || { paths: {} };
 
-            if (content.filename == 'index.html' && filepathIsChapter) {
+            if (content.filename === 'index.html' && filepathIsChapter) {
                 // Index of the chapter, set indexUrl and tags of the chapter.
                 map[chapter].indexUrl = content.fileurl;
                 map[chapter].tags = content.tags;
@@ -211,7 +211,7 @@ export class AddonModBookProvider {
         const getChapterInfo = (
             chapter: AddonModBookTocChapterParsed,
             chapterNumber: number,
-            previousNumber: string = '',
+            previousNumber = '',
         ): AddonModBookTocChapter => {
             const hidden = !!parseInt(chapter.hidden, 10);
 
@@ -377,7 +377,7 @@ type AddonModBookTocChapterParsed = {
 export type AddonModBookContentsMap = {
     [chapter: string]: {
         indexUrl?: string;
-        paths: {[path: string]: string};
+        paths: { [path: string]: string };
         timemodified?: number;
         tags?: CoreTagItem[];
     };

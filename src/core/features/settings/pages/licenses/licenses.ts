@@ -23,7 +23,7 @@ import { CoreEditorService } from '@features/editor/services/editor';
 /**
  * Defines license info
  */
-export interface CoreSettingsLicense {
+export type CoreSettingsLicense = {
     name: string;
     version: string;
     licenses: string | string[];
@@ -33,7 +33,7 @@ export interface CoreSettingsLicense {
     email?: string;
     licenseUrl?: string;
     licenseFile?: string;
-}
+};
 
 /**
  * Page that displays the open source licenses information.
@@ -86,7 +86,7 @@ export default class CoreSettingsLicensesPage implements OnInit {
                 if (license.repository) {
                     license.repository = license.repository.replace('git://', 'https://');
                     if (license.repository.indexOf('github.com') > 0) {
-                        const version = license.name == 'moodlemobile' ? this.appLicenseVersion : license.version;
+                        const version = license.name === 'moodlemobile' ? this.appLicenseVersion : license.version;
                         license.licenseUrl = `${license.repository}/blob/${version}/${license.licenseFile}`;
                     }
                 }
@@ -118,7 +118,7 @@ export default class CoreSettingsLicensesPage implements OnInit {
         } else {
             this.filteredLicenses = this.allLicenses.filter((license) => license.name.toLowerCase().indexOf(filter) >=0 ||
                 license.version.toLowerCase().indexOf(filter) >=0 ||
-                typeof license.licenses == 'string' && license.licenses.toLowerCase().indexOf(filter) >=0 ||
+                typeof license.licenses === 'string' && license.licenses.toLowerCase().indexOf(filter) >=0 ||
                 license.repository && license.repository.toLowerCase().indexOf(filter) >=0 ||
                 license.publisher && license.publisher.toLowerCase().indexOf(filter) >=0 ||
                 license.url && license.url.toLowerCase().indexOf(filter) >=0 ||

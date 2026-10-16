@@ -16,20 +16,20 @@ import { Injectable } from '@angular/core';
 
 import { FileEntry, DirectoryEntry, Entry, Metadata, IFile } from '@awesome-cordova-plugins/file/ngx';
 
-import { CoreMimetype } from '@singletons/mimetype';
-import { CoreFileUtils } from '@singletons/file-utils';
-import { CoreConstants } from '@/core/constants';
+import { CoreMimetype } from '@static/mimetype';
+import { CoreFileUtils } from '@static/file-utils';
+import { CoreBytesConstants, CoreConstants } from '@/core/constants';
 import { CoreError } from '@classes/errors/error';
 
-import { CoreLogger } from '@singletons/logger';
+import { CoreLogger } from '@static/logger';
 import { makeSingleton, File, WebView } from '@singletons';
 import { CoreFileEntry } from '@services/file-helper';
-import { CoreText } from '@singletons/text';
+import { CoreText } from '@static/text';
 import { CorePlatform } from '@services/platform';
-import { CorePath } from '@singletons/path';
+import { CorePath } from '@static/path';
 import { Zip } from '@features/native/plugins';
-import { CoreUrl } from '@singletons/url';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CoreUrl } from '@static/url';
+import { CorePromiseUtils } from '@static/promise-utils';
 
 /**
  * Progress event used when writing a file data into a file.
@@ -84,7 +84,13 @@ export class CoreFileProvider {
     static readonly TMPFOLDER = 'tmp';
     static readonly NO_SITE_FOLDER = 'nosite';
 
-    static readonly CHUNK_SIZE = 1048576; // 1 MB. Same chunk size as Ionic Native.
+    static readonly CHUNK_SIZE = CoreBytesConstants.MEGABYTE; // Same chunk size as Ionic Native.
+
+    protected static readonly IOS_FREE_SPACE_THRESHOLD = 500 * CoreBytesConstants.MEGABYTE;
+
+    static readonly MINIMUM_FREE_SPACE = 10 * CoreBytesConstants.MEGABYTE;
+    static readonly WIFI_DOWNLOAD_DEFAULT_CONFIRMATION_THRESHOLD = 100 * CoreBytesConstants.MEGABYTE;
+    static readonly DOWNLOAD_DEFAULT_CONFIRMATION_THRESHOLD = 10 * CoreBytesConstants.MEGABYTE;
 
     protected logger = CoreLogger.getInstance('CoreFileProvider');
     protected initialized = false;
@@ -157,13 +163,13 @@ export class CoreFileProvider {
         this.logger.debug(`Get file: ${path}`);
 
         try {
-            return <FileEntry> await File.resolveLocalFilesystemUrl(this.addBasePathIfNeeded(path));
+            return <FileEntry>await File.resolveLocalFilesystemUrl(this.addBasePathIfNeeded(path));
         } catch (error) {
             if (error && (error.code === FileError.NOT_FOUND_ERR || error.code === FileError.ENCODING_ERR)) {
                 // Cannot read some files if the path contains the % character and it's not an encoded char. Try encoding it.
                 const encodedPath = encodeURI(path);
                 if (encodedPath !== path) {
-                    return <FileEntry> await File.resolveLocalFilesystemUrl(this.addBasePathIfNeeded(encodedPath));
+                    return <FileEntry>await File.resolveLocalFilesystemUrl(this.addBasePathIfNeeded(encodedPath));
                 }
             }
 
@@ -227,7 +233,7 @@ export class CoreFileProvider {
         path = this.removeBasePath(path);
         base = base || this.basePath;
 
-        if (path.indexOf('/') == -1) {
+        if (!path.includes('/')) {
             if (isDirectory) {
                 this.logger.debug(`Create dir ${path} in ${base}`);
 
@@ -259,7 +265,7 @@ export class CoreFileProvider {
      * @returns Promise to be resolved when the directory is created.
      */
     async createDir(path: string, failIfExists?: boolean): Promise<DirectoryEntry> {
-        const entry = <DirectoryEntry> await this.create(true, path, failIfExists);
+        const entry = <DirectoryEntry>await this.create(true, path, failIfExists);
 
         return entry;
     }
@@ -272,7 +278,7 @@ export class CoreFileProvider {
      * @returns Promise to be resolved when the file is created.
      */
     async createFile(path: string, failIfExists?: boolean): Promise<FileEntry> {
-        const entry = <FileEntry> await this.create(false, path, failIfExists);
+        const entry = <FileEntry>await this.create(false, path, failIfExists);
 
         return entry;
     }
@@ -342,7 +348,7 @@ export class CoreFileProvider {
 
         const result = await File.listDir(this.basePath, path);
 
-        return <(FileEntry | DirectoryEntry)[]> result;
+        return <(FileEntry | DirectoryEntry)[]>result;
     }
 
     /**
@@ -457,7 +463,34 @@ export class CoreFileProvider {
             return Number(size);
         }
 
-        return Number(size) * 1024;
+        return Number(size) * CoreBytesConstants.KILOBYTE;
+    }
+
+    /**
+     * Calculates and returns the available free space in bytes, with platform-specific logic.
+     *
+     * On Android, always returns the calculated available bytes.
+     * On iOS, returns the available bytes only if the free space is below a certain threshold
+     * (`IOS_FREE_SPACE_THRESHOLD`) or if the requested size is more than half of the available space.
+     * Otherwise, returns `null` to indicate that the calculation may not be accurate.
+     *
+     * @param size - The size in bytes that is intended to be used or downloaded.
+     * @returns A promise that resolves to the number of available bytes, or `null` if the value is not reliable.
+     */
+    async getPlatformAvailableBytes(size: number): Promise<number | null> {
+        const availableBytes = await CoreFile.calculateFreeSpace();
+
+        if (CorePlatform.isAndroid()) {
+            return availableBytes;
+        }
+
+        // Space calculation is not accurate on iOS, but it gets more accurate when space is lower.
+        // We'll only use it when space is <500MB, or we're downloading more than twice the reported space.
+        if (availableBytes < CoreFileProvider.IOS_FREE_SPACE_THRESHOLD || size > availableBytes / 2) {
+            return availableBytes;
+        } else {
+            return null;
+        }
     }
 
     /**
@@ -542,7 +575,7 @@ export class CoreFileProvider {
                 if (event.target?.result !== undefined && event.target.result !== null) {
                     if (format === CoreFileFormat.FORMATJSON) {
                         // Convert to object.
-                        const parsed = CoreText.parseJSON(<string> event.target.result, null);
+                        const parsed = CoreText.parseJSON(<string>event.target.result, null);
 
                         if (parsed === null) {
                             reject('Error parsing JSON file.');
@@ -634,7 +667,7 @@ export class CoreFileProvider {
         file: Blob,
         path: string,
         onProgress?: CoreFileProgressFunction,
-        offset: number = 0,
+        offset = 0,
         append?: boolean,
     ): Promise<FileEntry> {
         offset = offset || 0;
@@ -751,7 +784,7 @@ export class CoreFileProvider {
     getBasePathInstant(): string {
         if (!this.basePath) {
             return this.basePath;
-        } else if (this.basePath.slice(-1) == '/') {
+        } else if (this.basePath.slice(-1) === '/') {
             return this.basePath;
         } else {
             return `${this.basePath}/`;
@@ -770,7 +803,7 @@ export class CoreFileProvider {
     async moveDir(originalPath: string, newPath: string, destDirExists?: boolean): Promise<DirectoryEntry> {
         const entry = await this.copyOrMoveFileOrDir(originalPath, newPath, true, false, destDirExists);
 
-        return <DirectoryEntry> entry;
+        return <DirectoryEntry>entry;
     }
 
     /**
@@ -785,7 +818,7 @@ export class CoreFileProvider {
     async moveFile(originalPath: string, newPath: string, destDirExists?: boolean): Promise<FileEntry> {
         const entry = await this.copyOrMoveFileOrDir(originalPath, newPath, false, false, destDirExists);
 
-        return <FileEntry> entry;
+        return <FileEntry>entry;
     }
 
     /**
@@ -800,7 +833,7 @@ export class CoreFileProvider {
     async copyDir(from: string, to: string, destDirExists?: boolean): Promise<DirectoryEntry> {
         const entry = await this.copyOrMoveFileOrDir(from, to, true, true, destDirExists);
 
-        return <DirectoryEntry> entry;
+        return <DirectoryEntry>entry;
     }
 
     /**
@@ -815,7 +848,7 @@ export class CoreFileProvider {
     async copyFile(from: string, to: string, destDirExists?: boolean): Promise<FileEntry> {
         const entry = await this.copyOrMoveFileOrDir(from, to, false, true, destDirExists);
 
-        return <FileEntry> entry;
+        return <FileEntry>entry;
     }
 
     /**
@@ -861,7 +894,7 @@ export class CoreFileProvider {
         try {
             const entry = await moveCopyFn(this.basePath, from, this.basePath, to);
 
-            return <FileEntry | DirectoryEntry> entry;
+            return <FileEntry | DirectoryEntry>entry;
         } catch (error) {
             try {
                 // The copy/move can fail if the final path contains the % character and it's not an encoded char. Try encoding it.
@@ -869,7 +902,7 @@ export class CoreFileProvider {
                 if (to !== encodedTo) {
                     const entry = await moveCopyFn(this.basePath, from, this.basePath, encodedTo);
 
-                    return <FileEntry | DirectoryEntry> entry;
+                    return <FileEntry | DirectoryEntry>entry;
                 }
             } catch {
                 // Still failing, continue with next fallback.
@@ -882,7 +915,7 @@ export class CoreFileProvider {
             if (from != decodedFrom || to != decodedTo) {
                 const entry = await moveCopyFn(this.basePath, decodedFrom, this.basePath, decodedTo);
 
-                return <FileEntry | DirectoryEntry> entry;
+                return <FileEntry | DirectoryEntry>entry;
             } else {
                 return Promise.reject(error);
             }
@@ -896,7 +929,7 @@ export class CoreFileProvider {
      * @returns Plain object containing the file name and directory.
      * @deprecated since 5.0. Use CoreFileUtils.getFileAndDirectoryFromPath instead.
      */
-    getFileAndDirectoryFromPath(path: string): {directory: string; name: string} {
+    getFileAndDirectoryFromPath(path: string): { directory: string; name: string } {
         return CoreFileUtils.getFileAndDirectoryFromPath(path);
     }
 
@@ -940,7 +973,7 @@ export class CoreFileProvider {
      * @returns Path with basePath added.
      */
     addBasePathIfNeeded(path: string): string {
-        if (path.indexOf(this.basePath) > -1) {
+        if (path.includes(this.basePath)) {
             return path;
         } else {
             return CorePath.concatenatePaths(this.basePath, path);
@@ -971,7 +1004,7 @@ export class CoreFileProvider {
         path: string,
         destFolder?: string,
         onProgress?: (progress: ProgressEvent) => void,
-        recreateDir: boolean = true,
+        recreateDir = true,
     ): Promise<void> {
         // Get the source file.
         const fileEntry = await this.getFile(path);
@@ -1003,7 +1036,7 @@ export class CoreFileProvider {
      * @returns Promise resolved in success.
      */
     async replaceInFile(path: string, search: string | RegExp, newValue: string): Promise<void> {
-        let content = <string> await this.readFile(path);
+        let content = <string>await this.readFile(path);
 
         if (content === undefined || content === null || !content.replace) {
             throw new CoreError(`Error reading file ${path}`);
@@ -1164,8 +1197,6 @@ export class CoreFileProvider {
 
     /**
      * Remove app temporary folder.
-     *
-     * @returns Promise resolved when done.
      */
     async clearTmpFolder(): Promise<void> {
         // Ignore errors because the folder might not exist.
@@ -1175,6 +1206,7 @@ export class CoreFileProvider {
     /**
      * Remove deleted sites folders.
      *
+     * @param existingSiteNames List of existing site names. Folders with names not in this list will be deleted.
      * @returns Promise resolved when done.
      */
     async clearDeletedSitesFolder(existingSiteNames: string[]): Promise<void> {
@@ -1209,7 +1241,6 @@ export class CoreFileProvider {
      *
      * @param dirPath Folder path.
      * @param files List of used files.
-     * @returns Promise resolved when done, rejected if failure.
      */
     async removeUnusedFiles(dirPath: string, files: CoreFileEntry[]): Promise<void> {
         // Get the directory contents.
@@ -1220,7 +1251,7 @@ export class CoreFileProvider {
                 return;
             }
 
-            const filesMap: {[fullPath: string]: FileEntry} = {};
+            const filesMap: { [fullPath: string]: FileEntry } = {};
             const promises: Promise<void>[] = [];
 
             // Index the received files by fullPath and ignore the invalid ones.
@@ -1251,7 +1282,7 @@ export class CoreFileProvider {
      * @returns Whether the file is in the app's folder.
      */
     isFileInAppFolder(path: string): boolean {
-        return path.indexOf(this.basePath) != -1;
+        return path.includes(this.basePath);
     }
 
     /**
@@ -1261,13 +1292,13 @@ export class CoreFileProvider {
      */
     getWWWPath(): string {
         // Use current URL, removing the path.
-        if (!window.location.pathname || window.location.pathname == '/') {
+        if (!window.location.pathname || window.location.pathname === '/') {
             return window.location.href;
         }
 
         const position = window.location.href.indexOf(window.location.pathname);
 
-        if (position != -1) {
+        if (position !== -1) {
             return window.location.href.substring(0, position);
         }
 
@@ -1324,7 +1355,7 @@ export class CoreFileProvider {
      * @returns Whether it's in the app folder.
      */
     protected isPathInAppFolder(path: string): boolean {
-        return !path || !path.match(/^[a-z0-9]+:\/\//i) || path.indexOf(this.basePath) != -1;
+        return !path || !path.match(/^[a-z0-9]+:\/\//i) || path.includes(this.basePath);
     }
 
     /**

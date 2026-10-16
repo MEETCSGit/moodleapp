@@ -26,7 +26,7 @@ import { AddonModSurveyOffline } from './survey-offline';
 import { CoreSiteWSPreSets } from '@classes/sites/authenticated-site';
 import { ADDON_MOD_SURVEY_COMPONENT_LEGACY } from '../constants';
 import { CoreCacheUpdateFrequency } from '@/core/constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreCourseModuleHelper, CoreCourseModuleStandardElements } from '@features/course/services/course-module-helper';
 
 /**
@@ -291,10 +291,10 @@ export type AddonModSurveyQuestion = {
     id: number; // Question id.
     text: string; // Question text.
     shorttext: string; // Question short text.
-    multi: string; // Subquestions ids.
+    multi: string | null; // Subquestions ids.
     intro: string; // The question intro.
     type: number; // Question type.
-    options: string; // Question options.
+    options: string | null; // Question options.
     parent: number; // Parent question (for subquestions).
 };
 

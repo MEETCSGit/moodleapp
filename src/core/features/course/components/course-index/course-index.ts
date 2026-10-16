@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { CoreSharedModule } from '@/core/shared.module';
-import { Component, ElementRef, Input, OnInit, inject } from '@angular/core';
+import { Component, ElementRef, HostBinding, Input, OnInit, inject } from '@angular/core';
 import {
     CoreCourse,
     sectionContentIsModule,
@@ -23,9 +23,9 @@ import { CoreCourseFormatCurrentSectionData, CoreCourseFormatDelegate } from '@f
 import { CoreCourseAnyCourseData } from '@features/courses/services/courses';
 import { CoreCourseCompletion } from '@features/course/services/course-completion';
 import { CoreSites } from '@services/sites';
-import { CoreWait } from '@singletons/wait';
+import { CoreWait } from '@static/wait';
 import { ModalController } from '@singletons';
-import { CoreDom } from '@singletons/dom';
+import { CoreDom } from '@static/dom';
 import { CoreCourseModuleCompletionStatus, CORE_COURSE_ALL_SECTIONS_ID } from '@features/course/constants';
 
 /**
@@ -52,6 +52,14 @@ export class CoreCourseCourseIndexComponent implements OnInit {
     isModule = sectionContentIsModule;
 
     protected element: HTMLElement = inject(ElementRef).nativeElement;
+
+    @HostBinding('attr.data-course-id') protected get courseId(): number | null {
+        return this.course?.id ?? null;
+    }
+
+    @HostBinding('attr.data-category-id') protected get courseCategoryId(): number | null {
+        return this.course?.categoryid ?? null;
+    }
 
     /**
      * @inheritdoc

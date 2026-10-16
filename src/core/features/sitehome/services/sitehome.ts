@@ -23,6 +23,7 @@ import { AddonModForumData } from '@addons/mod/forum/services/forum';
 import { CoreError } from '@classes/errors/error';
 import { CoreBlockHelper } from '@features/block/services/block-helper';
 import { CoreSiteWSPreSets } from '@classes/sites/authenticated-site';
+import { CORE_SITEHOME_MENU_FEATURE_NAME } from '../constants';
 
 /**
  * Items with index 1 and 3 were removed on 2.5 and not being supported in the app.
@@ -56,7 +57,7 @@ export class CoreSiteHomeProvider {
         const { AddonModForum } = await import('@addons/mod/forum/services/forum');
 
         const forums = await AddonModForum.getCourseForums(siteHomeId);
-        const forum = forums.find((forum) => forum.type == 'news');
+        const forum = forums.find((forum) => forum.type === 'news');
 
         if (forum) {
             return forum;
@@ -86,17 +87,24 @@ export class CoreSiteHomeProvider {
         try {
             const site = await CoreSites.getSite(siteId);
 
-            // First check if it's disabled.
             if (this.isDisabledInSite(site)) {
                 return false;
             }
+
+            // Since 5.2.
+            const enabled = await site.getBooleanConfig('enablemyhome', false, true);
+            if (!enabled) {
+                return false;
+            }
+
+            siteId = siteId || site.getId();
 
             // Use a WS call to check if there's content in the site home.
             const siteHomeId = site.getSiteHomeId();
             const preSets: CoreSiteWSPreSets = { emergencyCache: false };
 
             try {
-                const sections = await CoreCourse.getSections(siteHomeId, false, true, preSets, site.id);
+                const sections = await CoreCourse.getSections(siteHomeId, false, true, preSets, siteId);
 
                 if (!sections || !sections.length) {
                     throw Error('No sections found');
@@ -148,7 +156,7 @@ export class CoreSiteHomeProvider {
     isDisabledInSite(site: CoreSite): boolean {
         site = site || CoreSites.getCurrentSite();
 
-        return site.isFeatureDisabled('CoreMainMenuDelegate_CoreSiteHome');
+        return site.isFeatureDisabled(CORE_SITEHOME_MENU_FEATURE_NAME);
     }
 
     /**
@@ -171,18 +179,20 @@ export class CoreSiteHomeProvider {
 
             let add = false;
             switch (itemNumber) {
-                case FrontPageItemNames['NEWS_ITEMS']:
+                case FrontPageItemNames.NEWS_ITEMS:
                     // Get number of news items to show.
                     add = !!CoreSites.getCurrentSite()?.getStoredConfig('newsitems');
                     break;
-                case FrontPageItemNames['COMBO_LIST']:
-                    itemNumber = FrontPageItemNames['LIST_OF_CATEGORIES']; // Do not break here.
-                case FrontPageItemNames['LIST_OF_CATEGORIES']:
-                case FrontPageItemNames['LIST_OF_COURSE']:
-                case FrontPageItemNames['ENROLLED_COURSES']:
+                case FrontPageItemNames.COMBO_LIST:
+                    itemNumber = FrontPageItemNames.LIST_OF_CATEGORIES;
                     add = true;
                     break;
-                case FrontPageItemNames['COURSE_SEARCH_BOX']:
+                case FrontPageItemNames.LIST_OF_CATEGORIES:
+                case FrontPageItemNames.LIST_OF_COURSE:
+                case FrontPageItemNames.ENROLLED_COURSES:
+                    add = true;
+                    break;
+                case FrontPageItemNames.COURSE_SEARCH_BOX:
                     add = !CoreCourses.isSearchCoursesDisabledInSite();
                     break;
                 default:
@@ -190,7 +200,7 @@ export class CoreSiteHomeProvider {
             }
 
             // Do not add an item twice.
-            if (add && filteredItems.indexOf(FrontPageItemNames[itemNumber]) < 0) {
+            if (add && !filteredItems.includes(FrontPageItemNames[itemNumber])) {
                 filteredItems.push(FrontPageItemNames[itemNumber]);
             }
         }

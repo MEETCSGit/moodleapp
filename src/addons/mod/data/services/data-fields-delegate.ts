@@ -21,7 +21,7 @@ import { AddonModDataEntryField,
     AddonModDataSearchEntriesAdvancedFieldFormatted,
     AddonModDataSubfieldData,
 } from './data';
-import { CoreFormFields } from '@singletons/form';
+import { CoreFormFields } from '@static/form';
 import { FileEntry } from '@awesome-cordova-plugins/file/ngx';
 import { CoreFileEntry } from '@services/file-helper';
 import type { AddonModDataFieldPluginBaseComponent } from '@addons/mod/data/classes/base-field-plugin-component';
@@ -111,10 +111,10 @@ export interface AddonModDataFieldHandler extends CoreDelegateHandler {
     /**
      * Override field content data with offline submission.
      *
-     * @param originalContent Original data to be overriden.
+     * @param originalContent Original data to be overridden.
      * @param offlineContent Array with all the offline data to override.
      * @param offlineFiles Array with all the offline files in the field.
-     * @returns Data overriden
+     * @returns Data overridden
      */
     overrideData?(
         originalContent: AddonModDataEntryField,
@@ -247,10 +247,10 @@ export class AddonModDataFieldsDelegateService extends CoreDelegate<AddonModData
      * Override field content data with offline submission.
      *
      * @param field Defines the field to be rendered.
-     * @param originalContent Original data to be overriden.
+     * @param originalContent Original data to be overridden.
      * @param offlineContent Array with all the offline data to override.
      * @param offlineFiles Array with all the offline files in the field.
-     * @returns Data overriden
+     * @returns Data overridden
      */
     overrideData(
         field: AddonModDataField,

@@ -21,11 +21,11 @@ import { MediaFile } from '@awesome-cordova-plugins/media-capture/ngx';
 
 import { CoreNetwork } from '@services/network';
 import { CoreFile, CoreFileProvider, CoreFileProgressEvent } from '@services/file';
-import { CoreMimetype } from '@singletons/mimetype';
-import { CoreText } from '@singletons/text';
-import { CoreArray } from '@singletons/array';
+import { CoreMimetype } from '@static/mimetype';
+import { CoreText } from '@static/text';
+import { CoreArray } from '@static/array';
 import { makeSingleton, Translate, Camera, ActionSheetController } from '@singletons';
-import { CoreLogger } from '@singletons/logger';
+import { CoreLogger } from '@static/logger';
 import { CoreCanceledError } from '@classes/errors/cancelederror';
 import { CoreError } from '@classes/errors/error';
 import {
@@ -39,13 +39,13 @@ import { CAPTURE_ERROR_NO_MEDIA_FILES, CoreCaptureError } from '@classes/errors/
 import { CoreIonLoadingElement } from '@classes/ion-loading';
 import { CoreWSUploadFileResult } from '@services/ws';
 import { CoreSites } from '@services/sites';
-import { CorePath } from '@singletons/path';
+import { CorePath } from '@static/path';
 import { CorePromisedValue } from '@classes/promised-value';
 import { CorePlatform } from '@services/platform';
 import { Chooser } from '@features/native/plugins';
 import { CoreToasts } from '@services/overlays/toasts';
 import { CoreLoadings } from '@services/overlays/loadings';
-import { CoreFileUtils } from '@singletons/file-utils';
+import { CoreFileUtils } from '@static/file-utils';
 import { CoreAlerts } from '@services/overlays/alerts';
 
 /**
@@ -68,6 +68,7 @@ export class CoreFileUploaderHelperProvider {
      * @param maxSize Max size of the upload. -1 for no max size.
      * @param upload True if the file should be uploaded, false to return the picked file.
      * @param allowOffline True to allow uploading in offline.
+     * @param mimetypes List of supported mimetypes. If undefined, all mimetypes supported.
      * @returns Promise resolved when done.
      */
     async chooseAndUploadFile(
@@ -88,7 +89,7 @@ export class CoreFileUploaderHelperProvider {
             throw new CoreCanceledError();
         }
 
-        if (result.name == 'File') {
+        if (result.name === 'File') {
             // In some Android 4.4 devices the file name cannot be retrieved. Try to use the one from the URI.
             result.name = this.getChosenFileNameFromPath(result) || result.name;
         }
@@ -113,7 +114,7 @@ export class CoreFileUploaderHelperProvider {
      * Show a confirmation modal to the user if the size of the file is bigger than the allowed threshold.
      *
      * @param size File size.
-     * @param alwaysConfirm True to show a confirm even if the size isn't high.
+     * @param _alwaysConfirm Unused parameter kept for compatibility.
      * @param allowOffline True to allow uploading in offline.
      * @param wifiThreshold Threshold for WiFi connection. Default: CoreFileUploaderProvider.WIFI_SIZE_WARNING.
      * @param limitedThreshold Threshold for limited connection. Default: CoreFileUploaderProvider.LIMITED_SIZE_WARNING.
@@ -121,12 +122,12 @@ export class CoreFileUploaderHelperProvider {
      */
     async confirmUploadFile(
         size: number,
-        alwaysConfirm?: boolean,
+        _alwaysConfirm?: boolean,
         allowOffline?: boolean,
         wifiThreshold?: number,
         limitedThreshold?: number,
     ): Promise<void> {
-        if (size == 0) {
+        if (size === 0) {
             return;
         }
 
@@ -144,8 +145,6 @@ export class CoreFileUploaderHelperProvider {
             const readableSize = CoreText.bytesToSize(size, 2);
 
             return CoreAlerts.confirm(Translate.instant('core.fileuploader.confirmuploadfile', { size: readableSize }));
-        } else if (alwaysConfirm) {
-            return CoreAlerts.confirm(Translate.instant('core.areyousure'));
         }
     }
 
@@ -201,7 +200,8 @@ export class CoreFileUploaderHelperProvider {
      * @param path Path of the file.
      * @param shouldDelete True if original file should be deleted (move), false otherwise (copy).
      * @param maxSize Max size of the file. If not defined or -1, no max size.
-     * @param defaultExt Defaut extension to use if the file doesn't have any.
+     * @param defaultExt Default extension to use if the file doesn't have any.
+     * @param options Options to get the file name. If not defined, it will be obtained from the file path.
      * @returns Promise resolved with the copied file.
      */
     protected async copyToTmpFolder(
@@ -514,12 +514,12 @@ export class CoreFileUploaderHelperProvider {
      */
     protected treatImageError(error: number | string | CoreError | CoreCaptureError, defaultMessage: string): CoreError {
         // Cancelled or error.
-        if (!error || typeof error == 'number') {
+        if (!error || typeof error === 'number') {
             return new CoreError(defaultMessage);
         }
 
-        if (typeof error == 'string') {
-            if (error.toLowerCase().indexOf('no image selected') > -1) {
+        if (typeof error === 'string') {
+            if (error.toLowerCase().includes('no image selected')) {
                 // User cancelled.
                 return new CoreCanceledError();
             }
@@ -572,7 +572,7 @@ export class CoreFileUploaderHelperProvider {
         }
 
         // Make sure the path has the protocol. In iOS it doesn't.
-        if (CorePlatform.isMobile() && path.indexOf('file://') == -1) {
+        if (CorePlatform.isMobile() && !path.includes('file://')) {
             path = `file://${path}`;
         }
 
@@ -655,9 +655,9 @@ export class CoreFileUploaderHelperProvider {
                 options.mediaType = Camera.MediaType.ALLMEDIA;
             }
         } else if (mimetypes) {
-            if (mimetypes.indexOf('image/jpeg') > -1) {
+            if (mimetypes.includes('image/jpeg')) {
                 options.encodingType = Camera.EncodingType.JPEG;
-            } else if (mimetypes.indexOf('image/png') > -1) {
+            } else if (mimetypes.includes('image/png')) {
                 options.encodingType = Camera.EncodingType.PNG;
             }
         }
@@ -793,7 +793,7 @@ export class CoreFileUploaderHelperProvider {
         }
 
         if (upload) {
-            await this.confirmUploadFile(file.size, false, allowOffline);
+            await this.confirmUploadFile(file.size, undefined, allowOffline);
         }
 
         // We have the data of the file to be uploaded, but not its URL (needed). Create a copy of the file to upload it.

@@ -17,11 +17,11 @@ import { ModalController } from '@singletons';
 import { CoreCourse, CoreCourseBlock } from '@features/course/services/course';
 import { CoreBlockHelper } from '../../services/block-helper';
 import { CoreBlockComponent } from '../block/block';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreCoursesDashboard } from '@features/courses/services/dashboard';
-import { CoreDom } from '@singletons/dom';
+import { CoreDom } from '@static/dom';
 import { ContextLevel } from '@/core/constants';
-import { CoreWait } from '@singletons/wait';
+import { CoreWait } from '@static/wait';
 import { CoreSharedModule } from '@/core/shared.module';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreCoursesMyPageName } from '@features/courses/constants';
@@ -72,7 +72,7 @@ export class CoreBlockSideBlocksComponent implements OnInit {
         if (this.contextLevel() === ContextLevel.COURSE) {
             promises.push(CoreCourse.invalidateCourseBlocks(this.instanceId()));
         } else {
-            promises.push(CoreCoursesDashboard.invalidateDashboardBlocks());
+            promises.push(CoreCoursesDashboard.invalidateDashboardBlocks(this.myDashboardPage()));
         }
 
         // Invalidate the blocks.

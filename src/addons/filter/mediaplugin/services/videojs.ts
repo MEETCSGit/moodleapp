@@ -16,15 +16,17 @@ import { Injectable } from '@angular/core';
 import { CorePromisedValue } from '@classes/promised-value';
 import { CoreExternalContentDirective } from '@directives/external-content';
 import { CoreLang } from '@services/lang';
-import { CoreText } from '@singletons/text';
-import { CoreUrl } from '@singletons/url';
+import { CoreText } from '@static/text';
+import { CoreUrl } from '@static/url';
 import { makeSingleton } from '@singletons';
-import { CoreDirectivesRegistry } from '@singletons/directives-registry';
-import { CoreEvents } from '@singletons/events';
+import { CoreDirectivesRegistry } from '@static/directives-registry';
+import { CoreEvents } from '@static/events';
 import type videojs from 'video.js';
 import type { VideoJSOptions, VideoJSPlayer } from 'video.js';
+import { CoreSites } from '@services/sites';
+import { CorePlatform } from '@services/platform';
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.
@@ -105,7 +107,7 @@ export class AddonFilterMediaPluginVideoJSService {
 
         const dataSetupString = video.getAttribute('data-setup') || video.getAttribute('data-setup-lazy') || '{}';
         const data = CoreText.parseJSON<VideoJSOptions>(dataSetupString, {});
-        const youtubeUrl = data.techOrder?.[0] == 'youtube' && CoreUrl.getYoutubeEmbedUrl(data.sources?.[0]?.src);
+        const youtubeUrl = data.techOrder?.[0] === 'youtube' && CoreUrl.getYoutubeEmbedUrl(data.sources?.[0]?.src);
 
         if (!youtubeUrl) {
             return;
@@ -113,7 +115,7 @@ export class AddonFilterMediaPluginVideoJSService {
 
         const iframe = document.createElement('iframe');
         iframe.id = video.id;
-        iframe.src = youtubeUrl;
+        iframe.src = (CorePlatform.isIOS() && CoreSites.getCurrentSite()?.fixRefererForUrl(youtubeUrl)) || youtubeUrl;
         iframe.setAttribute('frameborder', '0');
         iframe.setAttribute('allowfullscreen', '1');
         iframe.width = '100%';

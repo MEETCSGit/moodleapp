@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { CoreLang, CoreLangProvider } from '@services/lang';
 
 import { mock, mockSingleton } from '@/testing/utils';
@@ -20,14 +20,14 @@ import { CoreSites } from '@services/sites';
 import { Http } from '@singletons';
 import { of } from 'rxjs';
 import { CoreSite } from '@classes/sites/site';
-import { CoreHTMLClasses } from '@singletons/html-classes';
-import { CoreWait } from '@singletons/wait';
+import { CoreHTMLClasses } from '@static/html-classes';
+import { CoreWait } from '@static/wait';
 
 describe('CoreSitesProvider', () => {
 
     let langProvider: CoreLangProvider;
     beforeEach(() => {
-        langProvider = mockSingleton(CoreLang, mock({ getCurrentLanguage: async () => 'en' , clearCustomStrings: () => null }));
+        langProvider = mockSingleton(CoreLang, ['clearCustomStrings']);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         mockSingleton(Http, { get: () => of(null as any) });
     });

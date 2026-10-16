@@ -21,16 +21,11 @@
     <core-loading [hideUntil]="loaded">
         <!-- Info messages. Only show the first one. -->
         @if (lesson && messages?.length) {
-            <ion-card class="core-info-card">
-                <ion-item class="ion-text-wrap">
-                    <ion-icon name="fas-circle-info" slot="start" aria-hidden="true" />
-                    <ion-label>{{ messages[0].message }}</ion-label>
-                </ion-item>
-            </ion-card>
+            <core-alert-card type="info" [message]="messages[0].message" />
         }
 
         @if (lesson) {
-            <div [ngClass]='{"addon-mod_lesson-slideshow": lesson.slideshow}' [ngStyle]="{'width': lessonWidth, 'height': lessonHeight}">
+            <div [class.addon-mod_lesson-slideshow]="lesson.slideshow" [style.width]="lessonWidth" [style.height]="lessonHeight">
 
                 @if (endTime) {
                     <core-timer [endTime]="endTime" (finished)="timeUp()" [timeLeftClassThreshold]="-1"
@@ -146,7 +141,7 @@
                                                     [text]="row.text" contextLevel="module" [contextInstanceId]="lesson.coursemodule"
                                                     [courseId]="courseId" />
                                                 <ion-select-option *ngFor="let option of row.options" [value]="option.value">
-                                                    {{option.label}}
+                                                    <core-format-text [clean]="true" [text]="option.label" />
                                                 </ion-select-option>
                                             </ion-select>
                                         </ion-item>
@@ -190,12 +185,8 @@
                             </ion-item>
                         }
                         @if (lesson.progressbar && canManage) {
-                            <ion-card class="core-info-card">
-                                <ion-item class="ion-text-wrap">
-                                    <ion-icon name="fas-circle-info" slot="start" aria-hidden="true" />
-                                    <ion-label>{{ 'addon.mod_lesson.progressbarteacherwarning2' | translate }}</ion-label>
-                                </ion-item>
-                            </ion-card>
+                            <core-alert-card type="info"
+                                [message]="'addon.mod_lesson.progressbarteacherwarning2' | translate" />
                         }
                     </ion-list>
                 }
@@ -203,12 +194,8 @@
                 @if (eolData && !processData) {
                     @if (eolData.offline?.value) {
                         <!-- End of lesson reached. -->
-                        <ion-card class="core-warning-card">
-                            <ion-item>
-                                <ion-icon name="fas-triangle-exclamation" slot="start" aria-hidden="true" />
-                                <ion-label>{{ 'addon.mod_lesson.finishretakeoffline' | translate }}</ion-label>
-                            </ion-item>
-                        </ion-card>
+                        <core-alert-card type="warning"
+                            [message]="'addon.mod_lesson.finishretakeoffline' | translate" />
                     }
 
                     <ion-card>

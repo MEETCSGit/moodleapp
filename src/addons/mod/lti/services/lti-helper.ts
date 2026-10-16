@@ -19,7 +19,7 @@ import { CoreCourseModuleData } from '@features/course/services/course-helper';
 import { CorePlatform } from '@services/platform';
 import { CoreSites } from '@services/sites';
 import { makeSingleton, Translate } from '@singletons';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { AddonModLti, AddonModLtiLti } from './lti';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
 import { CoreLoadings } from '@services/overlays/loadings';
@@ -31,7 +31,7 @@ import { CoreAlerts } from '@services/overlays/alerts';
 @Injectable({ providedIn: 'root' })
 export class AddonModLtiHelperProvider {
 
-    protected pendingCheckCompletion: {[moduleId: string]: {courseId: number; module: CoreCourseModuleData}} = {};
+    protected pendingCheckCompletion: { [moduleId: string]: { courseId: number; module: CoreCourseModuleData } } = {};
 
     constructor() {
         // Clear pending completion on logout.

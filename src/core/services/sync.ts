@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { Injectable } from '@angular/core';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { CoreSites } from '@services/sites';
 import { makeSingleton } from '@singletons';
 import { SYNC_TABLE_NAME, CoreSyncRecord } from '@services/database/sync';
@@ -29,7 +29,7 @@ export class CoreSyncProvider {
 
     constructor() {
         // Unblock all blocks on logout.
-        CoreEvents.on(CoreEvents.LOGOUT, (data: {siteId: string}) => {
+        CoreEvents.on(CoreEvents.LOGOUT, (data: { siteId: string }) => {
             this.clearAllBlocks(data.siteId);
         });
     }

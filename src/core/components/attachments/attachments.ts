@@ -17,13 +17,13 @@ import { FileEntry } from '@awesome-cordova-plugins/file/ngx';
 
 import { CoreFileUploader, CoreFileUploaderTypeList } from '@features/fileuploader/services/fileuploader';
 import { CoreSites } from '@services/sites';
-import { CoreText } from '@singletons/text';
+import { CoreText } from '@static/text';
 import { Translate } from '@singletons';
 import { CoreNetwork } from '@services/network';
 import { CoreFileUploaderHelper } from '@features/fileuploader/services/fileuploader-helper';
 import { CoreFileEntry } from '@services/file-helper';
 import { CoreCourses } from '@features/courses/services/courses';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { toBoolean } from '@/core/transforms/boolean';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreToasts } from '@services/overlays/toasts';
@@ -109,7 +109,7 @@ export class CoreAttachmentsComponent implements OnInit {
 
         this.acceptedTypes = this.acceptedTypes?.trim();
 
-        if (this.acceptedTypes && this.acceptedTypes != '*') {
+        if (this.acceptedTypes && this.acceptedTypes !== '*') {
             this.fileTypes = CoreFileUploader.prepareFiletypeList(this.acceptedTypes);
         }
 
@@ -205,6 +205,7 @@ export class CoreAttachmentsComponent implements OnInit {
      *
      * @param index Index of the file.
      * @param data The data received.
+     * @param data.file The file entry.
      */
     renamed(index: number, data: { file: FileEntry }): void {
         this.files[index] = data.file;

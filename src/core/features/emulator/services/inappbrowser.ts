@@ -13,7 +13,13 @@
 // limitations under the License.
 
 import { Injectable } from '@angular/core';
-import { InAppBrowser, InAppBrowserObject } from '@awesome-cordova-plugins/in-app-browser/ngx';
+import {
+    InAppBrowser,
+    InAppBrowserObject,
+    InAppBrowserEvent,
+    InAppBrowserEventType,
+} from '@awesome-cordova-plugins/in-app-browser/ngx';
+import { Observable, Subject } from 'rxjs';
 
 /**
  * Emulates the Cordova InAppBrowser plugin in desktop apps.
@@ -29,13 +35,38 @@ export class InAppBrowserMock extends InAppBrowser {
      * @param options Options for the InAppBrowser.
      * @returns The new instance.
      */
-    create(url: string, target?: string, options: string = 'location=yes'): InAppBrowserObject {
+    create(url: string, target?: string, options = 'location=yes'): InAppBrowserObject {
         if (options && typeof options !== 'string') {
             // Convert to string.
             options = Object.keys(options).map((key) => `${key}=${options[key]}`).join(',');
         }
 
-        return super.create(url, target, options);
+        return new InAppBrowserObjectMock(url, target, options);
+    }
+
+}
+
+class InAppBrowserObjectMock extends InAppBrowserObject {
+
+    protected observables: Partial<Record<InAppBrowserEventType, Subject<InAppBrowserEvent>>> = {};
+
+    /**
+     * @inheritdoc
+     */
+    on(event: InAppBrowserEventType): Observable<InAppBrowserEvent> {
+        if (!this.observables[event]) {
+            this.observables[event] = new Subject<InAppBrowserEvent>();
+        }
+
+        return this.observables[event].asObservable();
+    }
+
+    /**
+     * @inheritdoc
+     */
+    close(): void {
+        // Cannot close the tab in browser. Just emit the exit event.
+        this.observables.exit?.next(new Event('exit') as InAppBrowserEvent);
     }
 
 }

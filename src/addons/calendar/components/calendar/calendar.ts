@@ -21,10 +21,10 @@ import {
     output,
     effect,
 } from '@angular/core';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { CoreSites } from '@services/sites';
-import { CoreTime } from '@singletons/time';
-import { CoreArray } from '@singletons/array';
+import { CoreTime } from '@static/time';
+import { CoreArray } from '@static/array';
 import {
     AddonCalendar,
     AddonCalendarWeek,
@@ -44,7 +44,7 @@ import {
 import { CoreSwipeSlidesDynamicItemsManager } from '@classes/items-management/swipe-slides-dynamic-items-manager';
 import { dayjs, Dayjs } from '@/core/utils/dayjs';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
-import { CoreUrl } from '@singletons/url';
+import { CoreUrl } from '@static/url';
 import { Translate } from '@singletons';
 import { toBoolean } from '@/core/transforms/boolean';
 import { ADDON_CALENDAR_UNDELETED_EVENT_EVENT } from '@addons/calendar/constants';
@@ -77,7 +77,7 @@ export class AddonCalendarCalendarComponent implements OnInit, OnDestroy {
     readonly canNavigate = input(true, { transform: toBoolean }); // Whether to include arrows to change the month
     readonly displayNavButtons = input(true, { transform: toBoolean }); // Whether to display nav buttons created by this component.
     readonly onEventClicked = output<number>();
-    readonly onDayClicked = output<{day: number; month: number; year: number}>();
+    readonly onDayClicked = output<{ day: number; month: number; year: number }>();
 
     periodName?: string;
     manager?: CoreSwipeSlidesDynamicItemsManager<PreloadedMonth, AddonCalendarMonthSlidesItemsManagerSource>;
@@ -105,7 +105,7 @@ export class AddonCalendarCalendarComponent implements OnInit, OnDestroy {
 
                 // Remove it from the list of deleted events if it's there.
                 const index = this.manager?.getSource().deletedEvents.indexOf(data.eventId) ?? -1;
-                if (index != -1) {
+                if (index !== -1) {
                     this.manager?.getSource().deletedEvents.splice(index, 1);
                 }
             },
@@ -303,7 +303,7 @@ export class AddonCalendarCalendarComponent implements OnInit, OnDestroy {
             }
 
             return month.weeks?.some((week) => week.days.some((day) => {
-                const event = day.eventsFormated?.find((event) => event.id == eventId);
+                const event = day.eventsFormated?.find((event) => event.id === eventId);
 
                 if (event) {
                     event.deleted = false;
@@ -606,13 +606,13 @@ class AddonCalendarMonthSlidesItemsManagerSource extends CoreSwipeSlidesDynamicI
                 if (this.deletedEvents.length) {
                     // Mark as deleted the events that were deleted in offline.
                     day.eventsFormated?.forEach((event) => {
-                        event.deleted = this.deletedEvents.indexOf(event.id) != -1;
+                        event.deleted = this.deletedEvents.includes(event.id);
                     });
                 }
 
                 if (this.offlineEditedEventsIds.length) {
                     // Remove the online events that were modified in offline.
-                    day.events = day.events.filter((event) => this.offlineEditedEventsIds.indexOf(event.id) == -1);
+                    day.events = day.events.filter((event) => !this.offlineEditedEventsIds.includes(event.id));
                 }
 
                 if (monthOfflineEvents && monthOfflineEvents[day.mday] && day.eventsFormated) {
@@ -628,10 +628,12 @@ class AddonCalendarMonthSlidesItemsManagerSource extends CoreSwipeSlidesDynamicI
      * Returns if the event is in the past or not.
      *
      * @param event Event object.
+     * @param event.timestart Event start time (timestamp).
+     * @param event.timeduration Event duration (seconds).
      * @param currentTime Current time.
      * @returns True if it's in the past.
      */
-    isEventPast(event: { timestart: number; timeduration: number}, currentTime: number): boolean {
+    isEventPast(event: { timestart: number; timeduration: number }, currentTime: number): boolean {
         return (event.timestart + event.timeduration) < currentTime;
     }
 

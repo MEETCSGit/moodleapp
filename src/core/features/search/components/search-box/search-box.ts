@@ -30,7 +30,7 @@ import { CoreSites } from '@services/sites';
 import { CoreSearchHistory } from '../../services/search-history.service';
 import { Translate } from '@singletons';
 import { CoreSearchHistoryDBRecord } from '../../services/search-history-db';
-import { CoreForms } from '@singletons/form';
+import { CoreForms } from '@static/form';
 import { toBoolean } from '@/core/transforms/boolean';
 import { CoreSharedModule } from '@/core/shared.module';
 
@@ -134,6 +134,13 @@ export class CoreSearchBoxComponent implements OnInit {
         e?.stopPropagation();
 
         const textInput = this.inputValue();
+        if (textInput.length === 0) {
+            // Empty search, treat as a clear.
+            this.clearForm();
+
+            return;
+        }
+
         if (textInput.length < this.lengthCheck()) {
             this.showLengthAlert.set(true);
 

@@ -13,12 +13,11 @@
 // limitations under the License.
 
 import { Injectable } from '@angular/core';
-import { CoreLogger } from '@singletons/logger';
+import { CoreLogger } from '@static/logger';
 import { CoreSites } from '@services/sites';
-import { CoreUrl } from '@singletons/url';
+import { CoreUrl } from '@static/url';
 import { makeSingleton } from '@singletons';
-import { CoreText } from '@singletons/text';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreNavigator } from '@services/navigator';
 
 /**
@@ -97,7 +96,7 @@ export interface CoreContentLinksHandler {
 /**
  * Action to perform when a link is clicked.
  */
-export interface CoreContentLinksAction {
+export type CoreContentLinksAction = {
     /**
      * A message to identify the action. Default: 'core.view'.
      */
@@ -119,12 +118,12 @@ export interface CoreContentLinksAction {
      * @param siteId The site ID.
      */
     action(siteId: string): Promise<void>;
-}
+};
 
 /**
  * Actions and priority for a handler and URL.
  */
-export interface CoreContentLinksHandlerActions {
+export type CoreContentLinksHandlerActions = {
     /**
      * Handler's priority.
      */
@@ -134,7 +133,7 @@ export interface CoreContentLinksHandlerActions {
      * List of actions.
      */
     actions: CoreContentLinksAction[];
-}
+};
 
 /**
  * Delegate to register handlers to handle links.
@@ -164,7 +163,7 @@ export class CoreContentLinksDelegateService {
         }
 
         // Get the list of sites the URL belongs to.
-        const siteIds = await CoreSites.getSiteIdsFromUrl(url, true, username);
+        const siteIds = await CoreSites.getSiteIdsFromUrl(url, { prioritize: true, username });
         if (!siteIds.length) {
             // No sites, no actions.
             return [];
@@ -175,7 +174,7 @@ export class CoreContentLinksDelegateService {
         const linkActions: CoreContentLinksHandlerActions[] = [];
         const promises: Promise<void>[] = [];
         const params = CoreUrl.extractUrlParams(url);
-        const relativeUrl = CoreText.addStartingSlash(CoreUrl.toRelativeURL(site.getURL(), url));
+        const relativeUrl = await site.getRelativeUrl(url);
 
         for (const name in this.handlers) {
             const handler = this.handlers[name];

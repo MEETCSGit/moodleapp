@@ -13,10 +13,10 @@
 // limitations under the License.
 
 import { CoreReminderData, CoreReminders } from '@features/reminders/services/reminders';
-import { Component, computed, input, signal } from '@angular/core';
+import { Component, computed, input, linkedSignal } from '@angular/core';
 import { CorePopovers } from '@services/overlays/popovers';
 import { Translate } from '@singletons';
-import { CoreTime } from '@singletons/time';
+import { CoreTime } from '@static/time';
 import { CoreToasts } from '@services/overlays/toasts';
 import { REMINDERS_DISABLED } from '@features/reminders/constants';
 import { CoreSharedModule } from '@/core/shared.module';
@@ -43,7 +43,7 @@ export class CoreRemindersSetButtonComponent {
     readonly url = input('');
 
     readonly labelClean = computed(() => this.label().replace(':', ''));
-    readonly timebefore = signal(this.initialTimebefore());
+    readonly timebefore = linkedSignal(() => this.initialTimebefore());
     readonly reminderMessage = computed(() => {
         const timebefore = this.timebefore();
         if (timebefore === undefined) {
@@ -81,7 +81,7 @@ export class CoreRemindersSetButtonComponent {
         const { CoreRemindersSetReminderMenuComponent }
             = await import('../set-reminder-menu/set-reminder-menu');
 
-        const reminderTime = await CorePopovers.open<{timeBefore: number}>({
+        const reminderTime = await CorePopovers.open<{ timeBefore: number }>({
             component: CoreRemindersSetReminderMenuComponent,
             componentProps: {
                 initialValue: this.timebefore(),

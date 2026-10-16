@@ -14,8 +14,8 @@
 
 import { Injectable } from '@angular/core';
 import { CoreSyncBaseProvider } from '@classes/base-sync';
-import { CoreComments, CoreCommentsProvider } from './comments';
-import { CoreEvents } from '@singletons/events';
+import { CoreComments } from './comments';
+import { CoreEvents } from '@static/events';
 import { makeSingleton, Translate } from '@singletons';
 import { CoreCommentsOffline } from './comments-offline';
 import { CoreSites } from '@services/sites';
@@ -25,8 +25,8 @@ import { CoreNetworkError } from '@classes/errors/network-error';
 import { CoreCommentsDBRecord, CoreCommentsDeletedDBRecord } from './database/comments';
 import { CoreSyncResult } from '@services/sync';
 import { ContextLevel } from '@/core/constants';
-import { CORE_COMMENTS_AUTO_SYNCED } from '../constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CORE_COMMENTS_AUTO_SYNCED, CORE_COMMENTS_COUNT_CHANGED_EVENT } from '../constants';
+import { CorePromiseUtils } from '@static/promise-utils';
 
 /**
  * Service to sync omments.
@@ -42,7 +42,7 @@ export class CoreCommentsSyncProvider extends CoreSyncBaseProvider<CoreCommentsS
      * Try to synchronize all the comments in a certain site or in all sites.
      *
      * @param siteId Site ID to sync. If not defined, sync all sites.
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
     syncAllComments(siteId?: string, force?: boolean): Promise<void> {
@@ -52,7 +52,7 @@ export class CoreCommentsSyncProvider extends CoreSyncBaseProvider<CoreCommentsS
     /**
      * Synchronize all the comments in a certain site
      *
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @param siteId Site ID to sync.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
@@ -126,7 +126,7 @@ export class CoreCommentsSyncProvider extends CoreSyncBaseProvider<CoreCommentsS
         instanceId: number,
         component: string,
         itemId: number,
-        area: string = '',
+        area = '',
         siteId?: string,
     ): Promise<CoreCommentsSyncResult | undefined> {
         const syncId = this.getSyncId(contextLevel, instanceId, component, itemId, area);
@@ -154,7 +154,7 @@ export class CoreCommentsSyncProvider extends CoreSyncBaseProvider<CoreCommentsS
         instanceId: number,
         component: string,
         itemId: number,
-        area: string = '',
+        area = '',
         siteId?: string,
     ): Promise<CoreCommentsSyncResult> {
         siteId = siteId || CoreSites.getCurrentSiteId();
@@ -190,7 +190,7 @@ export class CoreCommentsSyncProvider extends CoreSyncBaseProvider<CoreCommentsS
         instanceId: number,
         component: string,
         itemId: number,
-        area: string = '',
+        area = '',
         siteId: string,
     ): Promise<CoreCommentsSyncResult> {
 
@@ -265,7 +265,7 @@ export class CoreCommentsSyncProvider extends CoreSyncBaseProvider<CoreCommentsS
 
             result.updated = true;
 
-            CoreEvents.trigger(CoreCommentsProvider.COMMENTS_COUNT_CHANGED_EVENT, {
+            CoreEvents.trigger(CORE_COMMENTS_COUNT_CHANGED_EVENT, {
                 contextLevel: contextLevel,
                 instanceId: instanceId,
                 component,
@@ -318,7 +318,7 @@ export class CoreCommentsSyncProvider extends CoreSyncBaseProvider<CoreCommentsS
         instanceId: number,
         component: string,
         itemId: number,
-        area: string = '',
+        area = '',
     ): string {
         return `${contextLevel}#${instanceId}#${component}#${itemId}#${area}`;
     }
@@ -340,7 +340,7 @@ export type CoreCommentsSyncAutoSyncData = {
     warnings: string[];
 };
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.

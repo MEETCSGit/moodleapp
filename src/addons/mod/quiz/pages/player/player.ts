@@ -35,9 +35,9 @@ import { CoreQuestionBehaviourButton, CoreQuestionHelper } from '@features/quest
 import { CoreNavigator } from '@services/navigator';
 import { CoreSites, CoreSitesReadingStrategy } from '@services/sites';
 import { CoreSync } from '@services/sync';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { ModalController, Translate } from '@singletons';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { AddonModQuizAutoSave } from '../../classes/auto-save';
 import {
     AddonModQuizNavigationModalReturn,
@@ -53,10 +53,10 @@ import {
 import { AddonModQuizHelper } from '../../services/quiz-helper';
 import { AddonModQuizSync } from '../../services/quiz-sync';
 import { CanLeave } from '@guards/can-leave';
-import { CoreForms } from '@singletons/form';
-import { CoreDom } from '@singletons/dom';
-import { CoreTime } from '@singletons/time';
-import { CoreDirectivesRegistry } from '@singletons/directives-registry';
+import { CoreForms } from '@static/form';
+import { CoreDom } from '@static/dom';
+import { CoreTime } from '@static/time';
+import { CoreDirectivesRegistry } from '@static/directives-registry';
 import { CoreWSError } from '@classes/errors/wserror';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
 import {
@@ -65,7 +65,7 @@ import {
     ADDON_MOD_QUIZ_COMPONENT_LEGACY,
     ADDON_MOD_QUIZ_COMPONENT,
 } from '../../constants';
-import { CoreWait } from '@singletons/wait';
+import { CoreWait } from '@static/wait';
 import { CoreModals } from '@services/overlays/modals';
 import { CoreLoadings } from '@services/overlays/loadings';
 import { CoreAlerts } from '@services/overlays/alerts';
@@ -87,7 +87,7 @@ import { CoreSharedModule } from '@/core/shared.module';
 })
 export default class AddonModQuizPlayerPage implements OnInit, OnDestroy, CanLeave {
 
-    readonly content = viewChild(IonContent);
+    readonly content = viewChild.required(IonContent);
     readonly questionComponents = viewChildren(CoreQuestionComponent);
     readonly formElement = viewChild<ElementRef>('quizForm');
 
@@ -264,7 +264,7 @@ export default class AddonModQuizPlayerPage implements OnInit, OnDestroy, CanLea
                 if (scrollTop != -1) {
                     // Wait for content to be rendered.
                     setTimeout(() => {
-                        this.content()?.scrollToPoint(0, scrollTop);
+                        this.content().scrollToPoint(0, scrollTop);
                     }, 50);
                 }
             }
@@ -308,7 +308,7 @@ export default class AddonModQuizPlayerPage implements OnInit, OnDestroy, CanLea
             return;
         }
 
-        this.content()?.scrollToTop();
+        this.content().scrollToTop();
 
         // First try to save the attempt data. We only save it if we're not seeing the summary.
         if (!this.showSummary) {
@@ -408,7 +408,7 @@ export default class AddonModQuizPlayerPage implements OnInit, OnDestroy, CanLea
 
         this.lastAttempt.finishedOffline = await AddonModQuiz.isAttemptFinishedOffline(this.lastAttempt.id);
 
-        this.newAttempt = AddonModQuiz.isAttemptCompleted(this.lastAttempt.state);
+        this.newAttempt = AddonModQuiz.canStartAttemptBasedOnLastState(this.lastAttempt.state);
     }
 
     /**
@@ -804,7 +804,7 @@ export default class AddonModQuizPlayerPage implements OnInit, OnDestroy, CanLea
                 this.offline,
             );
         } catch (error) {
-            if (!error || error.errorcode != 'submissionoutofsequencefriendlymessage') {
+            if (!error || error.errorcode !== 'submissionoutofsequencefriendlymessage') {
                 throw error;
             }
 

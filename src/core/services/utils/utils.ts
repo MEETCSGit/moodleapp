@@ -13,25 +13,21 @@
 // limitations under the License.
 
 import { Injectable } from '@angular/core';
-import { InAppBrowserObject } from '@awesome-cordova-plugins/in-app-browser';
+import { InAppBrowserObject } from '@awesome-cordova-plugins/in-app-browser/ngx';
 import { FileEntry } from '@awesome-cordova-plugins/file/ngx';
-import { CoreFileUtils } from '@singletons/file-utils';
-import { CoreRedirects } from '@singletons/redirects';
-import { CoreMimetype } from '@singletons/mimetype';
+import { CoreFileUtils } from '@static/file-utils';
+import { CoreRedirects } from '@static/redirects';
+import { CoreMimetype } from '@static/mimetype';
 import { makeSingleton } from '@singletons';
 import { CoreFileEntry } from '@services/file-helper';
-import { CoreCancellablePromise } from '@classes/cancellable-promise';
-import { CoreArray } from '@singletons/array';
-import { CoreText } from '@singletons/text';
-import { CoreWait, CoreWaitOptions } from '@singletons/wait';
-import { CoreQRScan } from '@services/qrscan';
+import { CoreArray } from '@static/array';
 import { CoreErrorHelper } from '@services/error-helper';
-import { CorePromiseUtils, OrderedPromiseData } from '@singletons/promise-utils';
-import { CoreOpener, CoreOpenerOpenFileOptions, CoreOpenerOpenInBrowserOptions } from '@singletons/opener';
-import { CoreCountries, CoreCountry } from '@singletons/countries';
-import { CoreObject } from '@singletons/object';
+import { CorePromiseUtils, OrderedPromiseData } from '@static/promise-utils';
+import { CoreOpener, CoreOpenerOpenFileOptions, CoreOpenerOpenInBrowserOptions } from '@static/opener';
+import { CoreCountries, CoreCountry } from '@static/countries';
+import { CoreObject } from '@static/object';
 import { CoreSites } from '@services/sites';
-import { CoreMenuItem, CoreUtils as CoreUtilsSingleton, TreeNode } from '@singletons/utils';
+import { CoreMenuItem, CoreUtils as CoreUtilsSingleton, TreeNode } from '@static/utils';
 import { CoreWSError } from '@classes/errors/wserror';
 
 /**
@@ -139,9 +135,9 @@ export class CoreUtilsProvider {
     basicLeftCompare(
         itemA: any, // eslint-disable-line @typescript-eslint/no-explicit-any
         itemB: any, // eslint-disable-line @typescript-eslint/no-explicit-any
-        maxLevels: number = 0,
-        level: number = 0,
-        undefinedIsNull: boolean = true,
+        maxLevels = 0,
+        level = 0,
+        undefinedIsNull = true,
     ): boolean {
         return CoreObject.basicLeftCompare(itemA, itemB, maxLevels, level, undefinedIsNull);
     }
@@ -172,7 +168,7 @@ export class CoreUtilsProvider {
      * @returns IAB instance, undefined if not open.
      * @deprecated since 5.0. Use CoreOpener.getInAppBrowserInstance instead.
      */
-    getInAppBrowserInstance(): InAppBrowserObject | undefined  {
+    getInAppBrowserInstance(): InAppBrowserObject | undefined {
         return CoreOpener.getInAppBrowserInstance();
     }
 
@@ -194,62 +190,8 @@ export class CoreUtilsProvider {
      * @returns Cloned variable.
      * @deprecated since 5.0. Use CoreUtils.clone instead.
      */
-    clone<T>(source: T, level: number = 0): T {
+    clone<T>(source: T, level = 0): T {
         return CoreUtilsSingleton.clone(source, level);
-    }
-
-    /**
-     * Copy properties from one object to another.
-     *
-     * @param from Object to copy the properties from.
-     * @param to Object where to store the properties.
-     * @param clone Whether the properties should be cloned (so they are different instances).
-     * @deprecated since 4.4. Not used anymore.
-     */
-    copyProperties(from: Record<string, unknown>, to: Record<string, unknown>, clone: boolean = true): void {
-        for (const name in from) {
-            if (clone) {
-                to[name] = CoreUtilsSingleton.clone(from[name]);
-            } else {
-                to[name] = from[name];
-            }
-        }
-    }
-
-    /**
-     * Copies a text to clipboard and shows a toast message.
-     *
-     * @param text Text to be copied
-     * @returns Promise resolved when the text is copied.
-     *
-     * @deprecated since 4.5 Use CoreText.copyToClipboard instead.
-     */
-    async copyToClipboard(text: string): Promise<void> {
-        return CoreText.copyToClipboard(text);
-    }
-
-    /**
-     * Empties an array without losing its reference.
-     *
-     * @param array Array to empty.
-     * @deprecated since 4.4. Not used anymore.
-     */
-    emptyArray(array: unknown[]): void {
-        array.length = 0; // Empty array without losing its reference.
-    }
-
-    /**
-     * Removes all properties from an object without losing its reference.
-     *
-     * @param object Object to remove the properties.
-     * @deprecated since 4.4. Not used anymore.
-     */
-    emptyObject(object: Record<string, unknown>): void {
-        for (const key in object) {
-            if (Object.prototype.hasOwnProperty.call(object, key)) {
-                delete object[key];
-            }
-        }
     }
 
     /**
@@ -277,18 +219,6 @@ export class CoreUtilsProvider {
     }
 
     /**
-     * Given an array of strings, return only the ones that match a regular expression.
-     *
-     * @param array Array to filter.
-     * @param regex RegExp to apply to each string.
-     * @returns Filtered array.
-     * @deprecated since 4.4. Use CoreArray.filterByRegexp instead.
-     */
-    filterByRegexp(array: string[], regex: RegExp): string[] {
-        return CoreArray.filterByRegexp(array, regex);
-    }
-
-    /**
      * Filter the list of site IDs based on a isEnabled function.
      *
      * @param siteIds Site IDs to filter.
@@ -296,6 +226,7 @@ export class CoreUtilsProvider {
      *                    after 'checkAll'.
      * @param checkAll True if it should check all the sites, false if it should check only 1 and treat them all
      *                 depending on this result.
+     * @param args Params to pass to isEnabledFn after the siteId.
      * @returns Promise resolved with the list of enabled sites.
      * @deprecated since 5.0. Use CoreSites.filterEnabledSites instead.
      */
@@ -335,10 +266,10 @@ export class CoreUtilsProvider {
      */
     formatTree<T>(
         list: T[],
-        parentFieldName: string = 'parent',
-        idFieldName: string = 'id',
-        rootParentId: number = 0,
-        maxDepth: number = 5,
+        parentFieldName = 'parent',
+        idFieldName = 'id',
+        rootParentId = 0,
+        maxDepth = 5,
     ): TreeNode<T>[] {
         return CoreUtilsSingleton.formatTree(list, parentFieldName, idFieldName, rootParentId, maxDepth);
     }
@@ -443,18 +374,6 @@ export class CoreUtilsProvider {
     }
 
     /**
-     * Gets the index of the first string that matches a regular expression.
-     *
-     * @param array Array to search.
-     * @param regex RegExp to apply to each string.
-     * @returns Index of the first string that matches the RegExp. -1 if not found.
-     * @deprecated since 4.4. Use CoreArray.indexOfRegexp instead.
-     */
-    indexOfRegexp(array: string[], regex: RegExp): number {
-        return CoreArray.indexOfRegexp(array, regex);
-    }
-
-    /**
      * Return true if the param is false (bool), 0 (number) or "0" (string).
      *
      * @param value Value to check.
@@ -516,7 +435,7 @@ export class CoreUtilsProvider {
     makeMenuFromList<T>(
         list: string,
         defaultLabel?: string,
-        separator: string = ',',
+        separator = ',',
         defaultValue?: T,
     ): CoreMenuItem<T>[] {
         return CoreUtilsSingleton.makeMenuFromList(list, defaultLabel, separator, defaultValue);
@@ -619,8 +538,8 @@ export class CoreUtilsProvider {
      * @deprecated since 5.0. Use CoreObject.toArrayOfObjects instead.
      */
     objectToArrayOfObjects<
-        A extends Record<string,unknown> = Record<string, unknown>,
-        O extends Record<string, unknown> = Record<string, unknown>
+        A extends Record<string, unknown> = Record<string, unknown>,
+        O extends Record<string, unknown> = Record<string, unknown>,
     >(
         obj: O,
         keyName: string,
@@ -647,7 +566,7 @@ export class CoreUtilsProvider {
         keyName: string,
         valueName: string,
         keyPrefix?: string,
-    ): {[name: string]: T} {
+    ): { [name: string]: T } {
         return CoreObject.toKeyValueMap(objects, keyName, valueName, keyPrefix);
     }
 
@@ -659,7 +578,7 @@ export class CoreUtilsProvider {
      * @returns GET params.
      * @deprecated since 5.0. Use CoreObject.toGetParams instead.
      */
-    objectToGetParams(object: Record<string, unknown>, removeEmpty: boolean = true): string {
+    objectToGetParams(object: Record<string, unknown>, removeEmpty = true): string {
         return CoreObject.toGetParams(object, removeEmpty);
     }
 
@@ -790,18 +709,6 @@ export class CoreUtilsProvider {
     }
 
     /**
-     * Return an array without duplicate values.
-     *
-     * @param array The array to treat.
-     * @param [key] Key of the property that must be unique. If not specified, the whole entry.
-     * @returns Array without duplicate values.
-     * @deprecated since 4.4. Use CoreArray.unique instead.
-     */
-    uniqueArray<T>(array: T[], key?: string): T[] {
-        return CoreArray.unique(array, key);
-    }
-
-    /**
      * Debounce a function so consecutive calls are ignored until a certain time has passed since the last call.
      *
      * @param fn Function to debounce.
@@ -826,52 +733,6 @@ export class CoreUtilsProvider {
     }
 
     /**
-     * Check whether the app can scan QR codes.
-     *
-     * @returns Whether the app can scan QR codes.
-     *
-     * @deprecated since 4.5. Use CoreQRScan.canScanQR instead.
-     */
-    canScanQR(): boolean {
-        return CoreQRScan.canScanQR();
-    }
-
-    /**
-     * Open a modal to scan a QR code.
-     *
-     * @param title Title of the modal. Defaults to "QR reader".
-     * @returns Promise resolved with the captured text or undefined if cancelled or error.
-     *
-     * @deprecated since 4.5. Use CoreQRScan.scanQR instead.
-     */
-    async scanQR(title?: string): Promise<string | undefined> {
-        return CoreQRScan.scanQR(title);
-    }
-
-    /**
-     * Start scanning for a QR code.
-     *
-     * @returns Promise resolved with the QR string, rejected if error or cancelled.
-     *
-     * @deprecated since 4.5. Use CoreQRScan.startScanQR instead.
-     */
-    async startScanQR(): Promise<string | undefined> {
-        return CoreQRScan.startScanQR();
-    }
-
-    /**
-     * Stop scanning for QR code. If no param is provided, the app will consider the user cancelled.
-     *
-     * @param data If success, the text of the QR code. If error, the error object or message. Undefined for cancelled.
-     * @param error True if the data belongs to an error, false otherwise.
-     *
-     * @deprecated since 4.5. Use CoreQRScan.stopScanQR instead.
-     */
-    stopScanQR(data?: string | Error, error?: boolean): void {
-        CoreQRScan.stopScanQR(data, error);
-    }
-
-    /**
      * Ignore errors from a promise.
      *
      * @param promise Promise to ignore errors.
@@ -882,56 +743,11 @@ export class CoreUtilsProvider {
     async ignoreErrors<Result>(promise?: Promise<Result>): Promise<Result | undefined>;
     async ignoreErrors<Result, Fallback>(promise: Promise<Result>, fallback: Fallback): Promise<Result | Fallback>;
     async ignoreErrors<Result, Fallback>(promise?: Promise<Result>, fallback?: Fallback): Promise<Result | Fallback | undefined> {
-        if(promise) {
+        if (promise) {
             return CorePromiseUtils.ignoreErrors(promise, fallback);
         }
 
         return CorePromiseUtils.ignoreErrors(promise);
-    }
-
-    /**
-     * Wait some time.
-     *
-     * @param milliseconds Number of milliseconds to wait.
-     * @deprecated since 4.5. Use CoreWait.wait instead.
-     */
-    async wait(milliseconds: number): Promise<void> {
-        await CoreWait.wait(milliseconds);
-    }
-
-    /**
-     * Wait until a given condition is met.
-     *
-     * @param condition Condition.
-     * @returns Cancellable promise.
-     * @deprecated since 4.5. Use CoreWait.waitFor instead.
-     */
-    waitFor(condition: () => boolean): CoreCancellablePromise<void>;
-    waitFor(condition: () => boolean, options: CoreWaitOptions): CoreCancellablePromise<void>;
-    waitFor(condition: () => boolean, interval: number): CoreCancellablePromise<void>;
-    waitFor(condition: () => boolean, optionsOrInterval: CoreWaitOptions | number = {}): CoreCancellablePromise<void> {
-        const options = typeof optionsOrInterval === 'number' ? { interval: optionsOrInterval } : optionsOrInterval;
-
-        return CoreWait.waitFor(condition, options);
-    }
-
-    /**
-     * Wait until the next tick.
-     *
-     * @deprecated since 4.5. Use CoreWait.nextTick instead.
-     */
-    async nextTick(): Promise<void> {
-        await CoreWait.nextTick();
-    }
-
-    /**
-     * Wait until several next ticks.
-     *
-     * @param numTicks Number of ticks to wait.
-     * @deprecated since 4.5. Use CoreWait.nextTicks instead.
-     */
-    async nextTicks(numTicks = 0): Promise<void> {
-        await CoreWait.nextTicks(numTicks);
     }
 
     /**

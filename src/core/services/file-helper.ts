@@ -17,22 +17,22 @@ import { FileEntry } from '@awesome-cordova-plugins/file/ngx';
 
 import { CoreNetwork } from '@services/network';
 import { CoreFile } from '@services/file';
-import { CoreFileUtils } from '@singletons/file-utils';
+import { CoreFileUtils } from '@static/file-utils';
 import { CoreFilepool } from '@services/filepool';
 import { CoreSites } from '@services/sites';
 import { CoreWS, CoreWSFile } from '@services/ws';
-import { CoreUrl } from '@singletons/url';
-import { CoreOpener, CoreOpenerOpenFileOptions, OpenFileAction } from '@singletons/opener';
+import { CoreUrl } from '@static/url';
+import { CoreOpener, CoreOpenerOpenFileOptions, OpenFileAction } from '@static/opener';
 import { CoreConstants, DownloadStatus } from '@/core/constants';
 import { CoreError } from '@classes/errors/error';
 import { makeSingleton, Translate } from '@singletons';
 import { CoreNetworkError } from '@classes/errors/network-error';
 import { CoreConfig } from './config';
 import { CoreCanceledError } from '@classes/errors/cancelederror';
-import { CoreMimetype } from '@singletons/mimetype';
+import { CoreMimetype } from '@static/mimetype';
 import { CorePlatform } from './platform';
-import { CorePath } from '@singletons/path';
-import { CoreText } from '@singletons/text';
+import { CorePath } from '@static/path';
+import { CoreText } from '@static/text';
 import { CorePrompts } from './overlays/prompts';
 
 /**
@@ -320,15 +320,15 @@ export class CoreFileHelperProvider {
                 || CoreMimetype.getFileExtension(file.filename ?? '') === 'apk';
         }
 
-        if (mimetype.indexOf('application/vnd.google-apps.') != -1) {
+        if (mimetype.includes('application/vnd.google-apps.')) {
             // Google Docs file, always open in browser.
             return true;
         }
 
-        if (file.repositorytype == 'onedrive') {
+        if (file.repositorytype === 'onedrive') {
             // In OneDrive, open in browser the office docs
-            return mimetype.indexOf('application/vnd.openxmlformats-officedocument') != -1 ||
-                    mimetype == 'text/plain' || mimetype == 'document/unknown';
+            return mimetype.includes('application/vnd.openxmlformats-officedocument') ||
+                    mimetype === 'text/plain' || mimetype === 'document/unknown';
         }
 
         return false;
@@ -399,9 +399,11 @@ export class CoreFileHelperProvider {
      * Is the file openable in app.
      *
      * @param file The file to check.
+     * @param file.filename The file's filename field.
+     * @param file.name The file's name field.
      * @returns bool.
      */
-    isOpenableInApp(file: {filename?: string; name?: string}): boolean {
+    isOpenableInApp(file: { filename?: string; name?: string }): boolean {
         const regex = /(?:\.([^.]+))?$/;
         const regexResult = regex.exec(file.filename || file.name || '');
 
@@ -418,9 +420,11 @@ export class CoreFileHelperProvider {
      *
      * @param onlyDownload Whether the user is only downloading the file, not opening it.
      * @param file The file that will be opened.
+     * @param file.filename The file's filename field.
+     * @param file.name The file's name field.
      * @returns Promise resolved if confirmed, rejected otherwise.
      */
-    async showConfirmOpenUnsupportedFile(onlyDownload = false, file: {filename?: string; name?: string}): Promise<void> {
+    async showConfirmOpenUnsupportedFile(onlyDownload = false, file: { filename?: string; name?: string }): Promise<void> {
         file = file || {}; // Just in case some plugin doesn't pass it. This can be removed in the future, @since app 4.1.
 
         // Check if the user decided not to see the warning.
@@ -480,7 +484,7 @@ export class CoreFileHelperProvider {
     getFilenameFromPath(file: CoreFileEntry): string | undefined {
         const path = CoreFileUtils.isFileEntry(file) ? file.fullPath : file.filepath;
 
-        if (path === undefined || path.length == 0) {
+        if (path === undefined || path.length === 0) {
             return;
         }
 
@@ -516,7 +520,7 @@ export class CoreFileHelperProvider {
         siteUrl: string,
         text: string,
         files: CoreWSFile[],
-    ): { text: string; replaceMap?: {[url: string]: string} } {
+    ): { text: string; replaceMap?: { [url: string]: string } } {
 
         if (!text || !files || !files.length) {
             return { text };
@@ -530,7 +534,7 @@ export class CoreFileHelperProvider {
         }
 
         // Index the pluginfile URLs by file name.
-        const pluginfileMap: {[name: string]: string} = {};
+        const pluginfileMap: { [name: string]: string } = {};
         files.forEach((file) => {
             if (!file.filename) {
                 return;
@@ -539,7 +543,7 @@ export class CoreFileHelperProvider {
         });
 
         // Replace each draftfile with the corresponding pluginfile URL.
-        const replaceMap: {[url: string]: string} = {};
+        const replaceMap: { [url: string]: string } = {};
         matches.forEach((url) => {
             if (replaceMap[url]) {
                 // URL already treated, same file embedded more than once.
@@ -548,7 +552,7 @@ export class CoreFileHelperProvider {
 
             // Get the filename from the URL.
             let filename = url.substring(url.lastIndexOf('/') + 1);
-            if (filename.indexOf('?') != -1) {
+            if (filename.includes('?')) {
                 filename = filename.substring(0, filename.indexOf('?'));
             }
             filename = CoreUrl.decodeURIComponent(filename);
@@ -605,7 +609,7 @@ export class CoreFileHelperProvider {
             // encodeURIComponent doesn't encode parenthesis, so it's better to rely on the name from the URL.
             const url = CoreFileHelper.getFileUrl(file);
             let filename = url.substring(url.lastIndexOf('/') + 1);
-            if (filename.indexOf('?') != -1) {
+            if (filename.includes('?')) {
                 filename = filename.substring(0, filename.indexOf('?'));
             }
 
@@ -632,7 +636,7 @@ export class CoreFileHelperProvider {
      * @returns Treated text.
      */
     restorePluginfileUrls(text: string, files: CoreWSFile[]): string {
-        if (text && typeof text == 'string') {
+        if (text && typeof text === 'string') {
             const fileURL = this.getTextPluginfileUrl(files);
             if (fileURL) {
                 return text.replace(new RegExp(CoreText.escapeForRegex(fileURL), 'g'), '@@PLUGINFILE@@');

@@ -1,4 +1,4 @@
-@use "theme/globals" as *;
+@use "src/theme/globals" as *;
 :host {
     --toobar-background: var(--white);
     --button-color: var(--ion-text-color);
@@ -120,6 +120,10 @@
             width: 240px;
             flex-grow: 1;
             flex-shrink: 1;
+
+            &::part(container) {
+                touch-action: pan-x pan-y pinch-zoom;
+            }
         }
 
         button {

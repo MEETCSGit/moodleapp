@@ -21,10 +21,10 @@ import { CoreUser } from '@features/user/services/user';
 import { IonInput } from '@ionic/angular';
 import { CoreGroupInfo, CoreGroups } from '@services/groups';
 import { CoreNavigator } from '@services/navigator';
-import { CoreForms } from '@singletons/form';
-import { CoreText } from '@singletons/text';
-import { CorePromiseUtils } from '@singletons/promise-utils';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreForms } from '@static/form';
+import { CoreText } from '@static/text';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { AddonModLessonRetakeFinishedInSyncDBRecord } from '../../services/database/lesson';
 import { AddonModLessonPrefetchHandler } from '../../services/handlers/prefetch';
 import {
@@ -41,7 +41,7 @@ import {
     AddonModLessonSync,
     AddonModLessonSyncResult,
 } from '../../services/lesson-sync';
-import { CoreTime } from '@singletons/time';
+import { CoreTime } from '@static/time';
 import { CoreError } from '@classes/errors/error';
 import { Translate } from '@singletons';
 import {
@@ -49,6 +49,7 @@ import {
     ADDON_MOD_LESSON_COMPONENT_LEGACY,
     ADDON_MOD_LESSON_DATA_SENT_EVENT,
     ADDON_MOD_LESSON_PAGE_NAME,
+    AddonModLessonTab,
 } from '../../constants';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreCourseModuleNavigationComponent } from '@features/course/components/module-navigation/module-navigation';
@@ -79,7 +80,7 @@ export class AddonModLessonIndexComponent extends CoreCourseModuleMainActivityCo
     pluginName = 'lesson';
 
     lesson?: AddonModLessonLessonWSData; // The lesson.
-    selectedTab?: number; // The initial selected tab.
+    selectedTab = AddonModLessonTab.ATTEMPT; // The initial selected tab.
     askPassword?: boolean; // Whether to ask the password.
     canManage?: boolean; // Whether the user can manage the lesson.
     canViewReports?: boolean; // Whether the user can view the lesson reports.
@@ -109,7 +110,7 @@ export class AddonModLessonIndexComponent extends CoreCourseModuleMainActivityCo
     async ngOnInit(): Promise<void> {
         super.ngOnInit();
 
-        this.selectedTab = this.action == 'report' ? 1 : 0;
+        this.selectedTab = this.action === 'report' ? AddonModLessonTab.REPORT : AddonModLessonTab.ATTEMPT;
 
         await this.loadContent(false, true);
     }
@@ -164,7 +165,7 @@ export class AddonModLessonIndexComponent extends CoreCourseModuleMainActivityCo
 
         if (this.accessInfo.preventaccessreasons.length) {
             let preventReason = AddonModLesson.getPreventAccessReason(this.accessInfo, false);
-            const askPassword = preventReason?.reason == 'passwordprotectedlesson';
+            const askPassword = preventReason?.reason === 'passwordprotectedlesson';
 
             if (askPassword) {
                 try {
@@ -193,7 +194,7 @@ export class AddonModLessonIndexComponent extends CoreCourseModuleMainActivityCo
             }
         }
 
-        if (this.selectedTab == 1 && this.canViewReports) {
+        if (this.selectedTab === AddonModLessonTab.REPORT && this.canViewReports) {
             // Only fetch the report data if the tab is selected.
             promises.push(this.fetchReportData());
         }
@@ -383,7 +384,9 @@ export class AddonModLessonIndexComponent extends CoreCourseModuleMainActivityCo
      */
     protected callAnalyticsLogEvent(): void {
         this.analyticsLogEvent('mod_lesson_view_lesson', {
-            url: this.selectedTab === 1 ? `/mod/lesson/report.php?id=${this.module.id}&action=reportoverview` : undefined,
+            url: this.selectedTab === AddonModLessonTab.REPORT
+                ? `/mod/lesson/report.php?id=${this.module.id}&action=reportoverview`
+                : undefined,
         });
     }
 
@@ -447,8 +450,8 @@ export class AddonModLessonIndexComponent extends CoreCourseModuleMainActivityCo
      * First tab selected.
      */
     indexSelected(): void {
-        const tabHasChanged = this.selectedTab !== 0;
-        this.selectedTab = 0;
+        const tabHasChanged = this.selectedTab !== AddonModLessonTab.ATTEMPT;
+        this.selectedTab = AddonModLessonTab.ATTEMPT;
 
         if (tabHasChanged) {
             this.callAnalyticsLogEvent();
@@ -459,8 +462,8 @@ export class AddonModLessonIndexComponent extends CoreCourseModuleMainActivityCo
      * Reports tab selected.
      */
     reportsSelected(): void {
-        const tabHasChanged = this.selectedTab !== 1;
-        this.selectedTab = 1;
+        const tabHasChanged = this.selectedTab !== AddonModLessonTab.REPORT;
+        this.selectedTab = AddonModLessonTab.REPORT;
 
         if (!this.groupInfo) {
             this.fetchReportData().catch((error) => {
@@ -532,7 +535,7 @@ export class AddonModLessonIndexComponent extends CoreCourseModuleMainActivityCo
             return;
         }
 
-        const formattedData = <AttemptsOverview> data;
+        const formattedData = <AttemptsOverview>data;
 
         // Format times and grades.
         if (formattedData.avetime != null && formattedData.numofattempts) {
@@ -640,7 +643,7 @@ export class AddonModLessonIndexComponent extends CoreCourseModuleMainActivityCo
         this.showLoading = true;
 
         try {
-            await this.validatePassword(<string> password);
+            await this.validatePassword(<string>password);
 
             // Password validated.
             this.lessonReady();

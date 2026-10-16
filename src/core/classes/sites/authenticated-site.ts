@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { CoreSSO } from '@singletons/sso';
+import { CoreSSO } from '@static/sso';
 import { CoreNetwork } from '@services/network';
-import { CoreEventData, CoreEvents } from '@singletons/events';
+import { CoreEventData, CoreEvents } from '@static/events';
 import {
     CoreWS,
     CoreWSPreSets,
@@ -22,12 +22,18 @@ import {
     CoreWSTypeExpected,
 } from '@services/ws';
 import { CoreToasts, ToastDuration } from '@services/overlays/toasts';
-import { CoreText } from '@singletons/text';
-import { CoreUtils } from '@singletons/utils';
-import { CoreCacheUpdateFrequency, CoreConstants, MINIMUM_MOODLE_VERSION, MOODLE_RELEASES } from '@/core/constants';
+import { CoreText } from '@static/text';
+import { CoreUtils } from '@static/utils';
+import {
+    CoreCacheUpdateFrequency,
+    CoreConstants,
+    CoreTimeConstants,
+    MINIMUM_MOODLE_VERSION,
+    MOODLE_RELEASES,
+} from '@/core/constants';
 import { CoreError } from '@classes/errors/error';
 import { CoreWSError } from '@classes/errors/wserror';
-import { CoreLogger } from '@singletons/logger';
+import { CoreLogger } from '@static/logger';
 import { Translate } from '@singletons';
 import { CoreLang, CoreLangFormat } from '@services/lang';
 import { CoreSites, CoreSitesReadingStrategy } from '@services/sites';
@@ -37,14 +43,21 @@ import { Observable, ObservableInput, ObservedValueOf, OperatorFunction, Subject
 import { finalize, map, mergeMap } from 'rxjs/operators';
 import { CoreSiteError } from '@classes/errors/siteerror';
 import { CoreUserAuthenticatedSupportConfig } from '@features/user/classes/support/authenticated-support-config';
-import { CoreSiteInfo, CoreSiteInfoResponse, CoreSitePublicConfigResponse, CoreUnauthenticatedSite } from './unauthenticated-site';
+import {
+    CoreSiteInfo,
+    CoreSiteInfoResponse,
+    CoreSitePublicConfigResponse,
+    CoreUnauthenticatedSite,
+    CoreWSOverride,
+} from './unauthenticated-site';
 import { Md5 } from 'ts-md5';
 import { CoreSiteWSCacheRecord } from '@services/database/sites';
-import { CoreErrorLogs } from '@singletons/error-logs';
-import { CoreWait } from '@singletons/wait';
-import { CorePromiseUtils } from '@singletons/promise-utils';
-import { CoreObject } from '@singletons/object';
-import { CoreArray } from '@singletons/array';
+import { CoreErrorLogs } from '@static/error-logs';
+import { CoreWait } from '@static/wait';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreObject } from '@static/object';
+import { CoreArray } from '@static/array';
+import { CoreBrowser } from '@static/browser';
 
 /**
  * Class that represents a site (combination of site + user) where the user has authenticated but the site hasn't been validated
@@ -85,10 +98,10 @@ export class CoreAuthenticatedSite extends CoreUnauthenticatedSite {
 
     // Possible cache update frequencies.
     protected static readonly UPDATE_FREQUENCIES = [
-        CoreConstants.CONFIG.cache_update_frequency_usually || 420000,
-        CoreConstants.CONFIG.cache_update_frequency_often || 1200000,
-        CoreConstants.CONFIG.cache_update_frequency_sometimes || 3600000,
-        CoreConstants.CONFIG.cache_update_frequency_rarely || 43200000,
+        CoreConstants.CONFIG.cache_update_frequency_usually || (CoreTimeConstants.MILLISECONDS_MINUTE * 7),
+        CoreConstants.CONFIG.cache_update_frequency_often || (CoreTimeConstants.MILLISECONDS_MINUTE * 20),
+        CoreConstants.CONFIG.cache_update_frequency_sometimes || CoreTimeConstants.MILLISECONDS_HOUR,
+        CoreConstants.CONFIG.cache_update_frequency_rarely || (CoreTimeConstants.MILLISECONDS_HOUR * 12),
     ];
 
     // WS that we allow to call even if the site is logged out.
@@ -100,7 +113,7 @@ export class CoreAuthenticatedSite extends CoreUnauthenticatedSite {
     privateToken?: string;
     infos?: CoreSiteInfo;
 
-    protected logger: CoreLogger;
+    protected logger = CoreLogger.getInstance('CoreAuthenticatedSite');
     protected cleanUnicode = false;
     protected offlineDisabled = false;
     private memoryCache: Record<string, CoreSiteWSCacheRecord> = {};
@@ -124,7 +137,6 @@ export class CoreAuthenticatedSite extends CoreUnauthenticatedSite {
     ) {
         super(siteUrl, otherData.publicConfig);
 
-        this.logger = CoreLogger.getInstance('CoreAuthenticaedSite');
         this.token = token;
         this.privateToken = otherData.privateToken;
     }
@@ -220,12 +232,25 @@ export class CoreAuthenticatedSite extends CoreUnauthenticatedSite {
 
     /**
      * Check if current user is Admin.
-     * Works properly since v3.8. See more in: {@link https://tracker.moodle.org/browse/MDL-65550}
+     * Works properly since Moodle 3.8. See more in: {@link https://moodle.atlassian.net/browse/MDL-65550}
      *
      * @returns Whether the user is Admin.
      */
     isAdmin(): boolean {
-        return this.getInfo()?.userissiteadmin ?? false;
+        const info = this.getInfo();
+
+        return (info?.userissiteadmin || info?.usercanchangeconfig) ?? false;
+    }
+
+    /**
+     * Check if current user is Manager.
+     * Works properly since Moodle 5.2. See more in: {@link https://moodle.atlassian.net/browse/MDL-87034}
+     *
+     * @returns Whether the user is Manager. Will return false if cannot be determined.
+     * @since 5.2
+     */
+    isManager(): boolean {
+        return this.getInfo()?.usercanviewconfig ?? false;
     }
 
     /**
@@ -257,7 +282,7 @@ export class CoreAuthenticatedSite extends CoreUnauthenticatedSite {
      * @param whenUndefined The value to return when the parameter is undefined.
      * @returns Whether can use advanced feature.
      */
-    canUseAdvancedFeature(featureName: string, whenUndefined: boolean = true): boolean {
+    canUseAdvancedFeature(featureName: string, whenUndefined = true): boolean {
         const info = this.getInfo();
 
         if (info?.advancedfeatures === undefined) {
@@ -397,10 +422,12 @@ export class CoreAuthenticatedSite extends CoreUnauthenticatedSite {
     requestObservable<T = unknown>(method: string, data: any, preSets: CoreSiteWSPreSets): WSObservable<T> {
         if (this.isLoggedOut() && !CoreAuthenticatedSite.ALLOWED_LOGGEDOUT_WS.includes(method)) {
             // Site is logged out, it cannot call WebServices.
-            this.triggerSiteEvent(CoreEvents.SESSION_EXPIRED, {});
-
-            // Use a silent error, the SESSION_EXPIRED event will display a message if needed.
-            throw new CoreSilentError(Translate.instant('core.lostconnection'));
+            if (this.triggerSiteEvent(CoreEvents.SESSION_EXPIRED, {})) {
+                // Use a silent error, the SESSION_EXPIRED event will display a message if needed.
+                throw new CoreSilentError(Translate.instant('core.lostconnection'));
+            } else {
+                throw new CoreError(Translate.instant('core.lostconnection'));
+            }
         }
 
         data = data || {};
@@ -465,8 +492,13 @@ export class CoreAuthenticatedSite extends CoreUnauthenticatedSite {
         }
 
         const observable = this.performRequest<T>(method, data, preSets, wsPreSets).pipe(
-            // Return a clone of the original object, this may prevent errors if in the callback the object is modified.
-            map((data) => CoreUtils.clone(data)),
+            map((data) => {
+                // Always clone the object because it can be modified when applying patches or in the caller function
+                // and we don't want to store the modified object in cache.
+                const clonedData = CoreUtils.clone(data);
+
+                return this.applyWSOverrides(method, clonedData);
+            }),
         );
 
         this.setOngoingRequest(cacheId, preSets, observable);
@@ -677,10 +709,10 @@ export class CoreAuthenticatedSite extends CoreUnauthenticatedSite {
 
             if (CoreWSError.isExpiredTokenError(error)) {
                 // Session expired, trigger event.
-                this.triggerSiteEvent(CoreEvents.SESSION_EXPIRED, {});
+                // Use a silent error if the event is triggered, the SESSION_EXPIRED event will display a message if needed.
+                useSilentError = this.triggerSiteEvent(CoreEvents.SESSION_EXPIRED, {});
                 // Change error message. Try to get data from cache, the event will handle the error.
                 error.message = Translate.instant('core.lostconnection');
-                useSilentError = true; // Use a silent error, the SESSION_EXPIRED event will display a message if needed.
             } else if (error.errorcode === 'userdeleted' || error.errorcode === 'wsaccessuserdeleted') {
                 // User deleted, trigger event.
                 this.triggerSiteEvent(CoreEvents.USER_DELETED, { params: data });
@@ -701,14 +733,14 @@ export class CoreAuthenticatedSite extends CoreUnauthenticatedSite {
                 throw new CoreWSError(error);
             } else if (error.errorcode === 'forcepasswordchangenotice') {
                 // Password Change Forced, trigger event. Try to get data from cache, the event will handle the error.
-                this.triggerSiteEvent(CoreEvents.PASSWORD_CHANGE_FORCED, {});
+                // Use a silent error if the event is triggered, the change password page already displays the appropiate info.
+                useSilentError = this.triggerSiteEvent(CoreEvents.PASSWORD_CHANGE_FORCED, {});
                 error.message = Translate.instant('core.forcepasswordchangenotice');
-                useSilentError = true; // Use a silent error, the change password page already displays the appropiate info.
             } else if (error.errorcode === 'usernotfullysetup') {
                 // User not fully setup, trigger event. Try to get data from cache, the event will handle the error.
-                this.triggerSiteEvent(CoreEvents.USER_NOT_FULLY_SETUP, {});
+                // Use a silent error if the event is triggered, the complete profile page already displays the appropiate info.
+                useSilentError = this.triggerSiteEvent(CoreEvents.USER_NOT_FULLY_SETUP, {});
                 error.message = Translate.instant('core.usernotfullysetup');
-                useSilentError = true; // Use a silent error, the complete profile page already displays the appropiate info.
             } else if (error.errorcode === 'sitepolicynotagreed') {
                 // Site policy not agreed, trigger event.
                 this.triggerSiteEvent(CoreEvents.SITE_POLICY_NOT_AGREED, {});
@@ -745,7 +777,7 @@ export class CoreAuthenticatedSite extends CoreUnauthenticatedSite {
                 }
 
                 throw new CoreWSError(error);
-            } else if (preSets.cacheErrors && preSets.cacheErrors.indexOf(error.errorcode) != -1) {
+            } else if (preSets.cacheErrors && preSets.cacheErrors.includes(error.errorcode)) {
                 // Save the error instead of deleting the cache entry so the same content is displayed in offline.
                 this.saveToCache(method, data, error, preSets);
 
@@ -863,7 +895,7 @@ export class CoreAuthenticatedSite extends CoreUnauthenticatedSite {
         preSets: CoreSiteWSPreSets,
         wsPreSets: CoreWSPreSets,
     ): Promise<T> {
-        if (preSets.skipQueue || !this.wsAvailable('tool_mobile_call_external_functions')) {
+        if (preSets.skipQueue || !this.wsAvailable('tool_mobile_call_external_functions') || !this.shouldGroupWSRequests()) {
             return CoreWS.call<T>(method, data, wsPreSets);
         }
 
@@ -926,7 +958,7 @@ export class CoreAuthenticatedSite extends CoreUnauthenticatedSite {
         const requests = this.requestQueue;
         this.requestQueue = [];
 
-        if (requests.length == 1 && !CoreAuthenticatedSite.REQUEST_QUEUE_FORCE_WS) {
+        if (requests.length === 1 && !CoreAuthenticatedSite.REQUEST_QUEUE_FORCE_WS) {
             // Only one request, do a regular web service call.
             try {
                 const data = await CoreWS.call(requests[0].method, requests[0].data, requests[0].wsPreSets);
@@ -950,10 +982,10 @@ export class CoreAuthenticatedSite extends CoreUnauthenticatedSite {
                     let value = request.data[key];
                     const match = /^moodlews(setting.*)$/.exec(key);
                     if (match) {
-                        if (match[1] == 'settingfilter' || match[1] == 'settingfileurl') {
+                        if (match[1] === 'settingfilter' || match[1] === 'settingfileurl') {
                             // Undo special treatment of these settings in CoreWS.convertValuesToString.
-                            value = (value == 'true' ? '1' : '0');
-                        } else if (match[1] == 'settinglang') {
+                            value = (value === 'true' ? '1' : '0');
+                        } else if (match[1] === 'settinglang') {
                             // Use the lang globally to avoid exceptions with languages not installed.
                             lang = value;
 
@@ -972,7 +1004,11 @@ export class CoreAuthenticatedSite extends CoreUnauthenticatedSite {
                 };
             }),
         };
-        requestsData.moodlewssettinglang = lang;
+
+        // Only force the language if set.
+        if (lang) {
+            requestsData.moodlewssettinglang = CoreLang.getLanguageAppVariant(lang);
+        }
 
         const wsPresets: CoreWSPreSets = {
             siteUrl: this.siteUrl,
@@ -1036,6 +1072,15 @@ export class CoreAuthenticatedSite extends CoreUnauthenticatedSite {
                 request.deferred.reject(error);
             });
         }
+    }
+
+    /**
+     * Check if WS requests should be grouped.
+     *
+     * @returns Whether WS requests should be grouped.
+     */
+    protected shouldGroupWSRequests(): boolean {
+        return !CoreUtils.isFalseOrZero(CoreBrowser.getDevelopmentSetting('GroupWSRequests') ?? true);
     }
 
     /**
@@ -1117,7 +1162,7 @@ export class CoreAuthenticatedSite extends CoreUnauthenticatedSite {
             if (preSets.updateInBackground && !CoreConstants.CONFIG.disableCallWSInBackground) {
                 // Use a extended expiration time.
                 const extendedTime = entry.expirationTime +
-                    (CoreConstants.CONFIG.callWSInBackgroundExpirationTime ?? CoreConstants.SECONDS_WEEK * 1000);
+                    (CoreConstants.CONFIG.callWSInBackgroundExpirationTime ?? CoreTimeConstants.SECONDS_WEEK * 1000);
 
                 if (now > extendedTime) {
                     this.logger.debug('Cached element found, but it is expired even for call WS in background.');
@@ -1310,50 +1355,16 @@ export class CoreAuthenticatedSite extends CoreUnauthenticatedSite {
     }
 
     /**
-     * Returns the URL to the documentation of the app, based on Moodle version and current language.
-     *
-     * @param page Docs page to go to.
-     * @returns Promise resolved with the Moodle docs URL.
-     *
-     * @deprecated since 4.5. Not needed anymore.
-     */
-    async getDocsUrl(page?: string): Promise<string> {
-        const release = this.infos?.release ? this.infos.release : undefined;
-        let docsUrl = `https://docs.moodle.org/en/${page}`;
-
-        if (release !== undefined) {
-            // Remove this part of the function if this file only uses CoreSites here.
-            const version = CoreSites.getMajorReleaseNumber(release).replace('.', '');
-
-            // Check is a valid number.
-            if (Number(version) >= 24) {
-                // Append release number.
-                docsUrl = docsUrl.replace('https://docs.moodle.org/', `https://docs.moodle.org/${version}/`);
-            }
-        }
-
-        try {
-            // Remove this part of the function if this file only uses CoreLang here.
-            let lang = CoreLang.getCurrentLanguageSync(CoreLangFormat.LMS);
-            lang = CoreLang.getParentLanguage() || lang;
-
-            return docsUrl.replace('/en/', `/${lang}/`);
-        } catch {
-            return docsUrl;
-        }
-    }
-
-    /**
      * @inheritdoc
      */
     async getPublicConfig(options: { readingStrategy?: CoreSitesReadingStrategy } = {}): Promise<CoreSitePublicConfigResponse> {
+        const method = 'tool_mobile_get_public_config';
         const ignoreCache = options.readingStrategy === CoreSitesReadingStrategy.ONLY_NETWORK ||
             options.readingStrategy ===  CoreSitesReadingStrategy.PREFER_NETWORK;
         if (!ignoreCache && this.publicConfig) {
-            return this.publicConfig;
+            return this.overridePublicConfig(this.publicConfig);
         }
 
-        const method = 'tool_mobile_get_public_config';
         const cacheId = this.getCacheId(method, {});
         const cachePreSets: CoreSiteWSPreSets = {
             getFromCache: true,
@@ -1378,8 +1389,7 @@ export class CoreAuthenticatedSite extends CoreUnauthenticatedSite {
 
         const subject = new Subject<CoreSitePublicConfigResponse>();
         const observable = subject.pipe(
-            // Return a clone of the original object, this may prevent errors if in the callback the object is modified.
-            map((data) => CoreUtils.clone(data)),
+            map((data) => this.overridePublicConfig(data)),
             finalize(() => {
                 this.clearOngoingRequest(cacheId, cachePreSets, observable);
             }),
@@ -1472,8 +1482,8 @@ export class CoreAuthenticatedSite extends CoreUnauthenticatedSite {
      *     - Greater or equal than 3.2.3 but lower than 3.3.
      *     - Greater or equal than 3.0.5 but lower than 3.1.
      *
-     * This function only accepts versions from 2.4.0 and above. If any of the versions supplied isn't found, it will assume
-     * it's the last released major version.
+     * This function only accepts versions from MINIMUM_MOODLE_VERSION and above.
+     * If any of the versions supplied isn't found, it will assume it's the last released major version.
      */
     isVersionGreaterEqualThan(versions: string | string[]): boolean {
         const info = this.getInfo();
@@ -1543,7 +1553,7 @@ export class CoreAuthenticatedSite extends CoreUnauthenticatedSite {
      * @param version Release version (e.g. '3.1.0').
      * @returns Object with major and minor. Returns false if invalid version.
      */
-    protected getMajorAndMinor(version: string): {major: string; minor: number} | false {
+    protected getMajorAndMinor(version: string): { major: string; minor: number } | false {
         const match = version.match(/^(\d+)(\.(\d+)(\.\d+)?)?/);
         if (!match || !match[1]) {
             // Invalid version.
@@ -1573,7 +1583,7 @@ export class CoreAuthenticatedSite extends CoreUnauthenticatedSite {
 
         const position = releases.indexOf(data.major);
 
-        if (position == -1 || position == releases.length - 1) {
+        if (position === -1 || position === releases.length - 1) {
             // Major version not found or it's the last one. Use the last one.
             return MOODLE_RELEASES[releases[position]];
         }
@@ -1605,12 +1615,57 @@ export class CoreAuthenticatedSite extends CoreUnauthenticatedSite {
      *
      * @param eventName Event name.
      * @param data Event data.
+     * @returns Whether the event was triggered.
      */
     protected triggerSiteEvent<Fallback = unknown, Event extends string = string>(
-        eventName: Event,
-        data?: CoreEventData<Event, Fallback>,
-    ): void {
-        CoreEvents.trigger(eventName, data);
+        eventName: Event, // eslint-disable-line @typescript-eslint/no-unused-vars
+        data?: CoreEventData<Event, Fallback>, // eslint-disable-line @typescript-eslint/no-unused-vars
+    ): boolean {
+        // To be overridden. If it's not a valid site it shouldn't trigger events because it can be mistaken with current site.
+        return false;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    protected shouldApplyWSOverride(method: string, data: unknown, patch: CoreWSOverride): boolean {
+        if (!Number(patch.userid)) {
+            return true;
+        }
+
+        const info = this.infos ?? (method === 'core_webservice_get_site_info' ? (data as CoreSiteInfoResponse) : undefined);
+
+        if (!info?.userid) {
+            // Strange case, when doing WS calls the site should always have the userid already.
+            // Apply the patch to match the behaviour of unauthenticated site.
+            return true;
+        }
+
+        return Number(patch.userid) === info.userid;
+    }
+
+    /**
+     * Get the list of applicable WS overrides for this site.
+     *
+     * @returns WS overrides that should be applied for this site.
+     */
+    getApplicableWSOverrides(): Record<string, CoreWSOverride[]> {
+        if (!CoreConstants.CONFIG.wsOverrides) {
+            return {};
+        }
+
+        const effectiveOverrides: Record<string, CoreWSOverride[]> = {};
+
+        Object.keys(CoreConstants.CONFIG.wsOverrides).forEach((method) => {
+            const appliedPatches = CoreConstants.CONFIG.wsOverrides![method].filter((patch) =>
+                this.shouldApplyWSOverride(method, {}, patch));
+
+            if (appliedPatches.length) {
+                effectiveOverrides[method] = appliedPatches;
+            }
+        });
+
+        return effectiveOverrides;
     }
 
 }

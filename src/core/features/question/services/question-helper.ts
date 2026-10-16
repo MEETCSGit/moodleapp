@@ -19,21 +19,21 @@ import { CoreFile } from '@services/file';
 import { CoreFileHelper } from '@services/file-helper';
 import { CoreFilepool } from '@services/filepool';
 import { CoreSites } from '@services/sites';
-import { CoreDom } from '@singletons/dom';
-import { CoreText } from '@singletons/text';
-import { CoreUtils } from '@singletons/utils';
+import { CoreDom } from '@static/dom';
+import { CoreText } from '@static/text';
+import { CoreUtils } from '@static/utils';
 import { CoreWSFile } from '@services/ws';
 import { makeSingleton, Translate } from '@singletons';
 import { CoreQuestion, CoreQuestionProvider, CoreQuestionQuestionParsed, CoreQuestionsAnswers } from './question';
 import { CoreQuestionDelegate } from './question-delegate';
-import { CoreIcons } from '@singletons/icons';
-import { CoreUrl } from '@singletons/url';
+import { CoreIcons } from '@static/icons';
+import { CoreUrl } from '@static/url';
 import { ContextLevel } from '@/core/constants';
-import { CoreIonicColorNames } from '@singletons/colors';
+import { CoreIonicColorNames } from '@static/colors';
 import { CoreViewer } from '@features/viewer/services/viewer';
 import { convertTextToHTMLElement } from '@/core/utils/create-html-element';
 import { AddonModQuizNavigationQuestion } from '@addons/mod/quiz/components/navigation-modal/navigation-modal';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { ADDON_MOD_QUIZ_COMPONENT_LEGACY } from '@addons/mod/quiz/constants';
 
@@ -152,7 +152,7 @@ export class CoreQuestionHelperProvider {
      * We don't remove them from HTML because the whole im-controls block will be removed afterwards.
      *
      * @param question Question to treat.
-     * @returns Wether the certainty is found.
+     * @returns Whether the certainty is found.
      */
     extractQbehaviourCBM(question: CoreQuestionQuestion): boolean {
         const element = convertTextToHTMLElement(question.html);
@@ -372,7 +372,7 @@ export class CoreQuestionHelperProvider {
             const name = element.name || '';
 
             // Ignore flag and submit inputs.
-            if (!name || name.match(/_:flagged$/) || element.type == 'submit' || element.tagName == 'BUTTON') {
+            if (!name || name.match(/_:flagged$/) || element.type === 'submit' || element.tagName === 'BUTTON') {
                 return;
             }
 
@@ -401,14 +401,19 @@ export class CoreQuestionHelperProvider {
             const name = element.name || element.getAttribute('ng-reflect-name') || '';
 
             // Ignore flag and submit inputs.
-            if (!name || name.match(/_:flagged$/) || element.type == 'submit' || element.tagName == 'BUTTON') {
+            if (!name || name.match(/_:flagged$/) || element.type === 'submit' || element.tagName === 'BUTTON') {
+                return;
+            }
+
+            // @todo: Temporary fix, see MOBILE-4956.
+            if (name.startsWith('ion-textarea-')) {
                 return;
             }
 
             // Get the value.
-            if (element.type == 'checkbox') {
+            if (element.type === 'checkbox') {
                 answers[name] = !!element.checked;
-            } else if (element.type == 'radio') {
+            } else if (element.type === 'radio') {
                 if (element.checked) {
                     answers[name] = element.value;
                 }
@@ -556,12 +561,12 @@ export class CoreQuestionHelperProvider {
             return false;
         }
 
-        if (url.slice(-1) != '/') {
+        if (url.slice(-1) !== '/') {
             url = url += '/';
         }
         url += 'draftfile.php';
 
-        return html.indexOf(url) != -1;
+        return html.includes(url);
     }
 
     /**
@@ -694,7 +699,7 @@ export class CoreQuestionHelperProvider {
                 return;
             }
 
-            if (CoreUrl.isThemeImageUrl(fileUrl) && fileUrl.indexOf('flagged') > -1) {
+            if (CoreUrl.isThemeImageUrl(fileUrl) && fileUrl.includes('flagged')) {
                 // Ignore flag images.
                 return;
             }
@@ -906,13 +911,13 @@ export class CoreQuestionHelperProvider {
             const incorrectIcon = this.getIncorrectIcon();
             const partiallyCorrectIcon = this.getPartiallyCorrectIcon();
             if ('src' in icon) {
-                if ((icon as HTMLImageElement).src.indexOf('grade_partiallycorrect') >= 0) {
+                if ((icon as HTMLImageElement).src.includes('grade_partiallycorrect')) {
                     iconData = partiallyCorrectIcon;
                     color = CoreIonicColorNames.WARNING;
-                } else if ((icon as HTMLImageElement).src.indexOf('incorrect') >= 0 ) {
+                } else if ((icon as HTMLImageElement).src.includes('incorrect') ) {
                     iconData = incorrectIcon;
                     color = CoreIonicColorNames.DANGER;
-                } else if((icon as HTMLImageElement).src.indexOf('correct') >= 0) {
+                } else if((icon as HTMLImageElement).src.includes('correct')) {
                     iconData = correctIcon;
                     color = CoreIonicColorNames.SUCCESS;
                 }

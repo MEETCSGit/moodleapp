@@ -14,14 +14,15 @@
 
 import { Injectable } from '@angular/core';
 
-import { CoreUtils } from '@singletons/utils';
+import { CoreUtils } from '@static/utils';
 import { CorePushNotificationsClickHandler } from '@features/pushnotifications/services/push-delegate';
 import { AddonBadges } from '../badges';
 import { makeSingleton } from '@singletons';
 import { CorePushNotificationsNotificationBasicData } from '@features/pushnotifications/services/pushnotifications';
 import { CoreNavigator } from '@services/navigator';
 import { AddonBadgesHelper } from '../badges-helper';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { ADDONS_BADGES_USER_PROFILE_FEATURE_NAME } from '@addons/badges/constants';
 
 /**
  * Handler for badges push notifications clicks.
@@ -31,7 +32,7 @@ export class AddonBadgesPushClickHandlerService implements CorePushNotifications
 
     name = 'AddonBadgesPushClickHandler';
     priority = 200;
-    featureName = 'CoreUserDelegate_AddonBadges';
+    featureName = ADDONS_BADGES_USER_PROFILE_FEATURE_NAME;
 
     /**
      * @inheritdoc
@@ -39,8 +40,8 @@ export class AddonBadgesPushClickHandlerService implements CorePushNotifications
     async handles(notification: CorePushNotificationsNotificationBasicData): Promise<boolean> {
         const data = notification.customdata || {};
 
-        if (CoreUtils.isTrueOrOne(notification.notif) && notification.moodlecomponent == 'moodle' &&
-                (notification.name == 'badgerecipientnotice' || (notification.name == 'badgecreatornotice' && data.hash))) {
+        if (CoreUtils.isTrueOrOne(notification.notif) && notification.moodlecomponent === 'moodle' &&
+            (notification.name === 'badgerecipientnotice' || (notification.name === 'badgecreatornotice' && data.hash))) {
             if (notification.customdata?.hash) {
                 return await AddonBadgesHelper.canOpenBadge(String(notification.customdata?.hash), notification.site);
             }

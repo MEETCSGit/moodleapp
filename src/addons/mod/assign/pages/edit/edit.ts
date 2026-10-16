@@ -20,9 +20,9 @@ import { CanLeave } from '@guards/can-leave';
 import { CoreNavigator } from '@services/navigator';
 import { CoreSites, CoreSitesReadingStrategy } from '@services/sites';
 import { CoreSync } from '@services/sync';
-import { CoreFormFields, CoreForms } from '@singletons/form';
+import { CoreFormFields, CoreForms } from '@static/form';
 import { Translate } from '@singletons';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import {
     AddonModAssignAssign,
     AddonModAssignSubmission,
@@ -47,7 +47,7 @@ import {
 } from '../../constants';
 import { CoreToasts, ToastDuration } from '@services/overlays/toasts';
 import { CoreLoadings } from '@services/overlays/loadings';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { AddonModAssignSubmissionPluginComponent } from '../../components/submission-plugin/submission-plugin';
 import { CoreSharedModule } from '@/core/shared.module';
@@ -400,7 +400,7 @@ export default class AddonModAssignEditPage implements OnInit, OnDestroy, CanLea
 
         try {
             // Confirm action.
-            await CoreFileUploaderHelper.confirmUploadFile(size, true, true);
+            await CoreFileUploaderHelper.confirmUploadFile(size, undefined, true);
 
             modal = await CoreLoadings.show('core.sending', true);
 

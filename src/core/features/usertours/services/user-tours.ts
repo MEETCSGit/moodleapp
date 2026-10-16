@@ -20,13 +20,14 @@ import { CoreDatabaseTable } from '@classes/database/database-table';
 import { CoreDatabaseCachingStrategy, CoreDatabaseTableProxy } from '@classes/database/database-table-proxy';
 import { CoreAppDB } from '@services/app-db';
 import { AngularFrameworkDelegate, makeSingleton } from '@singletons';
-import { CoreDirectivesRegistry } from '@singletons/directives-registry';
-import { CoreDom } from '@singletons/dom';
-import { CoreSubscriptions } from '@singletons/subscriptions';
+import { CoreDirectivesRegistry } from '@static/directives-registry';
+import { CoreDom } from '@static/dom';
+import { CoreSubscriptions } from '@static/subscriptions';
 import type { CoreUserToursUserTourComponent } from '../components/user-tour/user-tour';
 import { APP_SCHEMA, CoreUserToursDBEntry, USER_TOURS_TABLE_NAME } from './database/user-tours';
 import { CorePromisedValue } from '@classes/promised-value';
-import { CoreWait } from '@singletons/wait';
+import { CoreWait } from '@static/wait';
+import { LazyDefaultStandaloneComponent } from '@/app/app-routing.module';
 
 /**
  * Service to manage User Tours.
@@ -45,7 +46,7 @@ export class CoreUserToursService {
         await CoreAppDB.createTablesFromSchema(APP_SCHEMA);
 
         this.table.setLazyConstructor(async () => {
-            const table = new CoreDatabaseTableProxy<CoreUserToursDBEntry>(
+            const table = CoreDatabaseTableProxy.createInstance<CoreUserToursDBEntry>(
                 { cachingStrategy: CoreDatabaseCachingStrategy.Eager },
                 CoreAppDB.getDB(),
                 USER_TOURS_TABLE_NAME,
@@ -113,7 +114,7 @@ export class CoreUserToursService {
     protected async show(options: CoreUserToursBasicOptions | CoreUserToursFocusedOptions): Promise<CoreUserToursUserTour> {
         const { CoreUserToursUserTourComponent } = await import('../components/user-tour/user-tour');
 
-        const { delay, ...componentOptions } = options;
+        const { delay, loadComponent, watch, ...componentOptions } = options;
 
         await CoreWait.wait(delay ?? 200);
 
@@ -121,6 +122,9 @@ export class CoreUserToursService {
 
         const container = document.querySelector('ion-app') ?? document.body;
         const viewContainer = container.querySelector('ion-router-outlet, ion-nav, #ion-view-container-root');
+
+        componentOptions.component = componentOptions.component ?? (await loadComponent?.())?.default;
+
         const element = await AngularFrameworkDelegate.attachViewToDom(
             container,
             CoreUserToursUserTourComponent,
@@ -133,7 +137,7 @@ export class CoreUserToursService {
 
         this.toursListeners[options.id]?.forEach(listener => listener.resolve());
 
-        return this.startTour(tour, options.watch ?? (options as CoreUserToursFocusedOptions).focus);
+        return this.startTour(tour, watch ?? (options as CoreUserToursFocusedOptions).focus);
     }
 
     /**
@@ -141,7 +145,7 @@ export class CoreUserToursService {
      *
      * @param acknowledge Whether to acknowledge that the user has seen this User Tour or not.
      */
-    async dismiss(acknowledge: boolean = true): Promise<void> {
+    async dismiss(acknowledge = true): Promise<void> {
         await this.getForegroundTour()?.dismiss(acknowledge);
 
         if (this.hasVisibleTour()) {
@@ -232,7 +236,8 @@ export class CoreUserToursService {
         const index = this.getTourIndex(tour);
         const previousForegroundTour = this.getForegroundTour();
 
-        if (previousForegroundTour?.id === tour.id) {
+        const id = tour.id();
+        if (previousForegroundTour?.id() === id) {
             // Already activated.
             return;
         }
@@ -246,7 +251,7 @@ export class CoreUserToursService {
             });
         }
 
-        if (this.getForegroundTour()?.id !== tour.id) {
+        if (this.getForegroundTour()?.id() !== id) {
             // Another tour is in use.
             return;
         }
@@ -275,6 +280,7 @@ export class CoreUserToursService {
     /**
      * Returns the tour index in the stack.
      *
+     * @param tour User tour.
      * @returns Tour index if found or -1 otherwise.
      */
     protected getTourIndex(tour: CoreUserToursUserTourComponent): number {
@@ -296,7 +302,7 @@ export class CoreUserToursService {
 
         this.tours[index].visible = false;
 
-        if (foregroundTour?.id !== tour.id) {
+        if (foregroundTour?.id() !== tour.id()) {
             // Another tour is in use.
             return;
         }
@@ -360,7 +366,7 @@ export const CoreUserTours = makeSingleton(CoreUserToursService);
 /**
  * User Tour controller.
  */
-export interface CoreUserToursUserTour {
+export type CoreUserToursUserTour = {
 
     /**
      * Cancelling a User Tour removes it from the queue if it was pending or dismisses it without
@@ -368,7 +374,7 @@ export interface CoreUserToursUserTour {
      */
     cancel(): Promise<void>;
 
-}
+};
 
 /**
  * User Tour side.
@@ -394,7 +400,7 @@ export const enum CoreUserToursAlignment {
 /**
  * Basic options to create a User Tour.
  */
-export interface CoreUserToursBasicOptions {
+export type CoreUserToursBasicOptions = {
 
     /**
      * Unique identifier.
@@ -404,7 +410,13 @@ export interface CoreUserToursBasicOptions {
     /**
      * User Tour component.
      */
-    component: unknown;
+    component?: unknown;
+
+    /**
+     * User Tour component to load when needed.
+     * Used if component is not provided.
+     */
+    loadComponent?: () => LazyDefaultStandaloneComponent;
 
     /**
      * Properties to pass to the User Tour component.
@@ -435,12 +447,12 @@ export interface CoreUserToursBasicOptions {
      */
     afterTimeout?: number;
 
-}
+};
 
 /**
  * Options to create a focused User Tour.
  */
-export interface CoreUserToursFocusedOptions extends CoreUserToursBasicOptions {
+export type CoreUserToursFocusedOptions = CoreUserToursBasicOptions & {
 
     /**
      * Element to focus.
@@ -457,4 +469,4 @@ export interface CoreUserToursFocusedOptions extends CoreUserToursBasicOptions {
      */
     alignment: CoreUserToursAlignment;
 
-}
+};

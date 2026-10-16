@@ -14,8 +14,8 @@
 
 import { Directive, ElementRef, AfterViewInit, inject, input } from '@angular/core';
 
-import { CoreDom } from '@singletons/dom';
-import { CoreWait } from '@singletons/wait';
+import { CoreDom } from '@static/dom';
+import { CoreWait } from '@static/wait';
 import { toBoolean } from '../transforms/boolean';
 
 /**
@@ -44,7 +44,7 @@ export class CoreAutoFocusDirective implements AfterViewInit {
             return;
         }
 
-        await CoreDom.waitToBeInDOM(this.element);
+        await CoreDom.waitToBeInDOM(this.element as HTMLElement);
 
         // Wait in case there is an animation to enter the page, otherwise the interaction
         // between the keyboard appearing and the animation causes a visual glitch.

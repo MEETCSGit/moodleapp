@@ -36,6 +36,8 @@ import { CoreCourseOptionsDelegate } from '@features/course/services/course-opti
 import { CoreCourseOverviewOptionHandler } from './services/handlers/overview-option';
 import { CoreCourseOverviewLinkHandler } from './services/handlers/overview-link';
 import { CoreContentLinksDelegate } from '@features/contentlinks/services/contentlinks-delegate';
+import { CoreCourseForceLanguage } from './services/course-force-language';
+import { CoreCourseActivityNavigationLinkHandler } from './services/handlers/activity-navigation-link';
 
 /**
  * Get course services.
@@ -54,6 +56,8 @@ export async function getCourseServices(): Promise<Type<unknown>[]> {
     const { CoreCourseOptionsDelegateService } = await import('@features/course/services/course-options-delegate');
     const { CoreCourseOfflineProvider } = await import('@features/course/services/course-offline');
     const { CoreCourseSyncProvider } = await import('@features/course/services/sync');
+    const { CoreCoursePrefetchService } = await import('@features/course/services/course-prefetch');
+    const { CoreCourseNavigationService } = await import('@features/course/services/course-navigation');
 
     return [
         CoreCourseProvider,
@@ -67,6 +71,8 @@ export async function getCourseServices(): Promise<Type<unknown>[]> {
         CoreCourseOptionsDelegateService,
         CoreCourseOfflineProvider,
         CoreCourseSyncProvider,
+        CoreCoursePrefetchService,
+        CoreCourseNavigationService,
     ];
 }
 
@@ -127,6 +133,8 @@ export async function getCourseExportedDirectives(): Promise<Type<unknown>[]> {
         await import('@features/course/components/module-completion-legacy/module-completion-legacy');
     const { CoreCourseModuleInfoComponent } = await import('@features/course/components/module-info/module-info');
     const { CoreCourseModuleNavigationComponent } = await import('@features/course/components/module-navigation/module-navigation');
+    const { CoreCourseSectionNavButtonsComponent } =
+        await import('@features/course/components/section-nav-buttons/section-nav-buttons');
 
     const { CoreCourseDownloadModuleMainFileDirective } = await import('@features/course/directives/download-module-main-file');
 
@@ -143,6 +151,7 @@ export async function getCourseExportedDirectives(): Promise<Type<unknown>[]> {
         CoreCourseModuleCompletionLegacyComponent,
         CoreCourseModuleInfoComponent,
         CoreCourseModuleNavigationComponent,
+        CoreCourseSectionNavButtonsComponent,
         CoreCourseDownloadModuleMainFileDirective,
     ];
 }
@@ -184,8 +193,10 @@ const courseIndexRoutes: Routes = [
             CoreTagAreaDelegate.registerHandler(CoreCourseModulesTagAreaHandler.instance);
             CoreCourseOptionsDelegate.registerHandler(CoreCourseOverviewOptionHandler.instance);
             CoreContentLinksDelegate.registerHandler(CoreCourseOverviewLinkHandler.instance);
+            CoreContentLinksDelegate.registerHandler(CoreCourseActivityNavigationLinkHandler.instance);
 
             CoreCourse.initialize();
+            CoreCourseForceLanguage.initialize();
             CoreCourseModulePrefetchDelegate.initialize();
         }),
     ],

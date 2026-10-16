@@ -17,9 +17,9 @@ import { Injectable, Type } from '@angular/core';
 import { AddonModQuizMultichoiceQuestion } from '@features/question/classes/base-question-component';
 import { CoreQuestionQuestionParsed, CoreQuestionsAnswers } from '@features/question/services/question';
 import { CoreQuestionHandler } from '@features/question/services/question-delegate';
-import { CoreObject } from '@singletons/object';
+import { CoreObject } from '@static/object';
 import { makeSingleton, Translate } from '@singletons';
-import { CoreUtils } from '@singletons/utils';
+import { CoreUtils } from '@static/utils';
 import { QuestionCompleteGradableResponse } from '@features/question/constants';
 
 /**
@@ -52,7 +52,7 @@ export class AddonQtypeMultichoiceHandlerService implements CoreQuestionHandler 
 
         // To know if it's single or multi answer we need to search for answers with "choice" in the name.
         for (const name in answers) {
-            if (name.indexOf('choice') !== -1) {
+            if (name.includes('choice')) {
                 isSingle = false;
                 if (CoreUtils.isTrueOrOne(answers[name])) {
                     isMultiComplete = true;
@@ -122,7 +122,7 @@ export class AddonQtypeMultichoiceHandlerService implements CoreQuestionHandler 
 
         // To know if it's single or multi answer we need to search for answers with "choice" in the name.
         for (const name in newAnswers) {
-            if (name.indexOf('choice') !== -1) {
+            if (name.includes('choice')) {
                 isSingle = false;
                 if (!CoreObject.sameAtKeyMissingIsBlank(prevAnswers, newAnswers, name)) {
                     isMultiSame = false;

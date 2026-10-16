@@ -15,7 +15,7 @@
 import { Injectable } from '@angular/core';
 
 import { CoreSites } from '@services/sites';
-import { CoreMimetype } from '@singletons/mimetype';
+import { CoreMimetype } from '@static/mimetype';
 import { CoreWSExternalWarning } from '@services/ws';
 import { CoreSite } from '@classes/sites/site';
 import { makeSingleton } from '@singletons';
@@ -259,30 +259,6 @@ export class AddonPrivateFilesProvider {
         const site = await CoreSites.getSite(siteId);
 
         await site.invalidateWsCacheForKey(this.getPrivateFilesInfoCacheKey(userId || site.getUserId()));
-    }
-
-    /**
-     * Check if Files is disabled in a certain site.
-     *
-     * @param siteId Site Id. If not defined, use current site.
-     * @returns Promise resolved with true if disabled, rejected or resolved with false otherwise.
-     */
-    async isDisabled(siteId?: string): Promise<boolean> {
-        const site = await CoreSites.getSite(siteId);
-
-        return this.isDisabledInSite(site);
-    }
-
-    /**
-     * Check if Files is disabled in a certain site.
-     *
-     * @param site Site. If not defined, use current site.
-     * @returns Whether it's disabled.
-     */
-    isDisabledInSite(site: CoreSite): boolean {
-        site = site || CoreSites.getCurrentSite();
-
-        return site.isFeatureDisabled('CoreMainMenuDelegate_AddonPrivateFiles');
     }
 
     /**

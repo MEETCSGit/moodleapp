@@ -14,9 +14,9 @@
 
 import { Injectable } from '@angular/core';
 import { CoreDelegate, CoreDelegateHandler, CoreDelegateToDisplay } from '@classes/delegate';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { CoreSites } from '@services/sites';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import {
     CoreCourseAnyCourseData,
     CoreCourseAnyCourseDataWithOptions,
@@ -112,7 +112,7 @@ export interface CoreCourseOptionsMenuHandler extends CoreCourseOptionsHandler {
 /**
  * Data needed to render a course handler. It's returned by the handler.
  */
-export interface CoreCourseOptionsHandlerData {
+export type CoreCourseOptionsHandlerData = {
     /**
      * Title to display for the handler.
      */
@@ -132,12 +132,12 @@ export interface CoreCourseOptionsHandlerData {
      * Params to pass to the page (other than 'courseId' which is always sent).
      */
     pageParams?: Params;
-}
+};
 
 /**
  * Data needed to render a course menu handler. It's returned by the handler.
  */
-export interface CoreCourseOptionsMenuHandlerData {
+export type CoreCourseOptionsMenuHandlerData = {
     /**
      * Title to display for the handler.
      */
@@ -162,12 +162,12 @@ export interface CoreCourseOptionsMenuHandlerData {
      * Name of the icon to display for the handler.
      */
     icon: string; // Name of the icon to display in the tab.
-}
+};
 
 /**
  * Data returned by the delegate for each handler.
  */
-export interface CoreCourseOptionsHandlerToDisplay extends CoreDelegateToDisplay {
+export type CoreCourseOptionsHandlerToDisplay = CoreDelegateToDisplay & {
     /**
      * Data to display.
      */
@@ -180,12 +180,12 @@ export interface CoreCourseOptionsHandlerToDisplay extends CoreDelegateToDisplay
      * @returns Promise resolved when done.
      */
     prefetch?(course: CoreCourseAnyCourseData): Promise<void>;
-}
+};
 
 /**
  * Additional data returned if it is a menu item.
  */
-export interface CoreCourseOptionsMenuHandlerToDisplay {
+export type CoreCourseOptionsMenuHandlerToDisplay = {
     /**
      * Data to display.
      */
@@ -208,7 +208,7 @@ export interface CoreCourseOptionsMenuHandlerToDisplay {
      * @returns Promise resolved when done.
      */
     prefetch?(course: CoreCourseAnyCourseData): Promise<void>;
-}
+};
 
 /**
  * Service to interact with plugins to be shown in each course (participants, learning plans, ...).
@@ -363,8 +363,7 @@ export class CoreCourseOptionsDelegateService extends CoreDelegate<CoreCourseOpt
         refresh = false,
         isGuest = false,
     ): Promise<CoreCourseOptionsHandlerToDisplay[]> {
-        return this.getHandlersToDisplayInternal(false, course, refresh, isGuest) as
-            Promise<CoreCourseOptionsHandlerToDisplay[]>;
+        return this.getHandlersToDisplayInternal(false, course, refresh, isGuest);
     }
 
     /**
@@ -381,8 +380,7 @@ export class CoreCourseOptionsDelegateService extends CoreDelegate<CoreCourseOpt
         refresh = false,
         isGuest = false,
     ): Promise<CoreCourseOptionsMenuHandlerToDisplay[]> {
-        return this.getHandlersToDisplayInternal(true, course, refresh, isGuest) as
-            Promise<CoreCourseOptionsMenuHandlerToDisplay[]>;
+        return this.getHandlersToDisplayInternal(true, course, refresh, isGuest);
     }
 
     /**
@@ -395,6 +393,18 @@ export class CoreCourseOptionsDelegateService extends CoreDelegate<CoreCourseOpt
      * @param isGuest Whether user is using an ACCESS_GUEST enrolment method.
      * @returns Promise resolved with array of handlers.
      */
+    protected getHandlersToDisplayInternal(
+        menu: true,
+        course: CoreCourseAnyCourseData,
+        refresh?: boolean,
+        isGuest?: boolean,
+    ): Promise<CoreCourseOptionsMenuHandlerToDisplay[]>;
+    protected getHandlersToDisplayInternal(
+        menu: false,
+        course: CoreCourseAnyCourseData,
+        refresh?: boolean,
+        isGuest?: boolean,
+    ): Promise<CoreCourseOptionsHandlerToDisplay[]>;
     protected async getHandlersToDisplayInternal(
         menu: boolean,
         course: CoreCourseAnyCourseData,
@@ -406,7 +416,7 @@ export class CoreCourseOptionsDelegateService extends CoreDelegate<CoreCourseOpt
         const accessData = {
             type: isGuest ? CoreCourseAccessDataType.ACCESS_GUEST : CoreCourseAccessDataType.ACCESS_DEFAULT,
         };
-        const handlersToDisplay: CoreCourseOptionsHandlerToDisplay[] | CoreCourseOptionsMenuHandlerToDisplay[] = [];
+        const handlersToDisplay: (CoreCourseOptionsHandlerToDisplay | CoreCourseOptionsMenuHandlerToDisplay)[] = [];
 
         await this.loadCourseOptions(courseWithOptions, refresh);
 
@@ -421,7 +431,7 @@ export class CoreCourseOptionsDelegateService extends CoreDelegate<CoreCourseOpt
 
         const promises: Promise<void>[] = [];
 
-        const handlerList = menu
+        const handlerList: CoreCourseOptionsMenuHandler[] | CoreCourseOptionsHandler[] = menu
             ? this.coursesHandlers[course.id].enabledMenuHandlers
             : this.coursesHandlers[course.id].enabledHandlers;
 
@@ -436,7 +446,7 @@ export class CoreCourseOptionsDelegateService extends CoreDelegate<CoreCourseOpt
 
             promises.push(Promise.resolve(getFunction.call(handler, courseWithOptions)).then((data) => {
                 handlersToDisplay.push({
-                    data: data,
+                    data,
                     priority: handler.priority || 0,
                     prefetch: async (course) => await handler.prefetch?.(course),
                     name: handler.name,
@@ -451,105 +461,9 @@ export class CoreCourseOptionsDelegateService extends CoreDelegate<CoreCourseOpt
         await Promise.all(promises);
 
         // Sort them by priority.
-        handlersToDisplay.sort((
-            a: CoreCourseOptionsHandlerToDisplay | CoreCourseOptionsMenuHandlerToDisplay,
-            b: CoreCourseOptionsHandlerToDisplay | CoreCourseOptionsMenuHandlerToDisplay,
-        ) => (b.priority || 0) - (a.priority || 0));
+        handlersToDisplay.sort((a, b) => (b.priority || 0) - (a.priority || 0));
 
         return handlersToDisplay;
-    }
-
-    /**
-     * Get the handlers for a course using a certain access type.
-     *
-     * @param courseId The course ID.
-     * @param refresh True if it should refresh the list.
-     * @param accessData Access type and data. Default, guest, ...
-     * @param navOptions Course navigation options for current user. See CoreCoursesProvider.getUserNavigationOptions.
-     * @param admOptions Course admin options for current user. See CoreCoursesProvider.getUserAdministrationOptions.
-     * @returns Promise resolved with array of handlers.
-     * @deprecated since 4.4.
-     */
-    protected async hasHandlersForAccess(
-        courseId: number,
-        refresh: boolean,
-        accessData: CoreCourseAccess,
-        navOptions?: CoreCourseUserAdminOrNavOptionIndexed,
-        admOptions?: CoreCourseUserAdminOrNavOptionIndexed,
-    ): Promise<boolean> {
-        await this.updateHandlersForAccess(courseId, refresh, accessData, navOptions, admOptions);
-
-        const handlers = this.coursesHandlers[courseId].enabledHandlers;
-
-        return !!(handlers && handlers.length);
-    }
-
-    /**
-     * Check if a course has any handler enabled for default access, using course object.
-     *
-     * @param course The course object.
-     * @param refresh True if it should refresh the list.
-     * @returns Promise resolved with boolean: true if it has handlers, false otherwise.
-     * @deprecated since 4.4.
-     */
-    async hasHandlersForCourse(course: CoreCourseAnyCourseDataWithOptions, refresh = false): Promise<boolean> {
-        // Load course options if missing.
-        await this.loadCourseOptions(course, refresh);
-
-        // eslint-disable-next-line @typescript-eslint/no-deprecated
-        return this.hasHandlersForDefault(course.id, refresh, course.navOptions, course.admOptions);
-    }
-
-    /**
-     * Check if a course has any handler enabled for default access.
-     *
-     * @param courseId The course ID.
-     * @param refresh True if it should refresh the list.
-     * @param navOptions Course navigation options for current user. See CoreCoursesProvider.getUserNavigationOptions.
-     * @param admOptions Course admin options for current user. See CoreCoursesProvider.getUserAdministrationOptions.
-     * @returns Promise resolved with boolean: true if it has handlers, false otherwise.
-     * @deprecated since 4.4.
-     */
-    async hasHandlersForDefault(
-        courseId: number,
-        refresh = false,
-        navOptions?: CoreCourseUserAdminOrNavOptionIndexed,
-        admOptions?: CoreCourseUserAdminOrNavOptionIndexed,
-    ): Promise<boolean> {
-        // eslint-disable-next-line @typescript-eslint/no-deprecated
-        return await this.hasHandlersForAccess(
-            courseId,
-            refresh,
-            { type: CoreCourseAccessDataType.ACCESS_DEFAULT },
-            navOptions,
-            admOptions,
-        );
-    }
-
-    /**
-     * Check if a course has any handler enabled for guest access.
-     *
-     * @param courseId The course ID.
-     * @param refresh True if it should refresh the list.
-     * @param navOptions Course navigation options for current user. See CoreCoursesProvider.getUserNavigationOptions.
-     * @param admOptions Course admin options for current user. See CoreCoursesProvider.getUserAdministrationOptions.
-     * @returns Promise resolved with boolean: true if it has handlers, false otherwise.
-     * @deprecated since 4.4.
-     */
-    async hasHandlersForGuest(
-        courseId: number,
-        refresh = false,
-        navOptions?: CoreCourseUserAdminOrNavOptionIndexed,
-        admOptions?: CoreCourseUserAdminOrNavOptionIndexed,
-    ): Promise<boolean> {
-        // eslint-disable-next-line @typescript-eslint/no-deprecated
-        return await this.hasHandlersForAccess(
-            courseId,
-            refresh,
-            { type: CoreCourseAccessDataType.ACCESS_GUEST },
-            navOptions,
-            admOptions,
-        );
     }
 
     /**

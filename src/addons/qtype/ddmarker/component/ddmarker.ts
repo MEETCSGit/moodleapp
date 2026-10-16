@@ -20,8 +20,8 @@ import { CoreFilepool } from '@services/filepool';
 import { CoreSites } from '@services/sites';
 import { AddonQtypeDdMarkerQuestion } from '../classes/ddmarker';
 import { CoreSharedModule } from '@/core/shared.module';
-import { CoreWait } from '@singletons/wait';
-import { CoreText } from '@singletons/text';
+import { CoreWait } from '@static/wait';
+import { CoreText } from '@static/text';
 
 /**
  * Component to render a drag-and-drop markers question.
@@ -170,6 +170,9 @@ export class AddonQtypeDdMarkerComponent
         if (questionTextEl) {
             await CoreWait.waitForImages(questionTextEl.nativeElement);
         }
+
+        // Should not happen, but just in case we avoid creating duplicated instances.
+        this.questionInstance?.destroy();
 
         // Create the instance.
         this.questionInstance = new AddonQtypeDdMarkerQuestion(

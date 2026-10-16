@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Component, Input, OnInit, OnDestroy, inject, viewChildren } from '@angular/core';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { Component, Input, OnInit, OnDestroy, inject, viewChildren, signal, computed } from '@angular/core';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { CoreSites } from '@services/sites';
 import {
     AddonModAssignAssign,
@@ -23,7 +23,7 @@ import {
     AddonModAssignPlugin,
     AddonModAssign,
     AddonModAssignGetSubmissionStatusWSResponse,
-    AddonModAssignGrade,
+    AddonModAssignFeedbackPluginMultipleMarkers,
 } from '../../services/assign';
 import {
     AddonModAssignAutoSyncData,
@@ -31,19 +31,19 @@ import {
     AddonModAssignSync,
 } from '../../services/assign-sync';
 import { CoreSplitViewComponent } from '@components/split-view/split-view';
-import { CoreGradesFormattedItem, CoreGradesHelper } from '@features/grades/services/grades-helper';
+import { CoreGradesHelper } from '@features/grades/services/grades-helper';
 import { AddonModAssignHelper, AddonModAssignSubmissionFormatted } from '../../services/assign-helper';
 import { Translate } from '@singletons';
 import { CoreCourse } from '@features/course/services/course';
 import { AddonModAssignOffline } from '../../services/assign-offline';
 import { CoreUser, CoreUserProfile } from '@features/user/services/user';
-import { CoreTime } from '@singletons/time';
+import { CoreTime } from '@static/time';
 import { CoreNavigator } from '@services/navigator';
 import { CoreNetwork } from '@services/network';
 import { CoreFileUploaderHelper } from '@features/fileuploader/services/fileuploader-helper';
 import { CoreGroups } from '@services/groups';
 import { AddonModAssignSubmissionPluginComponent } from '../submission-plugin/submission-plugin';
-import { CoreIonicColorNames } from '@singletons/colors';
+import { CoreIonicColorNames } from '@static/colors';
 import {
     ADDON_MOD_ASSIGN_AUTO_SYNCED,
     ADDON_MOD_ASSIGN_COMPONENT_LEGACY,
@@ -58,13 +58,14 @@ import {
 } from '../../constants';
 import { CoreViewer } from '@features/viewer/services/viewer';
 import { CoreLoadings } from '@services/overlays/loadings';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { AddonModAssignFeedbackPluginComponent } from '../feedback-plugin/feedback-plugin';
 import { CoreSharedModule } from '@/core/shared.module';
 import { CoreCourseModuleNavigationComponent } from '@features/course/components/module-navigation/module-navigation';
 import { CoreModals } from '@services/overlays/modals';
-import { CoreUtils } from '@singletons/utils';
+import { CoreUtils } from '@static/utils';
+import { CoreAnyError } from '@classes/errors/error';
 
 /**
  * Component that displays an assignment submission.
@@ -121,9 +122,26 @@ export class AddonModAssignSubmissionComponent implements OnInit, OnDestroy {
     submissionStatusBadge?: StatusBadge;
     unsupportedEditPlugins: string[] = []; // List of submission plugins that don't support edit.
 
-    grader?: CoreUserProfile; // Profile of the teacher that graded the submission.
+    readonly graders = signal<CoreUserProfile[]>([]); // Profile of the teachers that graded the submission.
     canGrade = false; // Whether the user is grading.
     canSaveGrades = false; // Whether the user can save the grades.
+    readonly hasMultipleMarkers = signal(false); // Whether the assignment has multiple markers.
+
+    readonly feedbackPlugins = signal<AddonModAssignFeedbackPluginMultipleMarkers[]>([]); // List of feedback plugins.
+
+    readonly hasMultipleMarkersWithFeedback = computed(() => {
+        if (!this.hasMultipleMarkers()) {
+            return false;
+        }
+
+        // In Moodle 5.2 there can be multiple markers but no feedback for markers, so we support that case for students.
+        // In Moodle 5.3 is when we don't support multiple markers with feedback on previous attempts.
+        const site = CoreSites.getRequiredCurrentSite();
+
+        return site.isVersionGreaterEqualThan('5.3');
+    });
+
+    modUrl?: string; // URL to the module in browser.
     gradeUrl?: string; // URL to grade in browser.
     submissionUrl?: string; // URL to add/edit a submission in browser.
     isPreviousAttemptEmpty = true; // Whether the previous attempt contains an empty submission.
@@ -156,7 +174,7 @@ export class AddonModAssignSubmissionComponent implements OnInit, OnDestroy {
             events,
             async (data) => {
                 // Check that user is grading and this grade wasn't blocked when sync was performed.
-                if (!this.loaded || !this.canGrade || data.gradesBlocked.indexOf(this.submitId) !== -1) {
+                if (!this.loaded || !this.canGrade || data.gradesBlocked.includes(this.submitId)) {
                     return;
                 }
 
@@ -291,7 +309,7 @@ export class AddonModAssignSubmissionComponent implements OnInit, OnDestroy {
 
         try {
             // Confirm action.
-            await CoreFileUploaderHelper.confirmUploadFile(size, true);
+            await CoreFileUploaderHelper.confirmUploadFile(size);
         } catch {
             // Cancelled.
             return;
@@ -317,7 +335,7 @@ export class AddonModAssignSubmissionComponent implements OnInit, OnDestroy {
                 await this.invalidateAndRefresh(true);
             }
         } catch (error) {
-            CoreAlerts.showError(error, { default: Translate.instant('core.error') });
+            CoreAlerts.showError(error as CoreAnyError, { default: Translate.instant('core.error') });
         } finally {
             modal.dismiss();
         }
@@ -387,7 +405,7 @@ export class AddonModAssignSubmissionComponent implements OnInit, OnDestroy {
                 CoreSites.getCurrentSiteId(),
             );
         } catch (error) {
-            CoreAlerts.showError(error, { default: 'Error removing submission.' });
+            CoreAlerts.showError(error as CoreAnyError, { default: 'Error removing submission.' });
         } finally {
             modal.dismiss();
         }
@@ -450,6 +468,10 @@ export class AddonModAssignSubmissionComponent implements OnInit, OnDestroy {
             // Get the assignment.
             this.assign = await AddonModAssign.getAssignment(this.courseId, this.moduleId);
 
+            // Load the URL to grade it in browser.
+            const mod = await CoreCourse.getModule(this.moduleId, this.courseId, undefined, true);
+            this.modUrl = mod.url;
+
             if (this.submitId !== this.currentUserId && sync) {
                 // Teacher viewing a student submission. Try to sync the assign, there could be offline grades stored.
                 try {
@@ -477,8 +499,10 @@ export class AddonModAssignSubmissionComponent implements OnInit, OnDestroy {
             }
 
             this.blindMarking = this.isSubmittedForGrading && !!this.assign.blindmarking && !this.assign.revealidentities;
+            this.hasMultipleMarkers.set(!!this.assign.markingworkflow && !!this.assign.markingallocation &&
+                this.assign.markercount !== undefined && this.assign.markercount > 1);
 
-            if (!this.blindMarking && this.submitId != this.currentUserId) {
+            if (!this.blindMarking && this.submitId !== this.currentUserId) {
                 promises.push(this.loadSubmissionUserProfile());
             }
 
@@ -506,7 +530,7 @@ export class AddonModAssignSubmissionComponent implements OnInit, OnDestroy {
                 attempt.submissionStatusBadge = this.getSubmissionStatusBadge(attempt.submission?.status, this.lastAttempt);
 
                 // If we have data about the grader, get its profile.
-                attempt.grader = await this.getGrader(attempt.grade);
+                attempt.grader = await this.getGrader(attempt.grade?.grader);
                 attempt.advancedgrade = this.getAdvancedGrade(attempt.grade?.gradefordisplay);
                 attempt.penalty = CoreGradesHelper.getPenaltyFromGrade(attempt.grade?.gradefordisplay);
             });
@@ -544,7 +568,7 @@ export class AddonModAssignSubmissionComponent implements OnInit, OnDestroy {
 
             await Promise.all(promises);
         } catch (error) {
-            CoreAlerts.showError(error, { default: 'Error getting assigment data.' });
+            CoreAlerts.showError(error as CoreAnyError, { default: 'Error getting assigment data.' });
         } finally {
             this.loaded = true;
         }
@@ -588,14 +612,31 @@ export class AddonModAssignSubmissionComponent implements OnInit, OnDestroy {
      */
     protected async loadFeedback(assign: AddonModAssignAssign, feedback?: AddonModAssignSubmissionFeedback): Promise<void> {
         this.feedback = feedback;
-
         if (this.feedback) {
+            const graders: CoreUserProfile[] = [];
             // If we have data about the grader, get its profile.
-            this.grader = await this.getGrader(this.feedback.grade);
+            if (this.feedback.markerfeedback && this.feedback.markerfeedback.length > 0) {
+                const markerGraders = await Promise.all(this.feedback.markerfeedback.map(async (markerFeedback) => {
+                    if (markerFeedback.markerid > 0) {
+                        return this.getGrader(markerFeedback.markerid);
+                    }
 
+                    return undefined;
+                }));
+                graders.push(...markerGraders.filter((grader: CoreUserProfile | undefined) => !!grader));
+            } else {
+                const grader = await this.getGrader(this.feedback.grade?.grader);
+                if (grader) {
+                    graders.push(grader);
+                }
+            }
+            this.graders.set(graders);
             // Check if the grade uses advanced grading.
             this.feedback.advancedgrade = this.getAdvancedGrade(this.feedback.gradefordisplay);
             this.feedback.penalty = CoreGradesHelper.getPenaltyFromGrade(this.feedback.gradefordisplay);
+
+            const feedbackPlugins = AddonModAssignHelper.mergeFeedbackPluginsWithMultipleMarkers(this.feedback);
+            this.feedbackPlugins.set(feedbackPlugins);
         }
 
         // Get the grade for the assign.
@@ -643,15 +684,16 @@ export class AddonModAssignSubmissionComponent implements OnInit, OnDestroy {
             }
         }
 
-        // Check if there's any offline data for this submission.
-        if (!this.canSaveGrades) {
-            // User cannot save grades in the app. Load the URL to grade it in browser.
-            const mod = await CoreCourse.getModule(this.moduleId, this.courseId, undefined, true);
-            this.gradeUrl = `${mod.url}&action=grader&userid=${this.submitId}`;
+        if (!this.canSaveGrades || this.hasMultipleMarkers()) {
+            // User cannot save grades in the app.
+            if (this.modUrl) {
+                this.gradeUrl = `${this.modUrl}&action=grader&userid=${this.submitId}`;
+            }
 
             return;
         }
 
+        // Check if there's any offline data for this submission.
         // Submission grades aren't identified by attempt number so it can retrieve the feedback for a previous attempt.
         // The app will not treat that as an special case.
         const submissionGrade = await CorePromiseUtils.ignoreErrors(
@@ -660,46 +702,38 @@ export class AddonModAssignSubmissionComponent implements OnInit, OnDestroy {
 
         this.hasOfflineGrade = false;
 
-        let gradeModified = 0;
-        const gradebookGrades = await CoreGradesHelper.getGradeModuleItems(this.courseId, this.moduleId, this.submitId);
-        gradebookGrades.forEach((grade: CoreGradesFormattedItem) => {
-            if (!grade.outcomeid && !grade.scaleid) {
-                gradeModified = grade.gradedategraded ?? gradeModified;
-            }
-        });
-
-        // Load offline grades.
+        // Load offline grades. Do not use offline if feedback was modified after the offline grade was stored.
         if (submissionGrade && (!feedback || !feedback.gradeddate || feedback.gradeddate < submissionGrade.timemodified)) {
-            // If grade has been modified from gradebook, do not use offline.
-            if (gradeModified < submissionGrade.timemodified) {
-                let gradeForDisplay: string;
-                if (gradeInfo.scale) {
-                    const scale = CoreUtils.makeMenuFromList(gradeInfo.scale, Translate.instant('core.nograde'), ',', -1);
-                    const scaleItem = scale.find(scaleItem => scaleItem.value === submissionGrade.grade);
-                    gradeForDisplay = scaleItem?.label ?? String(submissionGrade.grade);
-                } else {
-                    gradeForDisplay = CoreUtils.formatFloat(submissionGrade.grade);
-                }
-
-                if (!this.feedback) {
-                    this.feedback = {
-                        gradefordisplay: gradeForDisplay,
-                        gradeddate: gradeModified,
-                        plugins: AddonModAssignHelper.getPluginsEnabled(assign, 'assignfeedback'),
-                    };
-                } else {
-                    this.feedback.gradefordisplay = gradeForDisplay;
-                    this.feedback.gradeddate = gradeModified;
-                }
-
-                this.grader = await CorePromiseUtils.ignoreErrors(CoreUser.getProfile(this.currentUserId, this.courseId));
-
-                this.hasOfflineGrade = true;
-                this.gradingStatusBadge = {
-                    translationId: 'addon.mod_assign.gradenotsynced',
-                    color: CoreIonicColorNames.NONE,
-                };
+            let gradeForDisplay: string;
+            if (gradeInfo.scale) {
+                const scale = CoreUtils.makeMenuFromList(gradeInfo.scale, Translate.instant('core.nograde'), ',', -1);
+                const scaleItem = scale.find(scaleItem => scaleItem.value === submissionGrade.grade);
+                gradeForDisplay = scaleItem?.label ?? String(submissionGrade.grade);
+            } else {
+                gradeForDisplay = CoreUtils.formatFloat(submissionGrade.grade);
             }
+
+            if (!this.feedback) {
+                this.feedback = {
+                    gradefordisplay: gradeForDisplay,
+                    gradeddate: submissionGrade.timemodified,
+                };
+                this.feedbackPlugins.set(AddonModAssignHelper.getPluginsEnabled(assign, 'assignfeedback'));
+            } else {
+                this.feedback.gradefordisplay = gradeForDisplay;
+                this.feedback.gradeddate = submissionGrade.timemodified;
+            }
+
+            const grader = await CorePromiseUtils.ignoreErrors(CoreUser.getProfile(this.currentUserId, this.courseId));
+            if (grader) {
+                this.graders.set([grader]);
+            }
+
+            this.hasOfflineGrade = true;
+            this.gradingStatusBadge = {
+                translationId: 'addon.mod_assign.gradenotsynced',
+                color: CoreIonicColorNames.NONE,
+            };
         }
     }
 
@@ -842,7 +876,7 @@ export class AddonModAssignSubmissionComponent implements OnInit, OnDestroy {
                     userId: this.currentUserId,
                 }, this.siteId);
             } catch (error) {
-                CoreAlerts.showError(error, { default: Translate.instant('core.error') });
+                CoreAlerts.showError(error as CoreAnyError, { default: Translate.instant('core.error') });
             } finally {
                 modal.dismiss();
             }
@@ -883,7 +917,7 @@ export class AddonModAssignSubmissionComponent implements OnInit, OnDestroy {
         this.isRemoveAvailable = AddonModAssign.isRemoveSubmissionAvailable();
 
         // Get submission statement if needed.
-        if (this.assign.requiresubmissionstatement && this.assign.submissiondrafts && this.submitId == this.currentUserId) {
+        if (this.assign.requiresubmissionstatement && this.assign.submissiondrafts && this.submitId === this.currentUserId) {
             this.submissionStatement = this.assign.submissionstatement;
             this.acceptStatement = false;
         } else {
@@ -893,7 +927,7 @@ export class AddonModAssignSubmissionComponent implements OnInit, OnDestroy {
 
         // Show error if submission statement should be shown but it couldn't be retrieved.
         this.showErrorStatementEdit = submissionStatementMissing && !this.assign.submissiondrafts &&
-            this.submitId == this.currentUserId;
+            this.submitId === this.currentUserId;
 
         this.showErrorStatementSubmit = submissionStatementMissing && !!this.assign.submissiondrafts;
 
@@ -997,15 +1031,15 @@ export class AddonModAssignSubmissionComponent implements OnInit, OnDestroy {
     /**
      * Get grader user info.
      *
-     * @param grade Grade to get the grader from.
+     * @param graderId Grader id to get the grader from.
      * @returns Promise resolved with the grader user info or undefined if not found.
      */
-    protected async getGrader(grade?: AddonModAssignGrade): Promise<CoreUserProfile | undefined> {
-        if (!grade || grade.grader <= 0) {
+    protected async getGrader(graderId?: number): Promise<CoreUserProfile | undefined> {
+        if (!graderId || graderId <= 0) {
             return;
         }
 
-        return await CorePromiseUtils.ignoreErrors(CoreUser.getProfile(grade.grader, this.courseId));
+        return await CorePromiseUtils.ignoreErrors(CoreUser.getProfile(graderId, this.courseId));
     }
 
     /**
@@ -1016,21 +1050,14 @@ export class AddonModAssignSubmissionComponent implements OnInit, OnDestroy {
      */
     protected getAdvancedGrade(gradeForDisplay?: string): boolean {
         // Check if the grade uses advanced grading.
-        if (gradeForDisplay) {
-            const position = gradeForDisplay.indexOf('class="advancedgrade"');
-            if (position > -1) {
-                return true;
-            }
-        }
-
-        return false;
+        return !!gradeForDisplay && gradeForDisplay.includes('class="advancedgrade"');
     }
 
     /**
      * @inheritdoc
      */
     ngOnDestroy(): void {
-        this.syncObserver?.off();
+        this.syncObserver.off();
     }
 
 }

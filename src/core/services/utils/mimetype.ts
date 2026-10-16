@@ -16,7 +16,7 @@ import { Injectable } from '@angular/core';
 import { CoreFileEntry } from '@services/file-helper';
 import { CoreSites } from '@services/sites';
 import { makeSingleton } from '@singletons';
-import { CoreMimetype } from '@singletons/mimetype';
+import { CoreMimetype } from '@static/mimetype';
 
 interface MimeTypeGroupInfo {
     mimetypes: string[];
@@ -194,8 +194,8 @@ export class CoreMimetypeUtilsProvider {
      * @deprecated since 5.0. Use CoreMimetype.getGroupMimeInfo instead.
      */
     getGroupMimeInfo(group: string): MimeTypeGroupInfo;
-    getGroupMimeInfo(group: string, field: string): string[] | undefined;
-    getGroupMimeInfo(group: string, field?: string): MimeTypeGroupInfo | string[] | undefined {
+    getGroupMimeInfo(group: string, field: keyof MimeTypeGroupInfo): string[] | undefined;
+    getGroupMimeInfo(group: string, field?: keyof MimeTypeGroupInfo): MimeTypeGroupInfo | string[] | undefined {
         if (!field) {
             return CoreMimetype.getGroupMimeInfo(group);
         }

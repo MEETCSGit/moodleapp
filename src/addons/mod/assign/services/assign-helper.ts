@@ -24,19 +24,23 @@ import {
     AddonModAssign,
     AddonModAssignPlugin,
     AddonModAssignSavePluginData,
+    AddonModAssignFeedbackPluginMultipleMarker,
+    AddonModAssignFeedbackPluginMultipleMarkers,
 } from './assign';
 import { AddonModAssignOffline } from './assign-offline';
-import { CoreObject } from '@singletons/object';
+import { CoreObject } from '@static/object';
 import { CoreFile } from '@services/file';
 import { CoreCourseCommonModWSOptions } from '@features/course/services/course';
 import { CoreGroups } from '@services/groups';
 import { AddonModAssignSubmissionDelegate } from './submission-delegate';
 import { AddonModAssignFeedbackDelegate } from './feedback-delegate';
-import { makeSingleton } from '@singletons';
-import { CoreFormFields } from '@singletons/form';
+import { makeSingleton, Translate } from '@singletons';
+import { CoreFormFields } from '@static/form';
 import { CoreFileEntry } from '@services/file-helper';
 import { ADDON_MOD_ASSIGN_COMPONENT_LEGACY, AddonModAssignSubmissionStatusValues } from '../constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreUser } from '@features/user/services/user';
+import { CoreWSFile } from '@services/ws';
 
 /**
  * Service that provides some helper functions for assign.
@@ -257,7 +261,7 @@ export class AddonModAssignHelperProvider {
         // If no participants returned and all groups specified, get participants by groups.
         const groupsInfo = await CoreGroups.getActivityGroupInfo(assign.cmid, false, undefined, modOptions.siteId);
 
-        const participantsIndexed: {[id: number]: AddonModAssignParticipant} = {};
+        const participantsIndexed: { [id: number]: AddonModAssignParticipant } = {};
 
         const promises = groupsInfo.groups
             ? groupsInfo.groups.map((userGroup) =>
@@ -269,7 +273,7 @@ export class AddonModAssignHelperProvider {
 
                     return;
                 }))
-            :[];
+            : [];
 
         await Promise.all(promises);
 
@@ -288,7 +292,7 @@ export class AddonModAssignHelperProvider {
         const configs: AddonModAssignPluginConfig = {};
 
         assign.configs.forEach((config) => {
-            if (config.subtype == subtype && config.plugin == type) {
+            if (config.subtype === subtype && config.plugin === type) {
                 configs[config.name] = config.value;
             }
         });
@@ -307,7 +311,7 @@ export class AddonModAssignHelperProvider {
         const enabled: AddonModAssignPlugin[] = [];
 
         assign.configs.forEach((config) => {
-            if (config.subtype == subtype && config.name == 'enabled' && parseInt(config.value, 10) === 1) {
+            if (config.subtype === subtype && config.name === 'enabled' && parseInt(config.value, 10) === 1) {
                 // Format the plugin objects.
                 enabled.push({
                     type: config.plugin,
@@ -416,7 +420,7 @@ export class AddonModAssignHelperProvider {
 
         if (teamsubmission) {
             // On team submission discard user submissions.
-            submissions = submissions.filter((submission) => submission.userid == 0);
+            submissions = submissions.filter((submission) => submission.userid === 0);
         }
 
         return participants.map((participant) => {
@@ -425,12 +429,12 @@ export class AddonModAssignHelperProvider {
 
             const foundSubmission = submissions.find((submission) => {
                 if (teamsubmission) {
-                    return submission.groupid == groupId;
+                    return submission.groupid === groupId;
                 }
 
                 const submitId = submission.userid && submission.userid > 0 ? submission.userid : submission.blindid;
 
-                return participant.id == submitId;
+                return participant.id === submitId;
             });
 
             let submission: AddonModAssignSubmissionFormatted | undefined;
@@ -456,7 +460,7 @@ export class AddonModAssignHelperProvider {
             }
 
             submission.manyGroups = !!participant.groups && participant.groups.length > 1;
-            submission.noGroups = !!participant.groups && participant.groups.length == 0;
+            submission.noGroups = !!participant.groups && participant.groups.length === 0;
             if (participant.groupname) {
                 submission.groupid = participant.groupid ?? 0;
                 submission.groupname = participant.groupname;
@@ -773,13 +777,244 @@ export class AddonModAssignHelperProvider {
         return this.uploadFiles(assignId, files, siteId);
     }
 
+    /**
+     * Merge feedback plugins with multiple markers.
+     *
+     * @param feedback Feedback object containing plugins and marker feedback.
+     * @returns List of feedback plugins with multiple markers merged.
+     */
+    mergeFeedbackPluginsWithMultipleMarkers(
+        feedback: AddonModAssignSubmissionFeedback,
+    ): AddonModAssignFeedbackPluginMultipleMarkers[] {
+
+        const plugins: AddonModAssignFeedbackPluginMultipleMarkers [] = feedback.plugins || [];
+        const markerFeedback = feedback.markerfeedback || [];
+        if (markerFeedback.length > 0 && feedback.plugins?.length) {
+            feedback.plugins.forEach((plugin: AddonModAssignFeedbackPluginMultipleMarkers) => {
+                const multipleMarkers: AddonModAssignFeedbackPluginMultipleMarker[] = [];
+                markerFeedback.forEach((mf) => {
+                    const multipleMarker = mf.plugins?.find((mfPlugin) => mfPlugin.type === plugin.type);
+                    if (multipleMarker) {
+                        multipleMarkers.push({
+                            markerid: mf.markerid,
+                            position: mf.position,
+                            workflowstate: mf.workflowstate,
+                            ...multipleMarker,
+                        });
+                    }
+                });
+                plugin.multiplemarkers = multipleMarkers;
+            });
+        }
+
+        return plugins;
+    }
+
+    /**
+     * Get text of a submission plugin.
+     *
+     * @param pluginInfo Plugin info.
+     * @param options Options for retrieving the plugin text.
+     * @param options.keepUrls True if it should keep original URLs, false if they should be replaced.
+     * @param options.translations Object containing translation keys for the marker, hidden marker, and overall comments.
+     * @param options.translations.markerTranslationKey Translation key for the title of the marker comment.
+     * @param options.translations.hiddenMarkerTranslationKey Translation key for the title of the hidden marker comment.
+     * @param options.translations.overallTranslationKey Translation key for the title of the overall comment.
+     * @returns Submission text.
+     */
+    protected async getPluginTextWithMarker(
+        pluginInfo: AddonModAssignFeedbackPluginMultipleMarker | AddonModAssignPlugin,
+        options: {
+            keepUrls?: boolean;
+            translations?: {
+                markerTranslationKey?: string;
+                hiddenMarkerTranslationKey?: string;
+                overallTranslationKey?: string;
+            };
+        } = {},
+    ): Promise<string> {
+        const { keepUrls, translations } = options;
+        const text = AddonModAssign.getSubmissionPluginText(pluginInfo, keepUrls);
+        if (!text) {
+            return '';
+        }
+
+        if (translations) {
+            let title: string | undefined;
+            if ('markerid' in pluginInfo) {
+                if (pluginInfo.markerid > 0 && translations.markerTranslationKey) {
+                    const user = await CorePromiseUtils.ignoreErrors(CoreUser.getProfile(pluginInfo.markerid, undefined, true));
+                    const graderName = user?.fullname ?? '';
+
+                    if (graderName && translations.markerTranslationKey) {
+                        title = Translate.instant(translations.markerTranslationKey, { $a: graderName });
+                    }
+                }
+
+                if (!title && translations.hiddenMarkerTranslationKey) {
+                    title = Translate.instant(translations.hiddenMarkerTranslationKey, { $a: pluginInfo.position });
+                }
+            } else if (translations.overallTranslationKey) {
+                title = Translate.instant(translations.overallTranslationKey);
+            }
+
+            if (title) {
+                return `<h2 style="font: var(--mdl-typography-heading5-font);">${title}</h2><div>${text}</div>`;
+            }
+        }
+
+        return `<div>${text}</div>`;
+    }
+
+    /**
+     * Get text of a submission plugin.
+     *
+     * @param pluginInfo Plugin info.
+     * @param options Object containing options for retrieving the plugin text.
+     * @param options.markerFeedbacks List of marker feedbacks for the plugin.
+     * @param options.keepUrls True if it should keep original URLs, false if they should be replaced.
+     * @param options.translations Object containing translation keys for the marker, hidden marker, and overall comments.
+     * @param options.translations.markerTranslationKey Translation key for the title of the marker comment.
+     * @param options.translations.hiddenMarkerTranslationKey Translation key for the title of the hidden marker comment.
+     * @param options.translations.overallTranslationKey Translation key for the title of the overall comment.
+     * @returns Submission text.
+     */
+    async getPluginExpandedText(
+        pluginInfo: AddonModAssignPlugin,
+        options: {
+            markerFeedbacks?: AddonModAssignFeedbackPluginMultipleMarker[];
+            keepUrls?: boolean;
+            translations?: {
+                markerTranslationKey?: string;
+                hiddenMarkerTranslationKey?: string;
+                overallTranslationKey?: string;
+            };
+        } = {},
+    ): Promise<string> {
+        const { markerFeedbacks, keepUrls, translations } = options;
+
+        if (!markerFeedbacks || markerFeedbacks.length === 0) {
+            return AddonModAssign.getSubmissionPluginText(
+                pluginInfo,
+                keepUrls,
+            );
+        }
+
+        const expandedTexts = await Promise.all(markerFeedbacks?.map(async (markerFeedback) =>
+            await this.getPluginTextWithMarker(
+                markerFeedback,
+                { keepUrls, translations },
+            )));
+
+        const overallText = await this.getPluginTextWithMarker(
+            pluginInfo,
+            { keepUrls, translations },
+        );
+        expandedTexts.push(overallText);
+
+        return expandedTexts.join('');
+    }
+
+    /**
+     * Get attachments of a plugin with marker titles.
+     *
+     * @param pluginInfo Plugin information.
+     * @param markerFeedbacks Marker feedbacks.
+     * @param translations Translations for marker titles.
+     * @param translations.markerTranslationKey Translation key for the title of the marker.
+     * @param translations.hiddenMarkerTranslationKey Translation key for the title of the hidden marker.
+     * @param translations.overallTranslationKey Translation key for the title of the overall comment.
+     * @param filterFileAreas List of file areas to include. If not defined, all file areas are included.
+     * @param filterFileAreas.overallFileAreas List of overall file areas to include.
+     * @param filterFileAreas.markerFileAreas List of marker file areas to include.
+     * @returns List of attachments with their titles.
+     */
+    async getPluginAttachmentsWithMarkerTitles(
+        pluginInfo: AddonModAssignPlugin,
+        markerFeedbacks?: AddonModAssignFeedbackPluginMultipleMarker[],
+        translations: {
+            markerTranslationKey?: string;
+            hiddenMarkerTranslationKey?: string;
+            overallTranslationKey?: string;
+        } = {},
+        filterFileAreas: {
+            overallFileAreas?: string[];
+            markerFileAreas?: string[];
+        } = {},
+    ): Promise<AddonModAssignMarkerFiles[]> {
+        const overallFiles = AddonModAssign.getSubmissionPluginAttachments(pluginInfo, filterFileAreas.overallFileAreas);
+        const markerFiles: AddonModAssignMarkerFiles[] = [];
+        if (markerFeedbacks && markerFeedbacks.length > 0) {
+            const markerAttachments = await Promise.all(markerFeedbacks.map(async (markerFeedback) => {
+                let title: string | undefined;
+
+                const files = AddonModAssign.getSubmissionPluginAttachments(markerFeedback, filterFileAreas.markerFileAreas);
+                if (files.length === 0) {
+                    return;
+                }
+
+                if (markerFeedback.markerid > 0) {
+                    const user = await CorePromiseUtils.ignoreErrors(CoreUser.getProfile(markerFeedback.markerid, undefined, true));
+                    const graderName = user?.fullname;
+
+                    if (graderName && translations.markerTranslationKey) {
+                        title = Translate.instant(translations.markerTranslationKey, { $a: graderName });
+                    }
+                }
+
+                if (!title && translations.hiddenMarkerTranslationKey) {
+                    title = Translate.instant(translations.hiddenMarkerTranslationKey, { $a: markerFeedback.position });
+                }
+
+                return { title, files, position: markerFeedback.position };
+            }));
+            markerFiles.push(...markerAttachments.filter((attachment) => attachment !== undefined));
+
+            if (overallFiles.length > 0) {
+                const maxPosition = Math.max(...markerFiles.map(markerFeedback => markerFeedback.position));
+
+                const title = translations.overallTranslationKey
+                    ? Translate.instant(translations.overallTranslationKey)
+                    : undefined;
+                markerFiles.push({ title, files: overallFiles, position: maxPosition + 1 });
+            }
+
+            return markerFiles;
+        }
+
+        // No multiple markers.
+        return [{ files: overallFiles, position: 0 }];
+    }
+
+    /**
+     * Get attachments of a submission plugin.
+     *
+     * @param submissionPlugin Submission plugin.
+     * @param filterFileAreas List of file areas to include. If not defined, all file areas are included.
+     * @returns Submission plugin attachments.
+     */
+    getSubmissionPluginAttachmentsWithMultipleMarkers(
+        submissionPlugin: AddonModAssignFeedbackPluginMultipleMarkers,
+        filterFileAreas?: string[],
+    ): CoreWSFile[] {
+        const files = AddonModAssign.getSubmissionPluginAttachments(submissionPlugin, filterFileAreas);
+
+        submissionPlugin.multiplemarkers?.forEach((marker) => {
+            const markerFiles = AddonModAssign.getSubmissionPluginAttachments(marker, filterFileAreas);
+
+            files.push(...markerFiles);
+        });
+
+        return files;
+    }
+
 }
 export const AddonModAssignHelper = makeSingleton(AddonModAssignHelperProvider);
 
 /**
  * Assign submission with some calculated data.
  */
-export interface AddonModAssignSubmissionFormatted extends AddonModAssignSubmission {
+export type AddonModAssignSubmissionFormatted = AddonModAssignSubmission & {
     blindid?: number; // Calculated in the app. Blindid of the user that did the submission.
     submitid?: number; // Calculated in the app. Userid or blindid of the user that did the submission.
     userfullname?: string; // Calculated in the app. Full name of the user that did the submission.
@@ -787,9 +1022,11 @@ export interface AddonModAssignSubmissionFormatted extends AddonModAssignSubmiss
     manyGroups?: boolean; // Calculated in the app. Whether the user belongs to more than 1 group.
     noGroups?: boolean; // Calculated in the app. Whether the user doesn't belong to any group.
     groupname?: string; // Calculated in the app. Name of the group the submission belongs to.
-}
+};
 
 /**
  * Assignment plugin config.
  */
-export type AddonModAssignPluginConfig = {[name: string]: string};
+export type AddonModAssignPluginConfig = { [name: string]: string };
+
+export type AddonModAssignMarkerFiles = { title?: string; files: CoreWSFile[]; position: number };

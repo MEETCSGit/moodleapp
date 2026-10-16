@@ -37,18 +37,15 @@ import {
     CoreCourseSection,
 } from '@features/course/services/course-helper';
 import { CoreCourseFormatDelegate } from '@features/course/services/format-delegate';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { AccordionGroupChangeEventDetail, IonContent } from '@ionic/angular';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreCourseIndexSectionWithModule } from '../course-index/course-index';
 import { CoreBlockHelper } from '@features/block/services/block-helper';
 import { CoreNavigator } from '@services/navigator';
 import { CoreCourseModuleDelegate } from '@features/course/services/module-delegate';
 import { CoreCourseViewedModulesDBRecord } from '@features/course/services/database/course';
-import { CoreUserToursAlignment, CoreUserToursSide } from '@features/usertours/services/user-tours';
-import { CoreCourseCourseIndexTourComponent } from '../course-index-tour/course-index-tour';
-import { CoreDom } from '@singletons/dom';
-import { CoreUserTourDirectiveOptions } from '@directives/user-tour';
+import { CoreDom } from '@static/dom';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
 import { ContextLevel } from '@/core/constants';
 import { CoreModals } from '@services/overlays/modals';
@@ -59,15 +56,18 @@ import {
     CORE_COURSE_ALL_SECTIONS_ID,
     CORE_COURSE_ALL_SECTIONS_PREFERRED_PREFIX,
     CORE_COURSE_EXPANDED_SECTIONS_PREFIX,
+    CORE_COURSE_SELECT_TAB,
     CORE_COURSE_STEALTH_MODULES_SECTION_ID,
 } from '@features/course/constants';
 import { toBoolean } from '@/core/transforms/boolean';
 import { CoreInfiniteLoadingComponent } from '@components/infinite-loading/infinite-loading';
 import { CoreSite } from '@classes/sites/site';
 import { CoreCourseSectionComponent, CoreCourseSectionToDisplay } from '../course-section/course-section';
+import { CoreCourseSectionNavButtonsComponent } from '../section-nav-buttons/section-nav-buttons';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreCourseModuleHelper } from '@features/course/services/course-module-helper';
 import { ADDON_STORAGE_MANAGER_PAGE_NAME } from '@addons/storagemanager/constants';
+import { CoreCourseFormatDynamicComponent } from '@features/course/classes/base-course-format-component';
 
 /**
  * Component to display course contents using a certain format. If the format isn't found, use default one.
@@ -87,6 +87,7 @@ import { ADDON_STORAGE_MANAGER_PAGE_NAME } from '@addons/storagemanager/constant
         CoreSharedModule,
         CoreCourseSectionComponent,
         CoreBlockSideBlocksButtonComponent,
+        CoreCourseSectionNavButtonsComponent,
     ],
 })
 export class CoreCourseFormatComponent implements OnInit, OnChanges, OnDestroy {
@@ -108,31 +109,18 @@ export class CoreCourseFormatComponent implements OnInit, OnChanges, OnDestroy {
     accordionMultipleValue: string[] = [];
 
     // All the possible component classes.
-    courseFormatComponent?: Type<unknown>;
-    singleSectionComponent?: Type<unknown>;
-    allSectionsComponent?: Type<unknown>;
+    courseFormatComponent?: Type<CoreCourseFormatDynamicComponent>;
+    singleSectionComponent?: Type<CoreCourseFormatDynamicComponent>;
+    allSectionsComponent?: Type<CoreCourseFormatDynamicComponent>;
 
     canLoadMore = false;
     lastShownSectionIndex = 0;
     data: Record<string, unknown> = {}; // Data to pass to the components.
-    courseIndexTour: CoreUserTourDirectiveOptions = {
-        id: 'course-index',
-        component: CoreCourseCourseIndexTourComponent,
-        side: CoreUserToursSide.Top,
-        alignment: CoreUserToursAlignment.End,
-        getFocusedElement: nativeButton => {
-            const innerButton = Array.from(nativeButton.shadowRoot?.children ?? []).find(child => child.tagName === 'BUTTON');
-
-            return innerButton as HTMLElement ?? nativeButton;
-        },
-    };
 
     displayCourseIndex = false;
     displayBlocks = false;
     hasBlocks = false;
     selectedSection?: CoreCourseSectionToDisplay;
-    previousSection?: CoreCourseSectionToDisplay;
-    nextSection?: CoreCourseSectionToDisplay;
     allSectionsId = CORE_COURSE_ALL_SECTIONS_ID;
     stealthModulesSectionId = CORE_COURSE_STEALTH_MODULES_SECTION_ID;
     loaded = false;
@@ -170,17 +158,18 @@ export class CoreCourseFormatComponent implements OnInit, OnChanges, OnDestroy {
         this.currentSite = CoreSites.getRequiredCurrentSite();
 
         // Listen for select course tab events to select the right section if needed.
-        this.selectTabObserver = CoreEvents.on(CoreEvents.SELECT_COURSE_TAB, (data) => {
-            if (data.name) {
+        this.selectTabObserver = CoreEvents.on(CORE_COURSE_SELECT_TAB, (data) => {
+            if (data.selectedTab !== '') {
                 return;
             }
 
+            const pageParams = data.pageParams || {};
             let section: CoreCourseSection | undefined;
 
-            if (data.sectionId !== undefined && this.sections) {
-                section = this.sections.find((section) => section.id === data.sectionId);
-            } else if (data.sectionNumber !== undefined && this.sections) {
-                section = this.sections.find((section) => section.section === data.sectionNumber);
+            if (pageParams.sectionId !== undefined && this.sections) {
+                section = this.sections.find((section) => section.id === pageParams.sectionId);
+            } else if (pageParams.sectionNumber !== undefined && this.sections) {
+                section = this.sections.find((section) => section.section === pageParams.sectionNumber);
             }
 
             if (section) {
@@ -344,7 +333,7 @@ export class CoreCourseFormatComponent implements OnInit, OnChanges, OnDestroy {
 
             // Don't load the section if it cannot be viewed by the user.
             const sectionToLoad = parents[0] ?? section;
-            if (sectionToLoad && this.canViewSection(sectionToLoad)) {
+            if (sectionToLoad && CoreCourseHelper.canDisplaySectionOnCourse(sectionToLoad)) {
                 this.loaded = true;
                 this.sectionChanged(sectionToLoad);
             }
@@ -573,28 +562,8 @@ export class CoreCourseFormatComponent implements OnInit, OnChanges, OnDestroy {
 
         if (newSection.id !== this.allSectionsId) {
             this.setSectionExpanded(newSection);
-
-            // Select next and previous sections to show the arrows.
-            const i = this.sections.findIndex((value) => this.compareSections(value, newSection));
-
-            let j: number;
-            for (j = i - 1; j >= 1; j--) {
-                if (this.canViewSection(this.sections[j])) {
-                    break;
-                }
-            }
-            this.previousSection = j >= 1 ? this.sections[j] : undefined;
-
-            for (j = i + 1; j < this.sections.length; j++) {
-                if (this.canViewSection(this.sections[j])) {
-                    break;
-                }
-            }
-            this.nextSection = j < this.sections.length ? this.sections[j] : undefined;
             this.setAllSectionsPreferred(false);
         } else {
-            this.previousSection = undefined;
-            this.nextSection = undefined;
             this.lastShownSectionIndex = -1;
             this.showMoreActivities();
             this.setAllSectionsPreferred(true);
@@ -720,16 +689,6 @@ export class CoreCourseFormatComponent implements OnInit, OnChanges, OnDestroy {
         this.dynamicComponents()?.forEach((component) => {
             component.callComponentMethod('ionViewDidLeave');
         });
-    }
-
-    /**
-     * Check whether a section can be viewed.
-     *
-     * @param section The section to check.
-     * @returns Whether the section can be viewed.
-     */
-    canViewSection(section: CoreCourseSection): boolean {
-        return CoreCourseHelper.canUserViewSection(section) && !CoreCourseHelper.isSectionStealth(section);
     }
 
     /**

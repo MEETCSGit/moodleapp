@@ -18,6 +18,7 @@ import { CoreWSExternalWarning } from '@services/ws';
 import { makeSingleton } from '@singletons';
 import { CoreError } from '@classes/errors/error';
 import { CoreCacheUpdateFrequency } from '@/core/constants';
+import { BadgeReportType } from '../constants';
 
 /**
  * Service to handle badges.
@@ -101,7 +102,6 @@ export class AddonBadgesProvider {
      * @param courseId Course ID.
      * @param userId ID of the user to get the badges from.
      * @param siteId Site ID. If not defined, current site.
-     * @returns Promise resolved when data is invalidated.
      */
     async invalidateUserBadges(courseId: number, userId: number, siteId?: string): Promise<void> {
         const site = await CoreSites.getSite(siteId);
@@ -123,6 +123,7 @@ export class AddonBadgesProvider {
      * Get issued badge by hash.
      *
      * @param hash Badge issued hash.
+     * @param siteId Site ID. If not defined, current site.
      * @returns Promise to be resolved when the badge is retrieved.
      * @since 4.5 with the recpient name, 4.3 without the recipient name.
      */
@@ -157,7 +158,6 @@ export class AddonBadgesProvider {
      *
      * @param hash Badge issued hash.
      * @param siteId Site ID. If not defined, current site.
-     * @returns Promise resolved when data is invalidated.
      */
     async invalidateUserBadgeByHash(hash: string, siteId?: string): Promise<void> {
         const site = await CoreSites.getSite(siteId);
@@ -214,7 +214,6 @@ export class AddonBadgesProvider {
      *
      * @param id Badge ID.
      * @param siteId Site ID. If not defined, current site.
-     * @returns Promise resolved when data is invalidated.ç
      * @since 4.5
      */
     async invalidateBadgeClass(id: number, siteId?: string): Promise<void> {
@@ -283,7 +282,7 @@ export type AddonBadgesUserBadge = {
     issuercontact: string; // Issuer contact.
     expiredate?: number; // Expire date.
     expireperiod?: number; // Expire period.
-    type?: number; // Type.
+    type?: BadgeReportType; // Type.
     courseid?: number; // Course id.
     coursefullname?: string; // Full name of the course.
     message?: string; // Message.
@@ -340,7 +339,7 @@ export type AddonBadgesUserBadge = {
         name: string; // Badge name.
         version?: string; // Version.
         language?: string; // Language.
-        type?: number; // Type.
+        type?: BadgeReportType; // Type.
     }[];
 };
 

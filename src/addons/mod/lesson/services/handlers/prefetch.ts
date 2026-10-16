@@ -21,7 +21,7 @@ import { CoreFilepool } from '@services/filepool';
 import { CoreGroups } from '@services/groups';
 import { CoreFileSizeSum, CorePluginFileDelegate } from '@services/plugin-file-delegate';
 import { CoreSites, CoreSitesReadingStrategy } from '@services/sites';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreWSFile } from '@services/ws';
 import { makeSingleton, Translate } from '@singletons';
 import {
@@ -150,7 +150,7 @@ export class AddonModLessonPrefetchHandlerService extends CoreCourseActivityPref
 
         // It's downloadable if there are no prevent access reasons or there is just 1 and it's password.
         return !accessInfo.preventaccessreasons.length ||
-            (accessInfo.preventaccessreasons.length == 1 && AddonModLesson.isPasswordProtected(accessInfo));
+            (accessInfo.preventaccessreasons.length === 1 && AddonModLesson.isPasswordProtected(accessInfo));
     }
 
     /**

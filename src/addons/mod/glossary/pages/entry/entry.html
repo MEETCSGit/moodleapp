@@ -23,17 +23,13 @@
         @if (entry && loaded) {
 
             @if (offlineEntry) {
-                <ion-card class="core-warning-card">
-                    <ion-item>
-                        <ion-icon name="fas-triangle-exclamation" slot="start" aria-hidden="true" />
-                        <ion-label>{{ 'core.hasdatatosync' | translate: { $a: 'addon.mod_glossary.entry' | translate } }}</ion-label>
-                    </ion-item>
-                </ion-card>
+                <core-alert-card type="warning"
+                    [message]="'core.hasdatatosync' | translate: { $a: 'addon.mod_glossary.entry' | translate }" />
             }
             <div core-reading-mode>
                 @if (showAuthor) {
                     <ion-item class="ion-text-wrap">
-                        <core-user-avatar [user]="entry" slot="start" />
+                        <core-user-avatar [user]="entry" [courseId]="courseId" slot="start" />
                         <ion-label>
                             <h2>
                                 <core-format-text [text]="entry.concept" contextLevel="module" [contextInstanceId]="componentId"
@@ -132,11 +128,8 @@
         }
 
         @if (!entry) {
-            <ion-card class="core-warning-card">
-                <ion-item>
-                    <ion-label>{{ 'addon.mod_glossary.errorloadingentry' | translate }}</ion-label>
-                </ion-item>
-            </ion-card>
+            <core-alert-card type="warning"
+                [message]="'addon.mod_glossary.errorloadingentry' | translate" />
         }
     </core-loading>
 </ion-content>

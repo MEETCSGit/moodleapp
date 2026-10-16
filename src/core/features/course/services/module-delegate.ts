@@ -23,7 +23,7 @@ import { CoreCourseModuleHelper } from './course-module-helper';
 import { CoreSites } from '@services/sites';
 import { makeSingleton } from '@singletons';
 import { CoreCourseModuleData } from './course-helper';
-import { CoreNavigationOptions } from '@services/navigator';
+import { CoreNavigationOptions, CoreNavigationOptionsWithSite } from '@services/navigator';
 import { DownloadStatus } from '@/core/constants';
 import { CORE_COURSE_MODULE_FEATURE_PREFIX } from '../constants';
 import { ModFeature } from '@addons/mod/constants';
@@ -115,7 +115,7 @@ export interface CoreCourseModuleHandler extends CoreDelegateHandler {
      * @param options Options for the navigation.
      * @returns Promise resolved when done.
      */
-    openActivityPage(module: CoreCourseModuleData, courseId: number, options?: CoreNavigationOptions): Promise<void>;
+    openActivityPage(module: CoreCourseModuleData, courseId: number, options?: CoreNavigationOptionsWithSite): Promise<void>;
 
     /**
      * Whether the activity is branded.
@@ -138,12 +138,20 @@ export interface CoreCourseModuleHandler extends CoreDelegateHandler {
         activity: CoreCourseOverviewActivity,
         courseId: number,
     ): Promise<CoreCourseOverviewItemContent | undefined>;
+
+    /**
+     * Get the forced language for a module, if any.
+     *
+     * @param module The module data.
+     * @returns The forced language, undefined if not set.
+     */
+    getModuleForcedLang(module: CoreCourseModuleData): Promise<string | undefined>;
 }
 
 /**
  * Data needed to render the module in course contents.
  */
-export interface CoreCourseModuleHandlerData {
+export type CoreCourseModuleHandlerData = {
     /**
      * The title to display in the module.
      */
@@ -177,7 +185,7 @@ export interface CoreCourseModuleHandlerData {
     showDownloadButton?: boolean;
 
     /**
-     * Wether activity has the custom cmlist item flag enabled.
+     * Whether activity has the custom cmlist item flag enabled.
      *
      * Activities like label uses this flag to indicate that it should be
      * displayed as a custom course item instead of a tipical activity card.
@@ -221,7 +229,7 @@ export interface CoreCourseModuleHandlerData {
      * On Destroy function in case it's needed.
      */
     onDestroy?(): void;
-}
+};
 
 /**
  * Interface that all the components to render the module in singleactivity must implement.
@@ -240,7 +248,7 @@ export interface CoreCourseModuleMainComponent {
 /**
  * A button to display in a module item.
  */
-export interface CoreCourseModuleHandlerButton {
+export type CoreCourseModuleHandlerButton = {
     /**
      * The label to add to the button.
      */
@@ -266,7 +274,7 @@ export interface CoreCourseModuleHandlerButton {
      * @returns Promise resolved when done.
      */
     action(event: Event, module: CoreCourseModuleData, courseId: number, options?: CoreNavigationOptions): Promise<void> | void;
-}
+};
 
 /**
  * Data to render a course overview item.
@@ -353,7 +361,7 @@ export class CoreCourseModuleDelegateService extends CoreDelegate<CoreCourseModu
         modname: string,
         module: CoreCourseModuleData,
         courseId: number,
-        options?: CoreNavigationOptions,
+        options?: CoreNavigationOptionsWithSite,
     ): Promise<void> {
         return this.executeFunctionOnEnabled<void>(
             modname,
@@ -482,6 +490,16 @@ export class CoreCourseModuleDelegateService extends CoreDelegate<CoreCourseModu
         const result = await this.executeFunctionOnEnabled<boolean>(module.modname, 'manualCompletionAlwaysShown', [module]);
 
         return !!result;
+    }
+
+    /**
+     * Get the forced language for a module, if any.
+     *
+     * @param module The module data.
+     * @returns The forced language, undefined if not set.
+     */
+    async getModuleForcedLang(module: CoreCourseModuleData): Promise<string | undefined> {
+        return await this.executeFunctionOnEnabled<string>(module.modname, 'getModuleForcedLang', [module]);
     }
 
 }

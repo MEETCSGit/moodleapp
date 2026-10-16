@@ -79,12 +79,6 @@
             </ion-button>
         </ion-item>
 
-        <ion-item class="ion-text-wrap" (click)="openErrorLog()" [detail]="true" button>
-            <ion-label>
-                <p class="item-heading">Error log</p>
-            </ion-label>
-        </ion-item>
-
         <ion-item class="ion-text-wrap">
             <ion-label>
                 <p class="item-heading">Clean file storage</p>
@@ -95,7 +89,49 @@
             </ion-button>
         </ion-item>
 
+        <ion-item class="ion-text-wrap" (click)="openErrorLog()" [detail]="true" button>
+            <ion-label>
+                <p class="item-heading">Error log</p>
+            </ion-label>
+        </ion-item>
+
+        @for (item of extraPageItems(); track item.page) {
+            <ion-item class="ion-text-wrap {{item.class ?? ''}}" (click)="openExtraItem(item)" [detail]="true" button>
+                <ion-label>
+                    <p class="item-heading">{{ item.title }}</p>
+                </ion-label>
+            </ion-item>
+        }
+
         @if (siteId) {
+
+            <ion-item class="ion-text-wrap">
+                <ion-label>
+                    <p class="item-heading">Is admin</p>
+                    <p>
+                        @if (isAdmin) {
+                            {{ 'core.yes' | translate }}
+                        } @else {
+                            {{ 'core.no' | translate }}
+                        }
+                    </p>
+                </ion-label>
+            </ion-item>
+
+            @if (isManager !== undefined) {
+                <ion-item class="ion-text-wrap">
+                    <ion-label>
+                        <p class="item-heading">Is manager</p>
+                        <p>
+                            @if (isManager) {
+                                {{ 'core.yes' | translate }}
+                            } @else {
+                                {{ 'core.no' | translate }}
+                            }
+                        </p>
+                    </ion-label>
+                </ion-item>
+            }
 
             <ion-item class="ion-text-wrap">
                 <ion-label>
@@ -151,34 +187,61 @@
                     <h2>Disabled features</h2>
                 </ion-label>
             </ion-item-divider>
-            @if (disabledFeatures.length === 0) {
+            @for (feature of disabledFeatures; track feature) {
+                <ion-item class="ion-text-wrap">
+                    <ion-label>
+                        <p class="item-heading">{{ feature }}</p>
+                    </ion-label>
+                </ion-item>
+            } @empty {
                 <ion-item>
-                    <ion-label>There are no features disabled</ion-label>
+                    <ion-label>There are no features disabled.</ion-label>
                 </ion-item>
             }
-            <ion-item class="ion-text-wrap" *ngFor="let feature of disabledFeatures">
+
+            <ion-item-divider>
                 <ion-label>
-                    <p class="item-heading">{{ feature }}</p>
+                    <h2>WebService overrides</h2>
                 </ion-label>
-            </ion-item>
+            </ion-item-divider>
+            @if (wsOverrides().length === 0) {
+                <ion-item>
+                    <ion-label>There are no overrides.</ion-label>
+                </ion-item>
+            } @else {
+                <ion-grid class="ion-text-wrap ion-padding-horizontal">
+                    @for (override of wsOverrides(); track $index) {
+                        <ion-row>
+                            <ion-col>{{ override.method }}</ion-col>
+                            <ion-col class="ion-text-end">{{ override.count }}</ion-col>
+                        </ion-row>
+                    }
+                    <ion-row>
+                        <ion-col><strong>Total</strong></ion-col>
+                        <ion-col class="ion-text-end"><strong>{{ totalOverrides() }}</strong></ion-col>
+                    </ion-row>
+                </ion-grid>
+            }
 
             <ion-item-divider>
                 <ion-label>
                     <h2>Site plugins</h2>
                 </ion-label>
             </ion-item-divider>
-            @if (sitePlugins.length === 0) {
+
+            @for (plugin of sitePlugins; track plugin) {
+                <ion-item class="ion-text-wrap">
+                    <ion-label>
+                        <p class="item-heading">{{ plugin.addon }} ({{plugin.component}})</p>
+                        <p>{{plugin.version}}</p>
+                    </ion-label>
+                </ion-item>
+            } @empty {
                 <ion-item>
                     <ion-label>There are no site plugins installed</ion-label>
                 </ion-item>
             }
-            <ion-item class="ion-text-wrap" *ngFor="let plugin of sitePlugins">
-                <ion-label>
-                    <p class="item-heading">{{ plugin.addon }} ({{plugin.component}})</p>
-                    <p>{{plugin.version}}</p>
-                </ion-label>
-            </ion-item>
 
-            }
+        }
     </ion-list>
 </ion-content>

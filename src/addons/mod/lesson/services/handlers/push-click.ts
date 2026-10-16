@@ -19,7 +19,7 @@ import { CoreGrades } from '@features/grades/services/grades';
 import { CoreGradesHelper } from '@features/grades/services/grades-helper';
 import { CorePushNotificationsClickHandler } from '@features/pushnotifications/services/push-delegate';
 import { CorePushNotificationsNotificationBasicData } from '@features/pushnotifications/services/pushnotifications';
-import { CoreUtils } from '@singletons/utils';
+import { CoreUtils } from '@static/utils';
 import { makeSingleton } from '@singletons';
 import { ADDON_MOD_LESSON_FEATURE_NAME } from '../../constants';
 
@@ -42,8 +42,8 @@ export class AddonModLessonPushClickHandlerService implements CorePushNotificati
     async handles(notification: NotificationData): Promise<boolean> {
         if (
             CoreUtils.isTrueOrOne(notification.notif) &&
-            notification.moodlecomponent == 'mod_lesson' &&
-            notification.name == 'graded_essay' &&
+            notification.moodlecomponent === 'mod_lesson' &&
+            notification.name === 'graded_essay' &&
             notification.customdata?.cmid
         ) {
 

@@ -20,13 +20,13 @@
         </ion-item>
 
         @if (modTypes().length) {
-            <ion-accordion-group #modTypesAccordion (ionChange)="modTypeAccordionChanged($event.detail.value)">
+            <ion-accordion-group [multiple]="true" #modTypesAccordion (ionChange)="modTypeAccordionChanged($event.detail.value)">
                 @for (modType of modTypes(); track modType.modName) {
-                    <ion-accordion [value]="modType.modName" toggleIconSlot="start">
+                    <ion-accordion [value]="modType.modName" toggleIconSlot="start" id="{{modType.modName}}_overview_collapsible">
                         <ion-item class="ion-text-wrap divider" slot="header">
                             <ion-label>
                                 <core-mod-icon [modicon]="modType.icon" [modname]="modType.iconModName" [showAlt]="false"
-                                    [colorize]="true" [isBranded]="modType.branded" />
+                                    [colorize]="true" [isBranded]="modType.branded" [purpose]="modType.purpose" />
                                 {{ modType.name }}
                             </ion-label>
                         </ion-item>
@@ -51,25 +51,18 @@
 
 <ng-template #tabletOverviewTemplate let-modTypeUntyped="modType">
     @let modType = toModType(modTypeUntyped);
-    @let overview = modType.overview();
 
-    @if (overview) {
+    @if (modType.overview(); as overview) {
         @if (!overview.hasintegration || !overview.isSupportedInApp) {
-            <ion-card class="core-info-card">
-                <ion-item class="ion-text-wrap">
-                    <ion-icon name="fas-circle-info" slot="start" aria-hidden="true" />
-                    <ion-label>
-                        <p>{{ 'core.course.overview_missing_title' | translate:{ $a: modType.modNameTranslated } }}</p>
-                    </ion-label>
-                </ion-item>
-            </ion-card>
+            <core-alert-card type="info"
+                [message]="'core.course.overview_missing_title' | translate:{ $a: modType.modNameTranslated }" />
         }
 
         <table class="core-table">
             <thead>
                 <tr>
                     @for (header of overview.headers; track header.key) {
-                        <th [ngClass]="header.classes">{{ header.name }}</th>
+                        <th [class]="['core-course-overview-header-'+header.key, header.classes]">{{ header.name }}</th>
                     }
                 </tr>
             </thead>
@@ -78,7 +71,7 @@
                 @for (activity of overview.activities; track activity.cmid) {
                     <tr [class.core-course-overview-activity-has-error]="activity.haserror">
                         @for (item of activity.itemsToRender; track item.key) {
-                            <td [ngClass]="item.classes">
+                            <td [class]="['core-course-overview-item-'+ item.key, item.classes]">
                                 @if (item.component) {
                                     <core-dynamic-component [component]="item.component" [data]="item.componentData" />
                                 } @else if (item.content !== null) {
@@ -98,18 +91,11 @@
 
 <ng-template #mobileOverviewTemplate let-modTypeUntyped="modType">
     @let modType = toModType(modTypeUntyped);
-    @let overview = modType.overview();
 
-    @if (overview) {
+    @if (modType.overview(); as overview) {
         @if (!overview.hasintegration || !overview.isSupportedInApp) {
-            <ion-card class="core-info-card">
-                <ion-item class="ion-text-wrap">
-                    <ion-icon name="fas-circle-info" slot="start" aria-hidden="true" />
-                    <ion-label>
-                        <p>{{ 'core.course.overview_missing_title' | translate:{ $a: modType.modNameTranslated } }}</p>
-                    </ion-label>
-                </ion-item>
-            </ion-card>
+            <core-alert-card type="info"
+                [message]="'core.course.overview_missing_title' | translate:{ $a: modType.modNameTranslated }"/>
         }
 
         @for (activity of overview.activities; track activity.cmid) {
@@ -150,7 +136,7 @@
                         [hidden]="!activity.isExpanded()">
                         @for (item of activity.itemsToRender; track item.key) {
                             @if (item !== activity.nameItemToRender) {
-                                <ion-item class="ion-text-wrap">
+                                <ion-item class="ion-text-wrap core-course-overview-item-{{ item.key }}">
                                     <ion-label>
                                         <p class="item-heading core-course-overview-item-header">{{ item.name }} </p>
                                         @if (item.component) {

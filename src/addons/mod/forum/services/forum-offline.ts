@@ -16,7 +16,7 @@ import { Injectable } from '@angular/core';
 import { CoreFileUploaderStoreFilesResult } from '@features/fileuploader/services/fileuploader';
 import { CoreFile } from '@services/file';
 import { CoreSites } from '@services/sites';
-import { CoreText } from '@singletons/text';
+import { CoreText } from '@static/text';
 import { makeSingleton } from '@singletons';
 import {
     AddonModForumOfflineDiscussionDBRecord,
@@ -24,7 +24,7 @@ import {
     DISCUSSIONS_TABLE,
     REPLIES_TABLE,
 } from './database/offline';
-import { CorePath } from '@singletons/path';
+import { CorePath } from '@static/path';
 import { ADDON_MOD_FORUM_ALL_PARTICIPANTS } from '../constants';
 
 /**
@@ -381,7 +381,7 @@ export class AddonModForumOfflineProvider {
      */
     protected parseRecordsOptions<
         R extends { options: string },
-        O extends Record<string, unknown> = Record<string, unknown>
+        O extends Record<string, unknown> = Record<string, unknown>,
     >(records: R[]): (Omit<R, 'options'> & { options: O })[] {
         return records.map(record => this.parseRecordOptions(record));
     }
@@ -394,7 +394,7 @@ export class AddonModForumOfflineProvider {
      */
     protected parseRecordOptions<
         R extends { options: string },
-        O extends Record<string, unknown> = Record<string, unknown>
+        O extends Record<string, unknown> = Record<string, unknown>,
     >(record: R): Omit<R, 'options'> & { options: O } {
         record.options = CoreText.parseJSON(record.options);
 

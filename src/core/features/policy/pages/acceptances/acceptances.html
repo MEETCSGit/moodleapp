@@ -15,19 +15,13 @@
     </ion-refresher>
     <core-loading [hideUntil]="dataLoaded">
         <div class="list-item-limited-width">
-            <ion-card class="core-info-card">
-                <ion-item class="ion-text-wrap">
-                    <ion-icon name="fas-circle-info" slot="start" aria-hidden="true" />
-                    <ion-label>
-                        <p>{{ 'core.policy.contactdpo' | translate }}</p>
-                    </ion-label>
-                </ion-item>
+            <core-alert-card type="info" [message]="'core.policy.contactdpo' | translate">
                 @if (canContactDPO) {
-                    <div class="core-card-buttons">
+                    <div buttons>
                         <ion-button fill="outline" (click)="openContactDPO($event)">{{ 'core.contactverb' | translate }}</ion-button>
                     </div>
                 }
-            </ion-card>
+            </core-alert-card>
         </div>
 
         <div class="x-scrollable core-policy-tablet-container">
@@ -83,7 +77,7 @@
                     [class.expandable-status-icon-expanded]="policy.expanded" [attr.aria-expanded]="policy.expanded"
                     [attr.aria-label]="(policy.expanded ? 'core.collapse' : 'core.expand') | translate" />
             } @else {
-                <ion-icon name="moodle-item" color="secondary" class="core-policy-icon-bullet" aria-hidden="true" />
+                <ion-icon name="moodle-item" class="core-policy-icon-bullet" aria-hidden="true" />
             }
 
             <a href="#" (click)="viewFullPolicy($event, policy)">{{ policy.name }}</a>
@@ -383,7 +377,7 @@
         @if (policy.onBehalf) {
 
             <ion-item button class="ion-text-wrap core-policy-responseby" core-user-link [userId]="policy.acceptance.usermodified"
-                lines="full" detail="false">
+                lines="full" [detail]="false">
                 <ion-label>
                     <p class="item-heading">{{ 'core.policy.responseby' | translate }}</p>
                     <p class="core-policy-responseby-name">{{ policy.acceptance.modfullname }}</p>

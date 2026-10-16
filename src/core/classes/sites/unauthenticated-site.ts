@@ -16,15 +16,21 @@ import { CoreConstants } from '@/core/constants';
 import { CoreError } from '@classes/errors/error';
 import { CoreLoginHelper } from '@features/login/services/login-helper';
 import { CoreSitesReadingStrategy } from '@services/sites';
-import { CoreText } from '@singletons/text';
-import { CoreUrl, CoreUrlPartNames } from '@singletons/url';
+import { CoreText } from '@static/text';
+import { CoreUrl, CoreUrlPartNames } from '@static/url';
 import { CoreWS, CoreWSAjaxPreSets, CoreWSExternalWarning } from '@services/ws';
-import { CorePath } from '@singletons/path';
+import { CorePath } from '@static/path';
+import { CoreJsonPatch, JsonPatchOperation } from '@static/json-patch';
+import { CoreUtils } from '@static/utils';
+import { CoreLogger } from '@static/logger';
+import { CoreSiteConfig } from './site';
 
 /**
  * Class that represents a Moodle site where the user still hasn't authenticated.
  */
 export class CoreUnauthenticatedSite {
+
+    protected logger = CoreLogger.getInstance('CoreUnauthenticatedSite');
 
     siteUrl: string;
 
@@ -32,6 +38,9 @@ export class CoreUnauthenticatedSite {
 
     // List of regular expressions to convert the old nomenclature to new nomenclature for disabled features.
     protected static readonly DISABLED_FEATURES_COMPAT_REGEXPS: { old: RegExp; new: string }[] = [
+        // @deprecatedonmoodle 3.7
+        { old: /remoteAddOn_/g, new: 'sitePlugin_' },
+        // @deprecatedonmoodle 5.2
         { old: /\$mmLoginEmailSignup/g, new: 'CoreLoginEmailSignup' },
         { old: /\$mmSideMenuDelegate/g, new: 'CoreMainMenuDelegate' },
         { old: /\$mmCoursesDelegate/g, new: 'CoreCourseOptionsDelegate' },
@@ -75,8 +84,10 @@ export class CoreUnauthenticatedSite {
         { old: /_mmaModUrl/g, new: '_AddonModUrl' },
         { old: /_mmaModWiki/g, new: '_AddonModWiki' },
         { old: /_mmaModWorkshop/g, new: '_AddonModWorkshop' },
-        { old: /remoteAddOn_/g, new: 'sitePlugin_' },
         { old: /AddonNotes:addNote/g, new: 'AddonNotes:notes' },
+        { old: /CoreMainMenuDelegate_AddonCompetency/g, new: 'CoreUserDelegate_AddonCompetency' },
+        { old: /CoreMainMenuDelegate_AddonPrivateFiles/g, new: 'CoreUserDelegate_AddonPrivateFiles' },
+        { old: /CoreMainMenuDelegate_CoreGrades/g, new: 'CoreUserDelegate_CoreGrades' },
     ];
 
     /**
@@ -177,22 +188,20 @@ export class CoreUnauthenticatedSite {
      * @param config Site public config.
      * @returns Logo URL.
      */
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     getLogoUrl(config?: CoreSitePublicConfigResponse): string | undefined {
-        config = config ?? this.publicConfig;
-        if (!config || this.forcesLocalLogo()) {
-            return;
-        }
-
-        return config.logourl || config.compactlogourl || undefined;
+        return undefined;
     }
 
     /**
      * Check show top logo mode.
      *
+     * @param config Site config.
      * @returns The top logo mode.
      */
-    getShowTopLogo(): 'online' | 'offline' | 'hidden' {
-        return this.isDemoModeSite() ? 'hidden' : CoreConstants.CONFIG.showTopLogo;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    getShowTopLogo(config?: CoreSiteConfig): 'online' | 'offline' | 'hidden' {
+        return 'hidden';
     }
 
     /**
@@ -207,7 +216,8 @@ export class CoreUnauthenticatedSite {
             return;
         }
 
-        return config.logourl || config.compactlogourl || undefined;
+        // Use compact logo if available, otherwise use normal logo.
+        return config.compactlogourl || config.logourl || undefined;
     }
 
     /**
@@ -229,29 +239,21 @@ export class CoreUnauthenticatedSite {
      * @returns Whether the URL belongs to this site.
      */
     containsUrl(url?: string): boolean {
-        if (!url) {
-            return false;
-        }
-
-        const siteUrl = CoreText.addEndingSlash(
-            CoreUrl.removeUrlParts(this.siteUrl, [CoreUrlPartNames.Protocol, CoreUrlPartNames.WWWInDomain]),
-        );
-        url = CoreText.addEndingSlash(CoreUrl.removeUrlParts(url, [CoreUrlPartNames.Protocol, CoreUrlPartNames.WWWInDomain]));
-
-        return url.indexOf(siteUrl) == 0;
+        return CoreUrl.isSubpathOf(this.siteUrl, url);
     }
 
     /**
      * Get the public config of this site.
      *
      * @param options Options.
+     * @param options.readingStrategy Reading strategy to use.
      * @returns Promise resolved with public config. Rejected with an object if error, see CoreWS.callAjax.
      */
     async getPublicConfig(options: { readingStrategy?: CoreSitesReadingStrategy } = {}): Promise<CoreSitePublicConfigResponse> {
         const ignoreCache = options.readingStrategy === CoreSitesReadingStrategy.ONLY_NETWORK ||
             options.readingStrategy ===  CoreSitesReadingStrategy.PREFER_NETWORK;
         if (!ignoreCache && this.publicConfig) {
-            return this.publicConfig;
+            return this.overridePublicConfig(this.publicConfig);
         }
 
         if (options.readingStrategy === CoreSitesReadingStrategy.ONLY_CACHE) {
@@ -263,7 +265,7 @@ export class CoreUnauthenticatedSite {
 
             this.setPublicConfig(config);
 
-            return config;
+            return this.overridePublicConfig(config);
         } catch (error) {
             if (options.readingStrategy === CoreSitesReadingStrategy.ONLY_NETWORK || !this.publicConfig) {
                 throw error;
@@ -285,6 +287,31 @@ export class CoreUnauthenticatedSite {
     }
 
     /**
+     * Get data to be sent in the request to get the public config.
+     *
+     * This function can be modified to configure the data sent in the request.
+     *
+     * @returns Promise resolved with data to be sent in the request.
+     */
+    protected async getRequestPublicConfigData(): Promise<Record<string, unknown>> {
+        return {};
+    }
+
+    /**
+     * Apply overrides to the public config of the site.
+     *
+     * @param config Public config.
+     * @returns Public config with overrides if any.
+     */
+    protected overridePublicConfig(config: CoreSitePublicConfigResponse): CoreSitePublicConfigResponse {
+        // Always clone the object because it can be modified when applying patches or in the caller function
+        // and we don't want to modify the stored public config.
+        const clonedData = CoreUtils.clone(config);
+
+        return this.applyWSOverrides('tool_mobile_get_public_config', clonedData);
+    }
+
+    /**
      * Perform a request to the server to get the public config of this site.
      *
      * @returns Promise resolved with public config.
@@ -296,8 +323,14 @@ export class CoreUnauthenticatedSite {
 
         let config: CoreSitePublicConfigResponse;
 
+        const data = await this.getRequestPublicConfigData();
+
         try {
-            config = await CoreWS.callAjax<CoreSitePublicConfigResponse>('tool_mobile_get_public_config', {}, preSets);
+            config = await CoreWS.callAjax(
+                'tool_mobile_get_public_config',
+                data,
+                preSets,
+            );
         } catch (error) {
             if (!error || error.errorcode !== 'codingerror' || (this.getInfo() && !this.isAjaxGetSupported())) {
                 throw error;
@@ -308,7 +341,11 @@ export class CoreUnauthenticatedSite {
             preSets.useGet = true;
 
             try {
-                config = await CoreWS.callAjax<CoreSitePublicConfigResponse>('tool_mobile_get_public_config', {}, preSets);
+                config = await CoreWS.callAjax(
+                    'tool_mobile_get_public_config',
+                    data,
+                    preSets,
+                );
             } catch (error2) {
                 if (this.isAjaxGetSupported()) {
                     // GET is supported, return the second error.
@@ -413,7 +450,7 @@ export class CoreUnauthenticatedSite {
      *
      * @returns Disabled features.
      */
-    protected getDisabledFeatures(): string {
+    getDisabledFeatures(): string {
         const siteDisabledFeatures = this.getSiteDisabledFeatures() || undefined; // If empty string, use undefined.
         const appDisabledFeatures = CoreConstants.CONFIG.disabledFeatures;
 
@@ -452,10 +489,85 @@ export class CoreUnauthenticatedSite {
         return features;
     }
 
+    /**
+     * Returns relative URL for the site.
+     *
+     * @param url URL to convert.
+     * @returns Relative URL.
+     */
+    async getRelativeUrl(url: string): Promise<string> {
+        return CoreText.addStartingSlash(CoreUrl.toRelativeURL(this.getURL(), url));
+    }
+
+    /**
+     * Call a Moodle WS using the AJAX API and applies WebService overrides (if any) to the result.
+     *
+     * @param method WS method name.
+     * @param data Arguments to pass to the method.
+     * @param preSets Extra settings and information.
+     * @returns Promise resolved with the response data in success and rejected with CoreAjaxError.
+     */
+    async callAjax<T = unknown>(
+        method: string,
+        data: Record<string, unknown> = {},
+        preSets: Omit<CoreWSAjaxPreSets, 'siteUrl'> = {},
+    ): Promise<T> {
+        const result = await CoreWS.callAjax<T>(method, data, { ...preSets, siteUrl: this.siteUrl });
+
+        // No need to clone the data in this case because it's not stored in any cache.
+        return this.applyWSOverrides(method, result);
+    }
+
+    /**
+     * Apply WS overrides (if any) to the data of a WebService response.
+     *
+     * @param method WS method name.
+     * @param data WS response data.
+     * @returns Modified data (or original data if no overrides).
+     */
+    protected applyWSOverrides<T>(method: string, data: T): T {
+        if (!CoreConstants.CONFIG.wsOverrides || !CoreConstants.CONFIG.wsOverrides[method]) {
+            return data;
+        }
+
+        CoreConstants.CONFIG.wsOverrides[method].forEach((patch) => {
+            if (!this.shouldApplyWSOverride(method, data, patch)) {
+                this.logger.warn('Patch ignored, conditions not fulfilled:', method, patch);
+
+                return;
+            }
+
+            try {
+                CoreJsonPatch.applyPatch(data, patch);
+            } catch (error) {
+                this.logger.error('Error applying WS override:', error, patch);
+            }
+        });
+
+        return data;
+    }
+
+    /**
+     * Whether a patch should be applied as a WS override.
+     *
+     * @param method WS method name.
+     * @param data Data returned by the WS.
+     * @param patch Patch to check.
+     * @returns Whether it should be applied.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    protected shouldApplyWSOverride(method: string, data: unknown, patch: CoreWSOverride): boolean {
+        // Always apply patches for unauthenticated sites since we don't have user info.
+        // If the patch for an AJAX WebService contains an userid is probably by mistake.
+        return true;
+    }
+
 }
 
 /**
- * Result of WS core_webservice_get_site_info.
+ * Data returned by core_webservice_get_site_info WS.
+ *
+ * WS Description: Return some site info / user info / list web service functions
  */
 export type CoreSiteInfoResponse = {
     sitename: string; // Site name.
@@ -467,6 +579,11 @@ export type CoreSiteInfoResponse = {
     userid: number; // User id.
     siteurl: string; // Site url.
     userpictureurl: string; // The user profile picture.
+                // Warning: this url is the public URL that only works when forcelogin is set to NO and guestaccess is set to YES.
+                // In order to retrieve user profile pictures independently of the Moodle config, replace "pluginfile.php" by
+                // "webservice/pluginfile.php?token=WSTOKEN&file="
+                // Of course the user can only see profile picture depending
+                // on his/her permissions. Moreover it is recommended to use HTTPS too.
     functions: {
         name: string; // Function name.
         version: string; // The version number of the component to which the function belongs.
@@ -484,7 +601,7 @@ export type CoreSiteInfoResponse = {
     userquota?: number; // User quota (bytes). 0 means user can ignore the quota.
     usermaxuploadfilesize?: number; // User max upload file size (bytes). -1 means the user can ignore the upload file size.
     userhomepage?: CoreSiteInfoUserHomepage; // The default home page for the user.
-    userhomepageurl?: string; // @since 4.5. The URL of the custom user home page when using HOMEPAGE_URL.
+    userhomepageurl?: string; // @since 4.5. The URL of default home page when userhomepage is 4 (HOMEPAGE_URL).
     userprivateaccesskey?: string; // Private user access key for fetching files.
     siteid?: number; // Site course ID.
     sitecalendartype?: string; // Calendar type set in the site.
@@ -492,8 +609,12 @@ export type CoreSiteInfoResponse = {
     userissiteadmin?: boolean; // Whether the user is a site admin or not.
     theme?: string; // Current theme for the user.
     limitconcurrentlogins?: number; // @since 4.0. Number of concurrent sessions allowed.
-    usersessionscount?: number; // @since 4.0. Number of active sessions for current user. Only if limitconcurrentlogins is used.
+    usersessionscount?: number; // @since 4.0. Number of active sessions for current user.
+                // Only returned when limitconcurrentlogins is used.
     policyagreed?: number; // @since 4.4. Whether user accepted all the policies.
+    usercanchangeconfig?: boolean; // @since 5.2. Whether the user can change the site configuration.
+    usercanviewconfig?: boolean; // @since 5.2. Whether the user can view the site administration tree.
+    sitesecret?: string; // @since 5.2. The site secret, only returned to users with moodle/site:config capability (usually admins).
 };
 
 /**
@@ -572,9 +693,12 @@ export type CoreSitePublicConfigResponse = {
     tool_mobile_androidappid?: string; // Android app's unique identifier.
     // eslint-disable-next-line @typescript-eslint/naming-convention
     tool_mobile_setuplink?: string; // App download page.
-    tool_mobile_qrcodetype?: CoreSiteQRCodeType; // eslint-disable-line @typescript-eslint/naming-convention
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    tool_mobile_qrcodetype?: CoreSiteQRCodeType; // @since 4.3. QR login configuration.
     warnings?: CoreWSExternalWarning[];
     showloginform?: number; // @since 4.5. Display default login form.
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    tool_mobile_enabledeeplinkautologin?: boolean; // @since 5.3. Whether to allow login automatic if a deep link contains token.
 };
 
 /**
@@ -603,3 +727,10 @@ export enum TypeOfLogin {
     BROWSER = 2, // SSO in browser window is required.
     EMBEDDED = 3, // SSO in embedded browser is required.
 }
+
+/**
+ * WebService override patch.
+ */
+export type CoreWSOverride = JsonPatchOperation & {
+    userid?: number; // To apply the patch only if the current user matches this userid.
+};

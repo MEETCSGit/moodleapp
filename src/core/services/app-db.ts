@@ -18,7 +18,7 @@ import { CoreDB } from '@services/db';
 import { SQLiteDB, SQLiteDBTableSchema } from '@classes/sqlitedb';
 
 import { makeSingleton } from '@singletons';
-import { CoreLogger } from '@singletons/logger';
+import { CoreLogger } from '@static/logger';
 import { DBNAME, SCHEMA_VERSIONS_TABLE_NAME, SCHEMA_VERSIONS_TABLE_SCHEMA, SchemaVersionsDBEntry } from '@services/database/app';
 import { CoreDatabaseCachingStrategy, CoreDatabaseTableProxy } from '@classes/database/database-table-proxy';
 import { asyncInstance } from '../utils/async-instance';
@@ -54,7 +54,7 @@ export class CoreAppDBService {
 
         await database.createTableFromSchema(SCHEMA_VERSIONS_TABLE_SCHEMA);
 
-        const schemaVersionsTable = new CoreDatabaseTableProxy<SchemaVersionsDBEntry, 'name'>(
+        const schemaVersionsTable = CoreDatabaseTableProxy.createInstance<SchemaVersionsDBEntry, 'name'>(
             { cachingStrategy: CoreDatabaseCachingStrategy.Eager },
             database,
             SCHEMA_VERSIONS_TABLE_NAME,

@@ -15,21 +15,21 @@
 import { ContextLevel } from '@/core/constants';
 import { Injectable } from '@angular/core';
 import { CoreSites } from '@services/sites';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { makeSingleton } from '@singletons';
 import { CoreRatingDBPrimaryData, CoreRatingDBRecord, RATINGS_TABLE } from './database/rating';
 
 /**
  * Structure of item sets.
  */
-export interface CoreRatingItemSet {
+export type CoreRatingItemSet = {
     component: string;
     ratingArea: string;
     contextLevel: ContextLevel;
     instanceId: number;
     itemSetId: number;
     courseId: number;
-}
+};
 
 /**
  * Service to handle offline data for rating.

@@ -19,11 +19,14 @@
     }
 
     <core-context-menu>
-        @if (canEdit) {
-            @if (isOnline || pageIsOffline) {
+        @if (canEdit()) {
+            @if (isOnline() || pageIsOffline) {
                 <core-context-menu-item [priority]="590" [content]="'core.edit' | translate" iconAction="fas-pen"
                     (action)="goToEditPage()" />
             }
+        }
+
+        @if (canCreate()) {
             <core-context-menu-item [priority]="580" [content]="'addon.mod_wiki.createpage' | translate" iconAction="fas-plus"
                 (action)="goToNewPage()" />
         }
@@ -54,28 +57,14 @@
         <div>
             @if (pageIsOffline || hasOffline) {
                 <!-- Wiki has something offline. -->
-                <ion-card class="core-warning-card">
-                    <ion-item class="ion-text-wrap">
-                        <ion-icon name="fas-triangle-exclamation" slot="start" aria-hidden="true" />
-                        <ion-label>
-                            @if (pageIsOffline) {
-                                <span>{{ 'core.hasdatatosync' | translate:{$a: pageStr} }}</span>
-                            } @else {
-                                <span>{{ 'core.hasdatatosync' | translate:{$a: moduleName} }}</span>
-                            }
-                        </ion-label>
-                    </ion-item>
-                </ion-card>
+                <core-alert-card type="warning" [message]="pageIsOffline
+                    ? ('core.hasdatatosync' | translate:{$a: pageStr})
+                    : ('core.hasdatatosync' | translate:{$a: moduleName})" />
             }
 
             @if (pageWarning) {
                 <!-- Page warning. -->
-                <ion-card class="core-warning-card">
-                    <ion-item>
-                        <ion-icon name="fas-triangle-exclamation" slot="start" aria-hidden="true" />
-                        <ion-label>{{ pageWarning }}</ion-label>
-                    </ion-item>
-                </ion-card>
+                <core-alert-card type="warning" [message]="pageWarning" />
             }
         </div>
     }
@@ -87,7 +76,7 @@
                         [contextInstanceId]="module.id" [courseId]="courseId" [sanitize]="pageIsOffline" />
                 </h2>
             }
-            <article [ngClass]="{'addon-mod_wiki-noedit': !canEdit}">
+            <article [class.addon-mod_wiki-noedit]="!canEdit()">
                 @if (pageContent) {
                     <core-format-text [component]="component" [componentId]="componentId" [text]="pageContent" contextLevel="module"
                         [contextInstanceId]="module.id" [courseId]="courseId" [sanitize]="pageIsOffline" />
@@ -110,7 +99,7 @@
     <core-course-module-navigation collapsible-footer [hidden]="showLoading" [courseId]="courseId" [currentModuleId]="module.id" />
 }
 
-@if (canEdit) {
+@if (canCreate()) {
     <ion-fab slot="fixed" core-fab vertical="bottom" horizontal="end">
         <ion-fab-button (click)="goToNewPage()" [attr.aria-label]="'addon.mod_wiki.createpage' | translate">
             <ion-icon name="fas-plus" aria-hidden="true" />

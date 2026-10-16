@@ -37,7 +37,7 @@ import { CoreTagAreaDelegate } from '@features/tag/services/tag-area-delegate';
 import { AddonModForumTagAreaHandler } from './services/handlers/tag-area';
 import { CorePushNotificationsDelegate } from '@features/pushnotifications/services/push-delegate';
 import { AddonModForumPushClickHandler } from './services/handlers/push-click';
-import { CORE_COURSE_CONTENTS_PATH } from '@features/course/constants';
+import { CORE_COURSE_CONTENTS_PATH, CoreCourseForceLanguageSource } from '@features/course/constants';
 import { CoreCourseHelper } from '@features/course/services/course-helper';
 import { ADDON_MOD_FORUM_COMPONENT_LEGACY, ADDON_MOD_FORUM_PAGE_NAME, ADDON_MOD_FORUM_SEARCH_PAGE_NAME } from './constants';
 import { canLeaveGuard } from '@guards/can-leave';
@@ -45,11 +45,13 @@ import { canLeaveGuard } from '@guards/can-leave';
 const newDiscussionRoute: Route = {
     loadComponent: () => import('./pages/new-discussion/new-discussion'),
     canDeactivate: [canLeaveGuard],
+    data: { checkForcedLanguage: CoreCourseForceLanguageSource.MODULE },
 };
 
 const discussionRoute: Route = {
     loadComponent: () => import('./pages/discussion/discussion'),
     canDeactivate: [canLeaveGuard],
+    data: { checkForcedLanguage: CoreCourseForceLanguageSource.MODULE },
 };
 
 const mobileRoutes: Routes = [
@@ -58,17 +60,16 @@ const mobileRoutes: Routes = [
         loadComponent: () => import('./pages/index/index'),
     },
     {
-        path: ':courseId/:cmId/new/:timeCreated',
         ...newDiscussionRoute,
+        path: ':courseId/:cmId/new/:timeCreated',
     },
     {
+        ...discussionRoute,
         path: ':courseId/:cmId/:discussionId',
-        ...discussionRoute,
-
     },
     {
-        path: 'discussion/:discussionId', // Only for discussion link handling.
         ...discussionRoute,
+        path: 'discussion/:discussionId', // Only for discussion link handling.
     },
 ];
 
@@ -78,12 +79,12 @@ const tabletRoutes: Routes = [
         loadComponent: () => import('./pages/index/index'),
         loadChildren: () => [
             {
-                path: 'new/:timeCreated',
                 ...newDiscussionRoute,
+                path: 'new/:timeCreated',
             },
             {
-                path: ':discussionId',
                 ...discussionRoute,
+                path: ':discussionId',
             },
         ],
     },
@@ -93,11 +94,15 @@ const mainMenuRoutes: Routes = [
     {
         path: ADDON_MOD_FORUM_SEARCH_PAGE_NAME,
         loadComponent: () => import('./pages/search/search'),
+        data: { checkForcedLanguage: CoreCourseForceLanguageSource.COURSE },
     },
     {
-        path: `${ADDON_MOD_FORUM_PAGE_NAME}/discussion/:discussionId`,
-        data: { swipeEnabled: false },
         ...discussionRoute,
+        path: `${ADDON_MOD_FORUM_PAGE_NAME}/discussion/:discussionId`,
+        data: {
+            ...discussionRoute.data,
+            swipeEnabled: false,
+        },
     },
     {
         path: ADDON_MOD_FORUM_PAGE_NAME,
@@ -105,18 +110,25 @@ const mainMenuRoutes: Routes = [
             ...conditionalRoutes(mobileRoutes, () => CoreScreen.isMobile),
             ...conditionalRoutes(tabletRoutes, () => CoreScreen.isTablet),
         ],
+        data: { checkForcedLanguage: CoreCourseForceLanguageSource.MODULE },
     },
     ...conditionalRoutes(
         [
             {
-                path: `${CORE_COURSE_CONTENTS_PATH}/${ADDON_MOD_FORUM_PAGE_NAME}/new/:timeCreated`,
-                data: { discussionsPathPrefix: `${ADDON_MOD_FORUM_PAGE_NAME}/` },
                 ...newDiscussionRoute,
+                path: `${CORE_COURSE_CONTENTS_PATH}/${ADDON_MOD_FORUM_PAGE_NAME}/new/:timeCreated`,
+                data: {
+                    ...newDiscussionRoute.data,
+                    discussionsPathPrefix: `${ADDON_MOD_FORUM_PAGE_NAME}/`,
+                },
             },
             {
-                path: `${CORE_COURSE_CONTENTS_PATH}/${ADDON_MOD_FORUM_PAGE_NAME}/:discussionId`,
-                data: { discussionsPathPrefix: `${ADDON_MOD_FORUM_PAGE_NAME}/` },
                 ...discussionRoute,
+                path: `${CORE_COURSE_CONTENTS_PATH}/${ADDON_MOD_FORUM_PAGE_NAME}/:discussionId`,
+                data: {
+                    ...discussionRoute.data,
+                    discussionsPathPrefix: `${ADDON_MOD_FORUM_PAGE_NAME}/`,
+                },
             },
         ],
         () => CoreScreen.isMobile,
@@ -127,14 +139,20 @@ const mainMenuRoutes: Routes = [
 const courseContentsRoutes: Routes = conditionalRoutes(
     [
         {
-            path: `${ADDON_MOD_FORUM_PAGE_NAME}/new/:timeCreated`,
             ...newDiscussionRoute,
-            data: { discussionsPathPrefix: `${ADDON_MOD_FORUM_PAGE_NAME}/` },
+            path: `${ADDON_MOD_FORUM_PAGE_NAME}/new/:timeCreated`,
+            data: {
+                ...newDiscussionRoute.data,
+                discussionsPathPrefix: `${ADDON_MOD_FORUM_PAGE_NAME}/`,
+            },
         },
         {
-            path: `${ADDON_MOD_FORUM_PAGE_NAME}/:discussionId`,
-            data: { discussionsPathPrefix: `${ADDON_MOD_FORUM_PAGE_NAME}/` },
             ...discussionRoute,
+            path: `${ADDON_MOD_FORUM_PAGE_NAME}/:discussionId`,
+            data: {
+                ...discussionRoute.data,
+                discussionsPathPrefix: `${ADDON_MOD_FORUM_PAGE_NAME}/`,
+            },
         },
     ],
     () => CoreScreen.isTablet,

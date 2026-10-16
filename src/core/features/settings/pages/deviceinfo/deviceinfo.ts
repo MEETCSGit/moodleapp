@@ -19,7 +19,7 @@ import { Device, Translate } from '@singletons';
 import { CoreLang } from '@services/lang';
 import { CoreFile } from '@services/file';
 import { CoreSites } from '@services/sites';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CorePushNotifications } from '@features/pushnotifications/services/pushnotifications';
 import { CoreConfig } from '@services/config';
 import { CoreToasts } from '@services/overlays/toasts';
@@ -28,9 +28,10 @@ import { CorePlatform } from '@services/platform';
 import { CoreNetwork, CoreNetworkConnectionType } from '@services/network';
 import { CoreLoginHelper } from '@features/login/services/login-helper';
 import { CoreSitesFactory } from '@services/sites-factory';
-import { CoreText } from '@singletons/text';
+import { CoreText } from '@static/text';
 import { GestureDetail } from '@ionic/angular';
 import { CoreSharedModule } from '@/core/shared.module';
+import { CORE_SETTINGS_DEV_PAGE_NAME } from '@features/settings/constants';
 
 /**
  * Device Info to be shown and copied to clipboard.
@@ -83,9 +84,12 @@ export default class CoreSettingsDeviceInfoPage {
     fsClickable = false;
     showDevOptions = false;
     displaySiteUrl = false;
+
     protected devOptionsClickCounter = 0;
     protected devOptionsForced = false;
     protected devOptionsClickTimeout?: number;
+
+    protected static readonly SHOW_DEV_OPTIONS = 'showDevOptions';
 
     constructor() {
         const navigator = window.navigator;
@@ -95,8 +99,8 @@ export default class CoreSettingsDeviceInfoPage {
             versionCode: CoreConstants.CONFIG.versioncode,
             compilationTime: CoreConstants.BUILD.compilationTime || 0,
             lastCommit: CoreConstants.BUILD.lastCommitHash || '',
-            isOnline: CoreNetwork.onlineSignal(),
-            wifiConnection: computed(() => CoreNetwork.connectionTypeSignal()() === CoreNetworkConnectionType.WIFI),
+            isOnline: CoreNetwork.onlineSignal,
+            wifiConnection: computed(() => CoreNetwork.connectionTypeSignal() === CoreNetworkConnectionType.WIFI),
             localNotifAvailable: CoreLocalNotifications.isPluginAvailable() ? 'yes' : 'no',
             pushId: CorePushNotifications.getPushId(),
             deviceType: '',
@@ -194,8 +198,8 @@ export default class CoreSettingsDeviceInfoPage {
         this.deviceInfo.fileSystemRoot = basepath;
         this.fsClickable = CoreFile.usesHTMLAPI();
 
-        const showDevOptionsOnConfig = await CoreConfig.get('showDevOptions', 0);
-        this.devOptionsForced = CoreConstants.enableDevTools();
+        const showDevOptionsOnConfig = await CoreConfig.get(CoreSettingsDeviceInfoPage.SHOW_DEV_OPTIONS, 0);
+        this.devOptionsForced = CoreConstants.isDevOrTestingBuild();
         this.showDevOptions = this.devOptionsForced || showDevOptionsOnConfig == 1;
 
         const publicKey = this.deviceInfo.pushId ?
@@ -240,10 +244,10 @@ export default class CoreSettingsDeviceInfoPage {
         clearTimeout(this.devOptionsClickTimeout);
         this.devOptionsClickCounter++;
 
-        if (this.devOptionsClickCounter == 5) {
+        if (this.devOptionsClickCounter === 5) {
             if (!this.showDevOptions) {
                 this.showDevOptions = true;
-                await CoreConfig.set('showDevOptions', 1);
+                await CoreConfig.set(CoreSettingsDeviceInfoPage.SHOW_DEV_OPTIONS, 1);
 
                 CoreToasts.show({
                     message: 'core.settings.youradev',
@@ -251,7 +255,7 @@ export default class CoreSettingsDeviceInfoPage {
                 });
             } else {
                 this.showDevOptions = false;
-                await CoreConfig.delete('showDevOptions');
+                await CoreConfig.delete(CoreSettingsDeviceInfoPage.SHOW_DEV_OPTIONS);
             }
 
             this.devOptionsClickCounter = 0;
@@ -269,7 +273,7 @@ export default class CoreSettingsDeviceInfoPage {
      * Navigate to dev options.
      */
     gotoDevOptions(): void {
-        CoreNavigator.navigate('dev');
+        CoreNavigator.navigate(CORE_SETTINGS_DEV_PAGE_NAME);
     }
 
 }

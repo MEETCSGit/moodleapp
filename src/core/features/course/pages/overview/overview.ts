@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Component, OnInit, signal, Type, viewChild, WritableSignal } from '@angular/core';
+import { Component, effect, OnInit, signal, Type, viewChild, WritableSignal, OnDestroy, inject, ElementRef } from '@angular/core';
 
 import {
     CoreCourseOverview,
@@ -24,22 +24,28 @@ import {
 import { CoreCourseModuleDelegate } from '@features/course/services/module-delegate';
 import { CoreCourseHelper } from '@features/course/services/course-helper';
 import { CoreNavigator } from '@services/navigator';
-import { CorePromiseUtils } from '@singletons/promise-utils';
-import { CoreTime } from '@singletons/time';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreTime } from '@static/time';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreSharedModule } from '@/core/shared.module';
-import { ModFeature, ModArchetype } from '@addons/mod/constants';
+import { ModFeature, ModArchetype, ModPurpose, RESOURCE_ARCHETYPE_NAME } from '@addons/mod/constants';
 import { CoreCourseModuleHelper } from '@features/course/services/course-module-helper';
 import { Translate } from '@singletons';
-import { CoreUrl } from '@singletons/url';
-import { CoreObject } from '@singletons/object';
+import { CoreUrl } from '@static/url';
+import { CoreObject } from '@static/object';
 import { IonAccordionGroup } from '@ionic/angular';
 import { CoreCourse } from '@features/course/services/course';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CoreScreen } from '@services/screen';
 import { map } from 'rxjs';
-import { CoreCourseOverviewContentType } from '@features/course/constants';
+import {
+    CORE_COURSE_OVERVIEW_OPTION_NAME,
+    CORE_COURSE_SELECT_TAB,
+    CoreCourseOverviewContentType,
+} from '@features/course/constants';
+import { CoreEventObserver, CoreEvents } from '@static/events';
+import { CoreDom } from '@static/dom';
 
 /**
  * Page that displays an overview of all activities in a course.
@@ -53,7 +59,7 @@ import { CoreCourseOverviewContentType } from '@features/course/constants';
         CoreSharedModule,
     ],
 })
-export default class CoreCourseOverviewPage implements OnInit {
+export default class CoreCourseOverviewPage implements OnInit, OnDestroy {
 
     readonly loaded = signal(false);
     readonly modTypes = signal<OverviewModType[]>([]);
@@ -63,8 +69,10 @@ export default class CoreCourseOverviewPage implements OnInit {
     readonly isTablet = toSignal(CoreScreen.layoutObservable.pipe(map(() => CoreScreen.isTablet)), { requireSync: true });
     protected courseId!: number;
     protected logView: () => void;
+    protected readonly autoExpand = signal<string[]>([]);
+    protected selectTabObserver: CoreEventObserver;
 
-    protected static readonly RESOURCES_NAME = 'resource';
+    protected hostElement: HTMLElement = inject(ElementRef).nativeElement;
 
     constructor() {
         this.logView = CoreTime.once(async () => {
@@ -77,6 +85,40 @@ export default class CoreCourseOverviewPage implements OnInit {
                 url: `/course/overview.php?id=${this.courseId}`,
             });
         });
+
+        effect(async () => {
+            const accordionGroup = this.accordionGroup();
+            const autoExpand = this.autoExpand();
+
+            if (accordionGroup && autoExpand) {
+                accordionGroup.value = autoExpand;
+
+                await this.modTypeAccordionChanged(autoExpand);
+
+                // Scroll to the first expanded mod type. when the accordion animation is done.
+                setTimeout(() => {
+                    const firstModType = autoExpand[0];
+                    CoreDom.scrollToElement(
+                        this.hostElement,
+                        `#${firstModType}_overview_collapsible`,
+                    );
+                }, 300);
+            }
+        });
+
+        // Listen for select course tab events to expand the right section if needed.
+        this.selectTabObserver = CoreEvents.on(CORE_COURSE_SELECT_TAB, (data) => {
+            if (data.selectedTab !== CORE_COURSE_OVERVIEW_OPTION_NAME) {
+                return;
+            }
+
+            if (!data.pageParams.expand) {
+                return;
+            }
+
+            const expand = data.pageParams.expand.split(',');
+            this.autoExpand.set(expand);
+        });
     }
 
     /**
@@ -85,6 +127,9 @@ export default class CoreCourseOverviewPage implements OnInit {
     async ngOnInit(): Promise<void> {
         try {
             this.courseId = CoreNavigator.getRequiredRouteParam('courseId');
+            const expand = CoreNavigator.getRouteParam('expand')?.split(',') || [];
+
+            this.autoExpand.set(expand);
         } catch (error) {
             CoreAlerts.showError(error);
             CoreNavigator.back();
@@ -110,6 +155,7 @@ export default class CoreCourseOverviewPage implements OnInit {
             const modIcons: Record<string, string> = {};
             let modFullNames: Record<string, string> = {};
             const brandedIcons: Record<string, boolean|undefined> = {};
+            const purposes: Record<string, ModPurpose | undefined> = {};
 
             const modules = CoreCourse.getSectionsModules(sections, {
                 ignoreSection: section => !CoreCourseHelper.canUserViewSection(section),
@@ -131,14 +177,15 @@ export default class CoreCourseOverviewPage implements OnInit {
                 // Get the full name of the module type.
                 if (archetypes[mod.modname] === ModArchetype.RESOURCE) {
                     // All resources are gathered in a single "Resources" option.
-                    if (!modFullNames[CoreCourseOverviewPage.RESOURCES_NAME]) {
-                        modFullNames[CoreCourseOverviewPage.RESOURCES_NAME] = Translate.instant('core.resources');
+                    if (!modFullNames[RESOURCE_ARCHETYPE_NAME]) {
+                        modFullNames[RESOURCE_ARCHETYPE_NAME] = Translate.instant('core.resources');
                     }
                 } else {
                     modFullNames[mod.modname] = mod.modplural;
                 }
 
                 brandedIcons[mod.modname] = mod.branded;
+                purposes[mod.modname] = mod.purpose;
 
                 // If this is not a theme image, leave it undefined to avoid having specific activity icons.
                 if (CoreUrl.isThemeImageUrl(mod.modicon)) {
@@ -150,7 +197,7 @@ export default class CoreCourseOverviewPage implements OnInit {
             modFullNames = CoreObject.sortValues(modFullNames);
 
             const modTypes = await Promise.all(Object.keys(modFullNames).map(async (modName): Promise<OverviewModType> => {
-                const iconModName = modName === CoreCourseOverviewPage.RESOURCES_NAME ? 'page' : modName;
+                const iconModName = modName === RESOURCE_ARCHETYPE_NAME ? 'page' : modName;
 
                 const icon = await CoreCourseModuleDelegate.getModuleIconSrc(iconModName, modIcons[iconModName]);
 
@@ -159,9 +206,10 @@ export default class CoreCourseOverviewPage implements OnInit {
                     iconModName,
                     name: modFullNames[modName],
                     modName,
-                    modNameTranslated: modName === CoreCourseOverviewPage.RESOURCES_NAME ?
+                    modNameTranslated: modName === RESOURCE_ARCHETYPE_NAME ?
                         modFullNames[modName] : CoreCourseModuleHelper.translateModuleName(modName, modFullNames[modName]),
                     branded: brandedIcons[iconModName],
+                    purpose: purposes[iconModName],
                     loaded: signal(false),
                     overview: signal<OverviewInformation | undefined>(undefined),
                 };
@@ -202,15 +250,18 @@ export default class CoreCourseOverviewPage implements OnInit {
     /**
      * An accordion has been expanded or collapsed.
      *
-     * @param modName Mod name that was expanded, undefined if collapsed and none expanded.
+     * @param modNames Array of the module names that are expanded, empty if all are collapsed.
+     * @returns Promise resolved when done.
      */
-    modTypeAccordionChanged(modName?: string): void {
-        const modType = modName && this.modTypes().find((modType) => modType.modName === modName);
-        if (!modType) {
-            return;
-        }
+    async modTypeAccordionChanged(modNames: string[] = []): Promise<void[]> {
+        return Promise.all(modNames.map(async (modName) => {
+            const modType = this.modTypes().find((modType) => modType.modName === modName);
+            if (!modType) {
+                return;
+            }
 
-        this.loadActivities(modType);
+            return this.loadActivities(modType);
+        }));
     }
 
     /**
@@ -231,6 +282,8 @@ export default class CoreCourseOverviewPage implements OnInit {
 
             modType.overview.set(formattedOverview);
             modType.loaded.set(true);
+
+            CorePromiseUtils.ignoreErrors(CoreCourse.logViewModuleInstanceList(this.courseId, modType.modName));
         } catch (error) {
             CoreAlerts.showError(error, { default: 'Error getting activities.' });
         }
@@ -244,13 +297,15 @@ export default class CoreCourseOverviewPage implements OnInit {
      * @returns Formatted overview.
      */
     protected async formatOverview(modName: string, overview: CoreCourseOverviewInformation): Promise<OverviewInformation> {
-        const columnsToRemove: string[] = [];
+        const keysToRemove = new Set<string>();
+        let isSupportedInApp = true;
 
         const headers = overview.headers.map((header) => ({
             ...header,
             classes:[
                 'ion-text-' + (header.align ?? 'start').trim(), // Convert alignment value to Ionic CSS class.
             ],
+            hasContent: false,
         }));
 
         const activities = await Promise.all(overview.activities.map(async (activity) => {
@@ -259,8 +314,8 @@ export default class CoreCourseOverviewPage implements OnInit {
                 // Search by name along with key because in some cases the key can be empty (see MDL-86146).
                 const item = activity.items.find(item => item.key === header.key || item.name === header.name);
                 if (!item) {
-                    // Item not found, it shouldn't happen. Render an empty item.
-                    return this.getEmptyOverviewItem(header.key, header.name);
+                    // Item not found, render an empty item. It can happen that some activities don't return certain items.
+                    return this.getEmptyOverviewItem(header.key, header.name, header.classes);
                 }
 
                 // Get the data to render the item.
@@ -268,9 +323,14 @@ export default class CoreCourseOverviewPage implements OnInit {
 
                 if (content === undefined) {
                     // The app doesn't know how to render the item, mark the mod type as not supported and render an empty item.
-                    columnsToRemove.push(header.key);
+                    keysToRemove.add(header.key);
+                    isSupportedInApp = false;
 
-                    return this.getEmptyOverviewItem(header.key, header.name);
+                    return this.getEmptyOverviewItem(header.key, header.name, header.classes);
+                }
+
+                if ('component' in content || content.content !== null) {
+                    header.hasContent = true;
                 }
 
                 return {
@@ -298,18 +358,26 @@ export default class CoreCourseOverviewPage implements OnInit {
             };
         }));
 
-        if (columnsToRemove.length) {
+        // If the WebService returns a header it means that at least 1 activity has content for that item. However, the app could
+        // return null content for a certain item in all activities to hide that item. Hide the items without content.
+        headers.forEach((header) => {
+            if (!header.hasContent) {
+                keysToRemove.add(header.key);
+            }
+        });
+
+        if (keysToRemove.size) {
             // Remove the unsupported columns for each activity.
             activities.forEach((activity) => {
-                activity.itemsToRender = activity.itemsToRender.filter((item) => !columnsToRemove.includes(item.key ?? ''));
+                activity.itemsToRender = activity.itemsToRender.filter((item) => !keysToRemove.has(item.key ?? ''));
                 activity.hasItemsBesidesName = activity.itemsToRender.some(item => item !== activity.nameItemToRender);
             });
         }
 
         return {
             ...overview,
-            isSupportedInApp: !columnsToRemove.length,
-            headers: headers.filter(header => !columnsToRemove.includes(header.key)),
+            isSupportedInApp,
+            headers: headers.filter(header => !keysToRemove.has(header.key)),
             activities,
         };
     }
@@ -319,9 +387,10 @@ export default class CoreCourseOverviewPage implements OnInit {
      *
      * @param key Key of the item.
      * @param name Name of the item.
+     * @param headerClasses Classes of the header.
      * @returns Empty overview item.
      */
-    protected getEmptyOverviewItem(key: string, name: string): OverviewItemToRender {
+    protected getEmptyOverviewItem(key: string, name: string, headerClasses: string[]): OverviewItemToRender {
         return {
             key,
             name,
@@ -330,6 +399,7 @@ export default class CoreCourseOverviewPage implements OnInit {
             extrajson: '{}',
             parsedData: { value: null, datatype: 'NULL' },
             content: null,
+            classes: headerClasses,
         };
     }
 
@@ -359,6 +429,13 @@ export default class CoreCourseOverviewPage implements OnInit {
         });
     }
 
+    /**
+     * @inheritdoc
+     */
+    ngOnDestroy(): void {
+        this.selectTabObserver.off();
+    }
+
 }
 
 type OverviewModType = {
@@ -368,6 +445,7 @@ type OverviewModType = {
     iconModName: string;
     modNameTranslated: string;
     branded?: boolean;
+    purpose?: ModPurpose;
     loaded: WritableSignal<boolean>;
     overview: WritableSignal<OverviewInformation | undefined>;
 };
@@ -383,6 +461,7 @@ type OverviewInformation = Omit<CoreCourseOverviewInformation, 'activities' | 'h
  */
 type OverviewHeader = CoreCourseGetOverviewInformationWSHeader & {
     classes: string[];
+    hasContent: boolean;
 };
 
 /**

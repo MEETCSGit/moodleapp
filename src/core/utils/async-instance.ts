@@ -23,7 +23,7 @@ import { CorePromisedValue } from '@classes/promised-value';
  */
 function createAsyncInstanceWrapper<
     TLazyInstance extends TEagerInstance,
-    TEagerInstance extends AsyncObject = Partial<TLazyInstance>
+    TEagerInstance extends AsyncObject = Partial<TLazyInstance>,
 >(
     lazyConstructor?: () => TLazyInstance | Promise<TLazyInstance>,
 ): AsyncInstanceWrapper<TLazyInstance, TEagerInstance> {
@@ -120,7 +120,7 @@ function isMethod(value: unknown): value is (...args: unknown[]) => unknown {
  */
 export interface AsyncInstanceWrapper<
     TLazyInstance extends TEagerInstance,
-    TEagerInstance extends AsyncObject = Partial<TLazyInstance>
+    TEagerInstance extends AsyncObject = Partial<TLazyInstance>,
 > {
     instance?: TLazyInstance;
     lazyMethods?: Array<string | number | symbol> | null;
@@ -171,7 +171,7 @@ export type GetEagerMethods<TEagerInstance extends AsyncObject> = {
 export type AsyncInstance<
     TLazyInstance extends TEagerInstance,
     TEagerInstance extends AsyncObject = Partial<TLazyInstance>,
-    TEagerMethods extends keyof TEagerInstance = GetEagerMethods<TEagerInstance>
+    TEagerMethods extends keyof TEagerInstance = GetEagerMethods<TEagerInstance>,
 > =
     AsyncInstanceWrapper<TLazyInstance, TEagerInstance> & Omit<{
         [k in keyof TLazyInstance]: AsyncMethod<TLazyInstance[k]>;
@@ -190,6 +190,7 @@ export type LazyMethodsGuard<TMethods extends Array<string | number | symbol>, T
  * underlying instance hasn't been set, methods will be resolved once it is.
  *
  * @param lazyConstructor Constructor to use the first time the instance is needed.
+ * @param eagerInstance Instance to use for eager methods. If not provided, all methods will be considered lazy.
  * @returns Asynchronous instance.
  */
 export function asyncInstance<TLazyInstance extends TEagerInstance, TEagerInstance extends AsyncObject = Partial<TLazyInstance>>(

@@ -13,3 +13,5 @@
 // limitations under the License.
 
 export const CORE_TAG_MAIN_MENU_PAGE_NAME = 'tag';
+
+export const CORE_TAG_COMPONENT_NAME = 'CoreTag';

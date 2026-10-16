@@ -21,7 +21,7 @@ import { CoreSites } from '@services/sites';
 import { CoreErrorHelper } from '@services/error-helper';
 import { CoreWSError } from '@classes/errors/wserror';
 import { makeSingleton } from '@singletons';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { CoreRating } from './rating';
 import { CoreRatingItemSet, CoreRatingOffline } from './rating-offline';
 
@@ -47,7 +47,7 @@ export class CoreRatingSyncProvider extends CoreSyncBaseProvider<CoreRatingSyncI
      * @param contextLevel Context level: course, module, user, etc.
      * @param instanceId Context instance id.
      * @param itemSetId Item set id.
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @param siteId Site ID. If not defined, current site.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
@@ -288,7 +288,7 @@ export class CoreRatingSyncProvider extends CoreSyncBaseProvider<CoreRatingSyncI
 }
 export const CoreRatingSync = makeSingleton(CoreRatingSyncProvider);
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.

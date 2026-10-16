@@ -21,10 +21,10 @@ import { CoreCourseLogHelper } from '@features/course/services/log-helper';
 import { CoreH5P } from '@features/h5p/services/h5p';
 import { CoreH5PDisplayOptions } from '@features/h5p/classes/core';
 import { CoreCourseCommonModWSOptions } from '@features/course/services/course';
-import { makeSingleton } from '@singletons/index';
+import { makeSingleton } from '@singletons';
 import { CoreWSError } from '@classes/errors/wserror';
 import { CoreError } from '@classes/errors/error';
-import { CoreTime } from '@singletons/time';
+import { CoreTime } from '@static/time';
 import { CoreSiteWSPreSets } from '@classes/sites/authenticated-site';
 import {
     ADDON_MOD_H5PACTIVITY_COMPONENT_LEGACY,
@@ -33,10 +33,12 @@ import {
 } from '../constants';
 import { CoreCacheUpdateFrequency } from '@/core/constants';
 import { CoreFileHelper } from '@services/file-helper';
-import { CorePromiseUtils } from '@singletons/promise-utils';
-import { CoreH5PMissingDependencyDBRecord } from '@features/h5p/services/database/h5p';
-import { CoreTextFormat } from '@singletons/text';
-import { CoreCourseModuleHelper } from '@features/course/services/course-module-helper';
+import { CorePromiseUtils } from '@static/promise-utils';
+import {
+    CoreH5PMissingDependencyDBRecord,
+    CoreH5PUnsupportedPackageDBRecord,
+} from '@features/h5p/services/database/h5p';
+import { CoreCourseModuleHelper, CoreCourseModuleStandardElements } from '@features/course/services/course-module-helper';
 
 /**
  * Service that provides some features for H5P activity.
@@ -252,7 +254,7 @@ export class AddonModH5PActivityProvider {
     async getUsersAttempts(
         id: number,
         options?: AddonModH5PActivityGetUsersAttemptsOptions,
-    ): Promise<{users: AddonModH5PActivityUserAttempts[]; canLoadMore: boolean; totalAttempts?: number}> {
+    ): Promise<{ users: AddonModH5PActivityUserAttempts[]; canLoadMore: boolean; totalAttempts?: number }> {
         options = options || {};
         options.page = options.page || 0;
         options.perPage = options.perPage ?? ADDON_MOD_H5PACTIVITY_USERS_PER_PAGE;
@@ -262,7 +264,7 @@ export class AddonModH5PActivityProvider {
         const params: AddonModH5pactivityGetUserAttemptsWSParams = {
             h5pactivityid: id,
             page: options.page,
-            perpage: options.perPage === 0 ? 0 : options.perPage + 1, // Get 1 more to be able to know if there are more to load.
+            perpage: options.perPage,
             sortorder: options.sortOrder,
             firstinitial: options.firstInitial,
             lastinitial: options.lastInitial,
@@ -285,14 +287,11 @@ export class AddonModH5PActivityProvider {
             throw new CoreWSError(response.warnings[0]);
         }
 
-        let canLoadMore = false;
-        if (options.perPage > 0) {
-            canLoadMore = response.usersattempts.length > options.perPage;
-            response.usersattempts = response.usersattempts.slice(0, options.perPage);
-        }
-
+        // We cannot use the strategy to obtain 1 more user to know if there are more to load because the WS only accepts
+        // page+perpage, not the position to start from (e.g. start from position 20). So if we get page=1 and perpage=21, we obtain
+        // from user 22, not from user 21, so the user 21 is "lost". If length>=perPage users, assume there can be more.
         return {
-            canLoadMore: canLoadMore,
+            canLoadMore: options.perPage > 0 && response.usersattempts.length >= options.perPage,
             users: response.usersattempts.map(userAttempts => this.formatUserAttempts(userAttempts)),
             totalAttempts: response.totalattempts,
         };
@@ -397,7 +396,7 @@ export class AddonModH5PActivityProvider {
 
             const attemptsResults = await AddonModH5PActivity.getAllAttemptsResults(id, cacheOptions);
 
-            const attempt = attemptsResults.attempts.find((attempt) => attempt.id == attemptId);
+            const attempt = attemptsResults.attempts.find((attempt) => attempt.id === attemptId);
 
             if (!attempt) {
                 throw error;
@@ -600,7 +599,7 @@ export class AddonModH5PActivityProvider {
 
         // The activity had missing dependencies, but the package could have changed (e.g. the teacher fixed it).
         // Check which of the dependencies apply to the current package.
-        const fileId = await CoreH5P.h5pFramework.getFileIdForMissingDependencies(fileUrl, siteId);
+        const fileId = await CoreH5P.h5pFramework.getIdentifierFromUrl(fileUrl, siteId);
 
         const filteredMissingDependencies = missingDependencies.filter(dependency =>
             dependency.fileid === fileId && dependency.filetimemodified === deployedFile.timemodified);
@@ -614,6 +613,48 @@ export class AddonModH5PActivityProvider {
         );
 
         return [];
+    }
+
+    /**
+     * Get unsupported package record for a certain H5P activity (if any).
+     *
+     * @param componentId Component ID.
+     * @param deployedFile File to check.
+     * @param siteId Site ID. If not defined, current site.
+     * @returns Unsupported package record, undefined if no unsupported record is stored.
+     */
+    async getUnsupportedPackage(
+        componentId: number,
+        deployedFile: CoreWSFile,
+        siteId?: string,
+    ): Promise<CoreH5PUnsupportedPackageDBRecord | undefined> {
+        // We need to use the legacy component because it's the one used when downloading/saving the package.
+        const unsupportedPackages = await CoreH5P.h5pFramework.getUnsupportedPackagesForComponent(
+            ADDON_MOD_H5PACTIVITY_COMPONENT_LEGACY,
+            componentId,
+            siteId,
+        );
+        if (!unsupportedPackages.length) {
+            return;
+        }
+
+        // The activity had unsupported package records, but the package could have changed (e.g. the teacher changed it).
+        // Check if any of the records apply to the current package.
+        const fileUrl = CoreFileHelper.getFileUrl(deployedFile);
+        const fileId = await CoreH5P.h5pFramework.getIdentifierFromUrl(fileUrl, siteId);
+
+        const unsupportedPackage = unsupportedPackages.find(pkg =>
+            pkg.fileid === fileId && pkg.filetimemodified === deployedFile.timemodified);
+        if (unsupportedPackage) {
+            return unsupportedPackage;
+        }
+
+        // Package has changed, delete previous unsupported records.
+        await CorePromiseUtils.ignoreErrors(
+            CoreH5P.h5pFramework.deleteUnsupportedPackagesForComponent(ADDON_MOD_H5PACTIVITY_COMPONENT_LEGACY, componentId, siteId),
+        );
+
+        return undefined;
     }
 
     /**
@@ -797,6 +838,7 @@ export class AddonModH5PActivityProvider {
     /**
      * Delete launcher.
      *
+     * @param siteId Site ID. If not defined, current site.
      * @returns Promise resolved when the launcher file is deleted.
      * @since 3.9
      */
@@ -874,23 +916,19 @@ export const AddonModH5PActivity = makeSingleton(AddonModH5PActivityProvider);
 
 /**
  * Basic data for an H5P activity, exported by Moodle class h5pactivity_summary_exporter.
+ * We're using Omit to exclude properties because type is not consistent with the rest of the WS but
+ * it should be.
  */
-export type AddonModH5PActivityWSData = {
-    id: number; // The primary key of the record.
-    course: number; // Course id this h5p activity is part of.
-    name: string; // The name of the activity module instance.
+export type AddonModH5PActivityWSData =
+    Omit<CoreCourseModuleStandardElements, 'section'|'visible'|'groupmode'|'groupingid'|'lang'> & {
     timecreated?: number; // Timestamp of when the instance was added to the course.
     timemodified?: number; // Timestamp of when the instance was last modified.
-    intro: string; // H5P activity description.
-    introformat: CoreTextFormat; // Intro format (1 = HTML, 0 = MOODLE, 2 = PLAIN or 4 = MARKDOWN).
     grade?: number; // The maximum grade for submission.
     displayoptions: number; // H5P Button display options.
     enabletracking: number; // Enable xAPI tracking.
     grademethod: AddonModH5PActivityGradeMethod; // Which H5P attempt is used for grading.
     contenthash?: string; // Sha1 hash of file content.
-    coursemodule: number; // Coursemodule.
     context: number; // Context ID.
-    introfiles: CoreWSExternalFile[];
     package: CoreWSExternalFile[];
     deployedfile?: {
         filename?: string; // File name.

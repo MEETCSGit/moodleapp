@@ -17,12 +17,12 @@ import { Injectable } from '@angular/core';
 import { CoreFilterDefaultHandler } from '@features/filter/services/handlers/default-filter';
 import { CoreFilterFilter, CoreFilterFormatTextOptions } from '@features/filter/services/filter';
 import { CoreSites } from '@services/sites';
-import { CoreText } from '@singletons/text';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CoreText } from '@static/text';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreSite } from '@classes/sites/site';
 import { makeSingleton } from '@singletons';
-import { CoreDom } from '@singletons/dom';
-import { CoreLogger } from '@singletons/logger';
+import { CoreDom } from '@static/dom';
+import { CoreLogger } from '@static/logger';
 
 /**
  * Handler to support the MathJax filter.
@@ -67,7 +67,7 @@ export class AddonFilterMathJaxLoaderHandlerService extends CoreFilterDefaultHan
 
         await this.window.MathJax?.startup.promise;
 
-        // @todo: Once MathJax supports locale, set current language and listen for CoreEvents.LANGUAGE_CHANGED events.
+        // @todo: Once MathJax supports locale, set current language and listen for Translate.onLangChange events.
     }
 
     /**
@@ -164,6 +164,8 @@ export class AddonFilterMathJaxLoaderHandlerService extends CoreFilterDefaultHan
 
     /**
      * Called by the filter when an equation is found while rendering the content.
+     *
+     * @param container The container element.
      */
     protected async typeset(container: HTMLElement): Promise<void> {
         const equations = Array.from(container.getElementsByClassName('filter_mathjaxloader_equation'));
@@ -212,7 +214,7 @@ export class AddonFilterMathJaxLoaderHandlerService extends CoreFilterDefaultHan
      * @param text The text to filter.
      * @returns Object containing the potentially modified text and a boolean that is true if any changes were made to the text.
      */
-    protected wrapMathInNoLink(text: string): {text: string; changed: boolean} {
+    protected wrapMathInNoLink(text: string): { text: string; changed: boolean } {
         let len = text.length;
         let i = 1;
         let displayStart = -1;

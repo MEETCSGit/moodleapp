@@ -38,8 +38,8 @@
                             </h1>
                             @if (course.categoryname) {
                                 <ion-chip color="primary" class="core-course-category ion-text-nowrap">
-                                    <span class="sr-only">{{ 'core.courses.aria:coursecategory' | translate }}</span>
-                                    <ion-label>
+                                    <ion-label role="group">
+                                        <span class="sr-only">{{ 'core.courses.aria:coursecategory' | translate }}</span>
                                         <core-format-text [text]="course.categoryname" contextLevel="coursecat"
                                             [contextInstanceId]="course.categoryid" />
                                     </ion-label>
@@ -102,7 +102,7 @@
                                 }
                                 <ion-label>
                                     <h2 class="item-heading">
-                                        {{ 'core.teachers' | translate }}
+                                        {{ 'core.coursecontact' | translate }}
                                     </h2>
                                 </ion-label>
                             </ion-item>
@@ -110,7 +110,7 @@
                                 @for (contact of course.contacts; track contact.id) {
                                     <ion-item button class="ion-text-wrap" core-user-link
                                         [userId]="contact.id" [courseId]="isEnrolled ? course.id : null" [detail]="true">
-                                        <core-user-avatar [user]="contact" slot="start" [userId]="contact.id"
+                                        <core-user-avatar [user]="contact" slot="start"
                                             [courseId]="isEnrolled ? course.id : null" [linkProfile]="false" />
                                         <ion-label>
                                             <p class="item-heading">{{contact.fullname}}</p>
@@ -155,7 +155,7 @@
         <div class="list-item-limited-width">
             @if (canAccessCourse) {
                 @for (item of courseMenuHandlers; track item.name) {
-                    <ion-button (click)="openMenuItem(item)" [class]="'ion-text-wrap '+ item.data.class"
+                    <ion-button (click)="openMenuItem(item)" [class]="['ion-text-wrap', item.data.class]"
                         expand="block">
                         @if (item.data.icon) {
                             <ion-icon [name]="item.data.icon" slot="start" aria-hidden="true" />
@@ -171,12 +171,7 @@
                         {{ 'core.courses.enrolme' | translate }}
                     </ion-button>
                 } @else {
-                    <ion-card class="core-info-card ion-text-wrap">
-                        <ion-item>
-                            <ion-icon name="fas-circle-info" slot="start" aria-hidden="true" />
-                            <ion-label>{{ 'core.courses.notenrollable' | translate }}</ion-label>
-                        </ion-item>
-                    </ion-card>
+                    <core-alert-card type="info" [message]="'core.courses.notenrollable' | translate" />
                 }
 
             }

@@ -16,10 +16,10 @@ import { Component, OnInit, viewChild } from '@angular/core';
 import { Subscription } from 'rxjs';
 
 import { CoreSites } from '@services/sites';
-import { CoreEventObserver } from '@singletons/events';
+import { CoreEventObserver } from '@static/events';
 import { CoreTabsOutletComponent, CoreTabsOutletTab } from '@components/tabs-outlet/tabs-outlet';
 import { CoreMainMenuHomeDelegate, CoreMainMenuHomeHandlerToDisplay } from '../../services/home-delegate';
-import { CoreArray } from '@singletons/array';
+import { CoreArray } from '@static/array';
 import { CoreSharedModule } from '@/core/shared.module';
 import { CoreSiteLogoComponent } from '../../../../components/site-logo/site-logo';
 import { CoreMainMenuUserButtonComponent } from '../../components/user-menu-button/user-menu-button';
@@ -59,13 +59,15 @@ export default class CoreMainMenuHomePage implements OnInit {
 
     /**
      * Init handlers on change (size or handlers).
+     *
+     * @param handlers Handlers to display.
      */
     initHandlers(handlers: CoreMainMenuHomeHandlerToDisplay[]): void {
         // Re-build the list of tabs.
         const loaded = CoreMainMenuHomeDelegate.areHandlersLoaded();
         const handlersMap = CoreArray.toObject(handlers, 'title');
         const newTabs = handlers.map((handler): CoreTabsOutletTab => {
-            const tab = this.tabs.find(tab => tab.title == handler.title);
+            const tab = this.tabs.find(tab => tab.title === handler.title);
 
             // If a handler is already in the list, use existing object to prevent re-creating the tab.
             if (tab) {

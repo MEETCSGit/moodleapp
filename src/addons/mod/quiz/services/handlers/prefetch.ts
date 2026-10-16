@@ -23,8 +23,8 @@ import { CoreCourses } from '@features/courses/services/courses';
 import { CoreQuestionHelper } from '@features/question/services/question-helper';
 import { CoreFilepool } from '@services/filepool';
 import { CoreSites, CoreSitesReadingStrategy } from '@services/sites';
-import { CoreText } from '@singletons/text';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CoreText } from '@static/text';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreWSFile } from '@services/ws';
 import { makeSingleton } from '@singletons';
 import {
@@ -63,7 +63,7 @@ export class AddonModQuizPrefetchHandlerService extends CoreCourseActivityPrefet
         courseId: number,
         dirPath?: string,
         single?: boolean,
-        canStart: boolean = true,
+        canStart = true,
     ): Promise<void> {
         // Same implementation for download and prefetch.
         return this.prefetch(module, courseId, single, dirPath, canStart);
@@ -211,7 +211,7 @@ export class AddonModQuizPrefetchHandlerService extends CoreCourseActivityPrefet
         courseId: number,
         single?: boolean,
         dirPath?: string,
-        canStart: boolean = true,
+        canStart = true,
     ): Promise<void> {
         if (module.attemptFinished) {
             // Delete the value so it does not block anything if true.
@@ -270,7 +270,7 @@ export class AddonModQuizPrefetchHandlerService extends CoreCourseActivityPrefet
         let startAttempt = false;
 
         if (canStart || attempt) {
-            if (canStart && (!attempt || AddonModQuiz.isAttemptCompleted(attempt.state))) {
+            if (canStart && AddonModQuiz.canStartAttemptBasedOnLastState(attempt?.state)) {
                 // Check if the user can attempt the quiz.
                 if (attemptAccessInfo.preventnewattemptreasons.length) {
                     throw new CoreError(CoreText.buildMessage(attemptAccessInfo.preventnewattemptreasons));
@@ -321,7 +321,7 @@ export class AddonModQuizPrefetchHandlerService extends CoreCourseActivityPrefet
         promises.push(AddonModQuiz.getAttemptAccessInformation(quiz.id, 0, modOptions)); // Last attempt.
 
         // Get course data, needed to determine upload max size if it's configured to be course limit.
-        promises.push(CorePromiseUtils.ignoreErrors(CoreCourses.getCourseByField('id', courseId, siteId)));
+        promises.push(CorePromiseUtils.ignoreErrors(CoreCourses.getCourseByField('id', courseId, { siteId })));
 
         await Promise.all(promises);
 

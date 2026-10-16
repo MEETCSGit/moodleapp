@@ -16,7 +16,7 @@ import { ChangeDetectionStrategy, Component, effect, OnInit, signal, untracked }
 import { CoreSites } from '@services/sites';
 import { CoreBlockBaseComponent } from '@features/block/classes/base-block-component';
 import { AddonBlockTimeline } from '../../services/timeline';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import {
     CoreCoursesHelper,
     CoreEnrolledCourseDataWithExtraInfoAndOptions,
@@ -346,7 +346,7 @@ export const enum AddonBlockTimelineFilter {
 /**
  * Select option.
  */
-export interface AddonBlockTimelineOption<Value> {
+export type AddonBlockTimelineOption<Value> = {
     value: Value;
     name: string;
-}
+};

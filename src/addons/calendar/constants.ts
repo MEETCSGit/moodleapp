@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { MAIN_MENU_FEATURE_PREFIX } from '@features/mainmenu/constants';
 import { CORE_USER_TF_12, CORE_USER_TF_24 } from '@features/user/constants';
 
 export const ADDON_CALENDAR_COMPONENT = 'AddonCalendarEvents';
@@ -45,6 +46,9 @@ export const ADDON_CALENDAR_DELETED_EVENT_EVENT = 'addon_calendar_deleted_event'
 export const ADDON_CALENDAR_UNDELETED_EVENT_EVENT = 'addon_calendar_undeleted_event';
 export const ADDON_CALENDAR_FILTER_CHANGED_EVENT = 'addon_calendar_filter_changed_event';
 
+export const ADDONS_CALENDAR_COMPONENT_NAME = 'AddonCalendar';
+export const ADDONS_CALENDAR_MENU_FEATURE_NAME = `${MAIN_MENU_FEATURE_PREFIX}${ADDONS_CALENDAR_COMPONENT_NAME}`;
+
 /**
  * Context levels enumeration.
  */
@@ -65,4 +69,13 @@ export enum AddonCalendarEventType {
     COURSE = 'course',
     GROUP = 'group',
     USER = 'user',
+}
+
+/**
+ * Event duration types enumeration.
+ */
+export enum AddonCalendarEventDuration {
+    NONE = 0,
+    UNTIL = 1,
+    MINUTES = 2,
 }

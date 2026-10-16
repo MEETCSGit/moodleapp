@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { Injectable } from '@angular/core';
-import { CoreArray } from '@singletons/array';
+import { CoreArray } from '@static/array';
 import { CoreSites, CoreSitesCommonWSOptions } from '@services/sites';
 import {
     CoreCourseAnyCourseData,
@@ -34,7 +34,7 @@ import { catchError, map } from 'rxjs/operators';
 import { chainRequests, WSObservable } from '@classes/sites/authenticated-site';
 import { CoreSite } from '@classes/sites/site';
 import { LazyDefaultStandaloneComponent } from '@/app/app-routing.module';
-import { DEFAULT_TEXT_FORMAT } from '@singletons/text';
+import { DEFAULT_TEXT_FORMAT } from '@static/text';
 
 // Id for a course item representing all courses (for example, for course filters).
 export const ALL_COURSES_ID = -1;
@@ -53,7 +53,7 @@ export class CoreCoursesHelperProvider {
      * @param courseId Course ID to get the category.
      * @returns Promise resolved with the list of courses and the category.
      */
-    async getCoursesForPopover(courseId?: number): Promise<{courses: CoreEnrolledCourseData[]; categoryId?: number}> {
+    async getCoursesForPopover(courseId?: number): Promise<{ courses: CoreEnrolledCourseData[]; categoryId?: number }> {
         const courses: CoreEnrolledCourseData[] = await CoreCourses.getUserCourses(false);
 
         // Add "All courses".
@@ -91,7 +91,7 @@ export class CoreCoursesHelperProvider {
     protected loadCourseExtraInfo(
         course: CoreEnrolledCourseDataWithExtraInfo,
         courseByField: CoreCourseSearchedData,
-        addCategoryName: boolean = false,
+        addCategoryName = false,
     ): void {
         if (courseByField) {
             course.displayname = courseByField.displayname;
@@ -124,7 +124,7 @@ export class CoreCoursesHelperProvider {
      */
     async loadCoursesExtraInfo(
         courses: CoreEnrolledCourseDataWithExtraInfo[],
-        loadCategoryNames: boolean = false,
+        loadCategoryNames = false,
     ): Promise<CoreEnrolledCourseDataWithExtraInfo[]> {
         return await firstValueFrom(this.loadCoursesExtraInfoObservable(courses, loadCategoryNames));
     }
@@ -135,11 +135,12 @@ export class CoreCoursesHelperProvider {
      *
      * @param courses List of courses.
      * @param loadCategoryNames Whether load category names or not.
+     * @param options WebService options.
      * @returns Promise resolved when done.
      */
     loadCoursesExtraInfoObservable(
         courses: CoreEnrolledCourseDataWithExtraInfo[],
-        loadCategoryNames: boolean = false,
+        loadCategoryNames = false,
         options: CoreSitesCommonWSOptions = {},
     ): WSObservable<CoreEnrolledCourseDataWithExtraInfo[]> {
         if (!courses.length) {
@@ -239,10 +240,10 @@ export class CoreCoursesHelperProvider {
      * @returns Courses filled with options.
      */
     async getUserCoursesWithOptions(
-        sort: string = 'fullname',
-        slice: number = 0,
+        sort = 'fullname',
+        slice = 0,
         filter?: string,
-        loadCategoryNames: boolean = false,
+        loadCategoryNames = false,
         options: CoreSitesCommonWSOptions = {},
     ): Promise<CoreEnrolledCourseDataWithExtraInfoAndOptions[]> {
         return await firstValueFrom(this.getUserCoursesWithOptionsObservable({
@@ -350,6 +351,7 @@ export class CoreCoursesHelperProvider {
      * Given a course object, fetch and set its completed status if not present already.
      *
      * @param course Course.
+     * @param options WebService options.
      * @returns Observable.
      */
     protected loadCourseCompletedStatus(
@@ -386,7 +388,7 @@ export class CoreCoursesHelperProvider {
      *
      * @param course Course Object.
      * @param gradePeriodAfter Classify past courses as in progress for these many days after the course end date.
-     * @returns Wether the course is past.
+     * @returns Whether the course is past.
      */
     isPastCourse(course: CoreEnrolledCourseDataWithOptions, gradePeriodAfter = 0): boolean {
         if (course.completed) {
@@ -409,7 +411,7 @@ export class CoreCoursesHelperProvider {
      * @param course Course Object.
      * @param gradePeriodAfter Classify past courses as in progress for these many days after the course end date.
      * @param gradePeriodBefore Classify future courses as in progress for these many days prior to the course start date.
-     * @returns Wether the course is future.
+     * @returns Whether the course is future.
      */
     isFutureCourse(
         course: CoreEnrolledCourseDataWithOptions,

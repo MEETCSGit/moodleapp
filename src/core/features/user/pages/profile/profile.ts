@@ -13,32 +13,37 @@
 // limitations under the License.
 
 import { ActivatedRoute, ActivatedRouteSnapshot } from '@angular/router';
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal, viewChildren } from '@angular/core';
 import { Subscription } from 'rxjs';
 
 import { CoreSite } from '@classes/sites/site';
 import { CoreSites } from '@services/sites';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { CoreUser, CoreUserProfile } from '@features/user/services/user';
 import { CoreUserHelper } from '@features/user/services/user-helper';
 import {
     CoreUserDelegate,
     CoreUserDelegateContext,
     CoreUserProfileHandlerType,
-    CoreUserProfileHandlerData,
+    CoreUserProfileListActionHandlerData,
+    CoreUserProfileListHandlerData,
+    CoreUserProfileButtonHandlerData,
 } from '@features/user/services/user-delegate';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreNavigator } from '@services/navigator';
 import { CoreCourses } from '@features/courses/services/courses';
 import { CoreSwipeNavigationItemsManager } from '@classes/items-management/swipe-navigation-items-manager';
 import { CoreUserParticipantsSource } from '@features/user/classes/participants-source';
 import { CoreRoutedItemsManagerSourcesTracker } from '@classes/items-management/routed-items-manager-sources-tracker';
-import { CoreTime } from '@singletons/time';
+import { CoreTime } from '@static/time';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
 import { Translate } from '@singletons';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreSharedModule } from '@/core/shared.module';
 import { CORE_USER_PROFILE_REFRESHED } from '@features/user/constants';
+import { CoreDynamicComponent } from '@components/dynamic-component/dynamic-component';
+import type { ReloadableComponent } from '@coretypes/reloadable-component';
+import { CoreWSError } from '@classes/errors/wserror';
 
 @Component({
     selector: 'page-core-user-profile',
@@ -50,17 +55,29 @@ import { CORE_USER_PROFILE_REFRESHED } from '@features/user/constants';
 })
 export default class CoreUserProfilePage implements OnInit, OnDestroy {
 
-    userLoaded = false;
-    isLoadingHandlers = false;
-    user?: CoreUserProfile;
-    isDeleted = false;
-    isSuspended = false;
-    isEnrolled = true;
-    rolesFormatted?: string;
-    listItemHandlers: CoreUserProfileHandlerData[] = [];
-    buttonHandlers: CoreUserProfileHandlerData[] = [];
+    readonly dynamicComponents = viewChildren<CoreDynamicComponent<ReloadableComponent>>(CoreDynamicComponent);
 
-    users?: CoreUserSwipeItemsManager;
+    readonly userLoaded = signal(false);
+    readonly isLoadingHandlers = signal(false);
+    readonly user = signal<CoreUserProfile | undefined>(undefined);
+
+    readonly isDeleted = signal(false);
+    readonly isSuspended = signal(false);
+    readonly isEnrolled = signal(true);
+    readonly cannotViewProfile = signal(false);
+    readonly rolesFormatted = computed(() => {
+        const user = this.user();
+        if (!user) {
+            return '';
+        }
+
+        return 'roles' in user ? CoreUserHelper.formatRoleList(user.roles) : '';
+    });
+
+    readonly listItemHandlers = signal<ListHandlerData[]>([]);
+    readonly buttonHandlers = signal<ButtonHandlerData[]>([]);
+
+    readonly users = signal<CoreUserSwipeItemsManager | undefined>(undefined);
 
     protected courseId?: number;
     protected userId!: number;
@@ -72,21 +89,22 @@ export default class CoreUserProfilePage implements OnInit, OnDestroy {
 
     constructor() {
         this.obsProfileRefreshed = CoreEvents.on(CORE_USER_PROFILE_REFRESHED, (data) => {
-            if (!this.user || !data.user) {
+            if (!data.user || data.userId !== this.userId) {
                 return;
             }
 
-            this.user.email = data.user.email;
+            this.user.set(data.user);
         }, CoreSites.getCurrentSiteId());
 
         this.logView = CoreTime.once(async (user) => {
             try {
-                await CoreUser.logView(this.userId, this.courseId, user.fullname);
+                await CoreUser.logView(this.userId, this.courseId);
             } catch (error) {
-                this.isDeleted = error?.errorcode === 'userdeleted' || error?.errorcode === 'wsaccessuserdeleted';
-                this.isSuspended = error?.errorcode === 'wsaccessusersuspended';
-                this.isEnrolled = error?.errorcode !== 'notenrolledprofile';
+                this.isDeleted.set(error?.errorcode === 'userdeleted' || error?.errorcode === 'wsaccessuserdeleted');
+                this.isSuspended.set(error?.errorcode === 'wsaccessusersuspended');
+                this.isEnrolled.set(error?.errorcode !== 'notenrolledprofile');
             }
+
             let extraParams = '';
             if (this.userId !== CoreSites.getCurrentSiteUserId()) {
                 const isCourseProfile = this.courseId && this.courseId !== CoreSites.getCurrentSiteHomeId();
@@ -129,15 +147,16 @@ export default class CoreUserProfilePage implements OnInit, OnDestroy {
                 CoreUserParticipantsSource,
                 [this.courseId, search],
             );
-            this.users = new CoreUserSwipeItemsManager(source);
+            const users = new CoreUserSwipeItemsManager(source);
+            this.users.set(users);
 
-            this.users.start();
+            users.start();
         }
 
         try {
             await this.fetchUser();
         } finally {
-            this.userLoaded = true;
+            this.userLoaded.set(true);
         }
     }
 
@@ -148,38 +167,62 @@ export default class CoreUserProfilePage implements OnInit, OnDestroy {
         try {
             const user = await CoreUser.getProfile(this.userId, this.courseId);
 
-            this.rolesFormatted = 'roles' in user ? CoreUserHelper.formatRoleList(user.roles) : '';
-
-            this.user = user;
+            this.user.set(user);
 
             // If there's already a subscription, unsubscribe because we'll get a new one.
             this.subscription?.unsubscribe();
 
             const context = this.courseId ? CoreUserDelegateContext.COURSE : CoreUserDelegateContext.SITE;
+            const defaultComponentData = {
+                user: this.user(),
+                context,
+                courseId: this.courseId,
+            };
 
             this.subscription = CoreUserDelegate.getProfileHandlersFor(user, context, this.courseId).subscribe((handlers) => {
-                this.listItemHandlers = [];
-                this.buttonHandlers = [];
+                const listItemHandlers: ListHandlerData[] = [];
+                const buttonHandlers: ButtonHandlerData[] = [];
+
                 handlers.forEach((handler) => {
                     switch (handler.type) {
                         case CoreUserProfileHandlerType.BUTTON:
-                            this.buttonHandlers.push(handler.data);
+                            buttonHandlers.push({ name: handler.name, ...handler.data } as ButtonHandlerData);
                             break;
                         case CoreUserProfileHandlerType.LIST_ACCOUNT_ITEM:
                             // Discard this for now.
                             break;
                         case CoreUserProfileHandlerType.LIST_ITEM:
                         default:
-                            this.listItemHandlers.push(handler.data);
+                            listItemHandlers.push({
+                                name: handler.name,
+                                ...handler.data,
+                                componentData: 'componentData' in handler.data ? {
+                                    ...defaultComponentData,
+                                    ...(handler.data.componentData || {}),
+                                } : undefined,
+                            });
                             break;
                     }
                 });
 
-                this.isLoadingHandlers = !CoreUserDelegate.areHandlersLoaded(user.id, context, this.courseId);
+                this.listItemHandlers.set(listItemHandlers);
+                this.buttonHandlers.set(buttonHandlers);
+
+                this.isLoadingHandlers.set(!CoreUserDelegate.areHandlersLoaded(user.id, context, this.courseId));
             });
 
             this.logView(user);
         } catch (error) {
+            if (error instanceof CoreWSError && error?.errorcode === 'cannotviewprofile') {
+                 this.subscription?.unsubscribe();
+                 this.subscription = undefined;
+                 this.user.set(undefined);
+                 this.isLoadingHandlers.set(false);
+                 this.cannotViewProfile.set(true);
+
+                return;
+            }
+
             // Error is null for deleted users, do not show the modal.
             CoreAlerts.showError(error);
         }
@@ -189,38 +232,31 @@ export default class CoreUserProfilePage implements OnInit, OnDestroy {
      * Refresh the user.
      *
      * @param event Event.
-     * @returns Promise resolved when done.
      */
     async refreshUser(event?: HTMLIonRefresherElement): Promise<void> {
         await CorePromiseUtils.ignoreErrors(Promise.all([
             CoreUser.invalidateUserCache(this.userId),
             CoreCourses.invalidateUserNavigationOptions(),
             CoreCourses.invalidateUserAdministrationOptions(),
+            ...(this.dynamicComponents()?.map((component) =>
+                Promise.resolve(component.callComponentMethod('invalidateContent'))) || []),
         ]));
 
         await this.fetchUser();
 
+        await CorePromiseUtils.allPromisesIgnoringErrors(
+            this.dynamicComponents()?.map((component) => Promise.resolve(component.callComponentMethod('reloadContent'))),
+        );
+
         event?.complete();
 
-        if (this.user) {
+        if (this.user()) {
             CoreEvents.trigger(CORE_USER_PROFILE_REFRESHED, {
                 courseId: this.courseId,
                 userId: this.userId,
-                user: this.user,
+                user: this.user(),
             }, this.site?.getId());
         }
-    }
-
-    /**
-     * Open the page with the user details.
-     */
-    openUserDetails(): void {
-        CoreNavigator.navigateToSitePath('user/about', {
-            params: {
-                courseId: this.courseId,
-                userId: this.userId,
-            },
-        });
     }
 
     /**
@@ -229,20 +265,21 @@ export default class CoreUserProfilePage implements OnInit, OnDestroy {
      * @param event Click event.
      * @param handler Handler that was clicked.
      */
-    handlerClicked(event: Event, handler: CoreUserProfileHandlerData): void {
-        if (!this.user) {
+    handlerClicked(event: Event, handler: CoreUserProfileButtonHandlerData | CoreUserProfileListActionHandlerData): void {
+        const user = this.user();
+        if (!user) {
             return;
         }
 
         const context = this.courseId ? CoreUserDelegateContext.COURSE : CoreUserDelegateContext.SITE;
-        handler.action(event, this.user, context, this.courseId);
+        handler.action(event, user, context, this.courseId);
     }
 
     /**
      * @inheritdoc
      */
     ngOnDestroy(): void {
-        this.users?.destroy();
+        this.users()?.destroy();
         this.subscription?.unsubscribe();
         this.obsProfileRefreshed.off();
     }
@@ -262,3 +299,7 @@ class CoreUserSwipeItemsManager extends CoreSwipeNavigationItemsManager {
     }
 
 }
+
+type ListHandlerData = CoreUserProfileListHandlerData & { name: string };
+
+type ButtonHandlerData = CoreUserProfileButtonHandlerData & { name: string };

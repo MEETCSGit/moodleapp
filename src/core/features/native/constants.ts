@@ -22,5 +22,14 @@ export const enum CoreNativeCordovaPluginResultStatus {
     IO_EXCEPTION,
     INVALID_ACTION,
     JSON_EXCEPTION,
-    ERROR
+    ERROR,
+}
+
+export const enum AndroidNotificationPriority {
+    NONE = 0,
+    MIN = 1,
+    LOW = 2,
+    DEFAULT = 3,
+    HIGH = 4,
+    MAX = 5,
 }

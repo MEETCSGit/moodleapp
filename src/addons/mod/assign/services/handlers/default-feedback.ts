@@ -17,7 +17,7 @@ import { CoreWSFile } from '@services/ws';
 import { Translate } from '@singletons';
 import { AddonModAssignPlugin } from '../assign';
 import { AddonModAssignFeedbackHandler } from '../feedback-delegate';
-import { CoreFormFields } from '@singletons/form';
+import { CoreFormFields } from '@static/form';
 
 /**
  * Default handler used when a feedback plugin doesn't have a specific implementation.
@@ -66,7 +66,7 @@ export class AddonModAssignDefaultFeedbackHandler implements AddonModAssignFeedb
         const translationId = `addon.mod_assign_feedback_${plugin.type}.pluginname`;
         const translation = Translate.instant(translationId);
 
-        if (translationId != translation) {
+        if (translationId !== translation) {
             // Translation found, use it.
             return translation;
         }

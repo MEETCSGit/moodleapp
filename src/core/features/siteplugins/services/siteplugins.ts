@@ -19,22 +19,22 @@ import { CoreSite } from '@classes/sites/site';
 import { CoreCourseAnyModuleData } from '@features/course/services/course';
 import { CoreCourses } from '@features/courses/services/courses';
 import { CoreFilepool } from '@services/filepool';
-import { CoreLang, CoreLangFormat } from '@services/lang';
+import { CoreLang, CoreLangFormat, CoreLangTranslationByLanguage } from '@services/lang';
 import { CoreSites } from '@services/sites';
-import { CoreText } from '@singletons/text';
-import { CoreUtils } from '@singletons/utils';
+import { CoreText } from '@static/text';
+import { CoreUtils } from '@static/utils';
 import { CoreWSExternalFile, CoreWSExternalWarning } from '@services/ws';
 import { makeSingleton } from '@singletons';
-import { CoreEvents } from '@singletons/events';
-import { CoreLogger } from '@singletons/logger';
+import { CoreEvents } from '@static/events';
+import { CoreLogger } from '@static/logger';
 import { CoreSitePluginsModuleHandler } from '../classes/handlers/module-handler';
 import { CorePromisedValue } from '@classes/promised-value';
 import { CorePlatform } from '@services/platform';
 import { CoreEnrolAction, CoreEnrolInfoIcon } from '@features/enrol/services/enrol-delegate';
 import { CoreSiteWSPreSets } from '@classes/sites/authenticated-site';
 import { CoreUserProfileHandlerType } from '@features/user/services/user-delegate';
-import { CORE_SITE_PLUGINS_COMPONENT, CORE_SITE_PLUGINS_UPDATE_COURSE_CONTENT } from '../constants';
-import { CoreObject } from '@singletons/object';
+import { CORE_SITE_PLUGINS_UPDATE_COURSE_CONTENT } from '../constants';
+import { CoreObject } from '@static/object';
 
 /**
  * Service to provide functionalities regarding site plugins.
@@ -43,18 +43,10 @@ import { CoreObject } from '@singletons/object';
 export class CoreSitePluginsProvider {
 
     protected static readonly ROOT_CACHE_KEY = 'CoreSitePlugins:';
-    /**
-     * @deprecated since 4.5.0. Use CORE_SITE_PLUGINS_COMPONENT instead.
-     */
-    static readonly COMPONENT = CORE_SITE_PLUGINS_COMPONENT;
-    /**
-     * @deprecated since 4.5.0. Use CORE_SITE_PLUGINS_UPDATE_COURSE_CONTENT instead.
-     */
-    static readonly UPDATE_COURSE_CONTENT = CORE_SITE_PLUGINS_UPDATE_COURSE_CONTENT;
 
     protected logger: CoreLogger;
-    protected sitePlugins: {[name: string]: CoreSitePluginsHandler} = {}; // Site plugins registered.
-    protected sitePluginPromises: {[name: string]: Promise<void>} = {}; // Promises of loading plugins.
+    protected sitePlugins: { [name: string]: CoreSitePluginsHandler } = {}; // Site plugins registered.
+    protected sitePluginPromises: { [name: string]: Promise<void> } = {}; // Promises of loading plugins.
     protected fetchPluginsDeferred: CorePromisedValue<void>;
     protected moduleHandlerInstances: Record<string, CoreSitePluginsModuleHandler> = {};
 
@@ -237,7 +229,7 @@ export class CoreSitePluginsProvider {
             for (const name in otherData) {
                 const value = otherData[name];
 
-                if (typeof value == 'string' && (value[0] == '{' || value[0] == '[')) {
+                if (typeof value === 'string' && (value[0] === '{' || value[0] === '[')) {
                     otherData[name] = CoreText.parseJSON(value);
                 }
             }
@@ -409,7 +401,7 @@ export class CoreSitePluginsProvider {
         restrictEnrolled?: boolean,
         restrict?: CoreSitePluginsContentRestrict,
     ): Promise<boolean> {
-        if (restrict?.courses?.indexOf(courseId) == -1) {
+        if (restrict?.courses && !restrict.courses.includes(courseId)) {
             // Course is not in the list of restricted courses.
             return false;
         }
@@ -435,12 +427,12 @@ export class CoreSitePluginsProvider {
      * @returns Whether the handler is enabled.
      */
     isHandlerEnabledForUser(userId: number, restrictCurrent?: boolean, restrict?: CoreSitePluginsContentRestrict): boolean {
-        if (restrictCurrent && userId != CoreSites.getCurrentSite()?.getUserId()) {
+        if (restrictCurrent && userId !== CoreSites.getCurrentSite()?.getUserId()) {
             // Only enabled for current user.
             return false;
         }
 
-        if (restrict?.users?.indexOf(userId) == -1) {
+        if (restrict?.users && !restrict.users.includes(userId)) {
             // User is not in the list of restricted users.
             return false;
         }
@@ -642,6 +634,8 @@ export class CoreSitePluginsProvider {
 
     /**
      * Set plugins fetched.
+     *
+     * @param loaded Whether plugins have been loaded.
      */
     setPluginsLoaded(loaded?: boolean): void {
         this.hasSitePluginsLoaded = !!loaded;
@@ -812,7 +806,7 @@ export type CoreSitePluginsWSPlugin = {
  */
 export type CoreSitePluginsPlugin = CoreSitePluginsWSPlugin & {
     parsedHandlers?: Record<string, CoreSitePluginsHandlerData> | null;
-    parsedLang?: Record<string, string[]> | null;
+    parsedLang?: CoreLangTranslationByLanguage | null;
 };
 
 /**
@@ -864,6 +858,7 @@ export type CoreSitePluginsMainMenuHandlerData = CoreSitePluginsHandlerCommonDat
     };
     priority?: number;
     ptrenabled?: boolean;
+    displayinline?: boolean;
 };
 
 /**
@@ -914,6 +909,17 @@ export type CoreSitePluginsUserHandlerData = CoreSitePluginsHandlerCommonData & 
     type?: CoreUserProfileHandlerType;
     priority?: number;
     ptrenabled?: boolean;
+    displayinusermenu?: CoreSitePluginsDisplayInUserMenu;
+    displayinline?: boolean;
+};
+
+/**
+ * Options to configure whether to show a user profile handler in the user menu.
+ */
+export const enum CoreSitePluginsDisplayInUserMenu {
+    NO = 'no', // Don't display in user menu, but it can be displayed in other places.
+    YES = 'yes', // Display in user menu, but it can also be displayed in other places.
+    ONLY = 'only', // Display only in user menu, not in other places.
 };
 
 /**
@@ -990,7 +996,7 @@ export type CoreSitePluginsUpdateCourseContentEvent = {
     alreadyFetched?: boolean; // Whether course data has already been fetched (no need to fetch it again).
 };
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.

@@ -1,4 +1,4 @@
-@use "theme/globals" as *;
+@use "src/theme/globals" as *;
 
 :host {
     ion-accordion ion-item core-mod-icon {
@@ -30,5 +30,10 @@
     ion-card .item.core-course-overview-activity-has-error {
         --background: var(--danger-tint);
         --color: var(--danger-shade);
+    }
+
+    table.core-table {
+        margin-top: 0px;
+        margin-bottom: 0px;
     }
 }

@@ -18,17 +18,19 @@ import { CoreCourse, CoreCourseWSSection, sectionContentIsModule } from '@featur
 import { CoreCourseModuleDelegate } from '@features/course/services/module-delegate';
 import { CoreCourseHelper, CoreCourseSection } from '@features/course/services/course-helper';
 import { CoreNavigator } from '@services/navigator';
-import { CorePromiseUtils } from '@singletons/promise-utils';
-import { CoreTime } from '@singletons/time';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreTime } from '@static/time';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreCourseModuleComponent } from '../../components/module/module';
 import { CoreSharedModule } from '@/core/shared.module';
-import { ModFeature, ModArchetype } from '@addons/mod/constants';
+import { ModFeature, ModArchetype, RESOURCE_ARCHETYPE_NAME } from '@addons/mod/constants';
 import { CoreCourseModuleHelper } from '@features/course/services/course-module-helper';
 
 /**
  * Page that displays all modules of a certain type in a course.
+ *
+ * @deprecatedonmoodle 5.1 Use course overview instead.
  */
 @Component({
     selector: 'page-core-course-list-mod-type',
@@ -65,7 +67,7 @@ export default class CoreCourseListModTypePage implements OnInit {
                 ws: 'core_course_get_contents',
                 name: this.title,
                 data: { category: this.modName },
-                url: (this.modName === 'resources' ? '/course/resources.php' : `/mod/${this.modName}/index.php`) +
+                url: (this.modName === RESOURCE_ARCHETYPE_NAME ? '/course/resources.php' : `/mod/${this.modName}/index.php`) +
                     `?id=${this.courseId}`,
             });
         });
@@ -145,7 +147,7 @@ export default class CoreCourseListModTypePage implements OnInit {
                     return false;
                 }
 
-                if (this.modName === 'resources') {
+                if (this.modName === RESOURCE_ARCHETYPE_NAME) {
                     // Check that the module is a resource.
                     if (this.archetypes[modOrSubsection.modname] === undefined) {
                         this.archetypes[modOrSubsection.modname] = CoreCourseModuleDelegate.supportsFeature<number>(

@@ -16,15 +16,14 @@ import { Injectable } from '@angular/core';
 import { CoreUser } from '@features/user/services/user';
 import { CoreSites } from '@services/sites';
 import { CoreSync } from '@services/sync';
-import { CoreText } from '@singletons/text';
-import { CoreTime } from '@singletons/time';
-import { CoreUtils } from '@singletons/utils';
+import { CoreText } from '@static/text';
+import { CoreTime } from '@static/time';
+import { CoreUtils } from '@static/utils';
 import { makeSingleton } from '@singletons';
-import { CoreLogger } from '@singletons/logger';
+import { CoreLogger } from '@static/logger';
 import {
     AddonModScormAttemptDBPrimaryKeys,
     AddonModScormAttemptDBRecord,
-    AddonModScormOfflineDBCommonData,
     AddonModScormTrackDBPrimaryKeys,
     AddonModScormTrackDBRecord,
     ATTEMPTS_TABLE_NAME,
@@ -45,7 +44,7 @@ import { asyncInstance, AsyncInstance } from '@/core/utils/async-instance';
 import { CoreDatabaseTable } from '@classes/database/database-table';
 import { CoreDatabaseCachingStrategy } from '@classes/database/database-table-proxy';
 import { ADDON_MOD_SCORM_COMPONENT } from '../constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 
 /**
  * Service to handle offline SCORM.
@@ -127,10 +126,6 @@ export class AddonModScormOfflineProvider {
             const currentAttemptConditions = {
                 sql: 'scormid = ? AND userid = ? AND attempt = ?',
                 sqlParams: [scormId, userId, attempt],
-                js: (record: AddonModScormOfflineDBCommonData) =>
-                    record.scormid === scormId &&
-                    record.userid === userId &&
-                    record.attempt === attempt,
             };
 
             await this.attemptsTables[site.id].updateWhere(
@@ -151,10 +146,6 @@ export class AddonModScormOfflineProvider {
                     {
                         sql: 'scormid = ? AND userid = ? AND attempt = ?',
                         sqlParams: [scormId, userId, newAttempt],
-                        js: (attempt) =>
-                            attempt.scormid === scormId &&
-                            attempt.userid === userId &&
-                            attempt.attempt === newAttempt,
                     },
                 );
 
@@ -282,7 +273,7 @@ export class AddonModScormOfflineProvider {
             let value = scoUserData[element];
 
             // Ignore elements that are calculated.
-            if (element == 'score_raw' || element == 'status' || element == 'total_time' || element == 'session_time') {
+            if (element === 'score_raw' || element === 'status' || element === 'total_time' || element === 'session_time') {
                 continue;
             }
 
@@ -290,7 +281,7 @@ export class AddonModScormOfflineProvider {
             switch (element) {
                 case 'cmi.core.lesson_status':
                 case 'cmi.completion_status':
-                    if (value == 'not attempted') {
+                    if (value === 'not attempted') {
                         value = 'notattempted';
                     }
                     formatted.status = value;
@@ -646,13 +637,13 @@ export class AddonModScormOfflineProvider {
         let lessonStatusInserted = false;
 
         if (forceCompleted) {
-            if (element == 'cmi.core.lesson_status' && value == 'incomplete') {
+            if (element === 'cmi.core.lesson_status' && value === 'incomplete') {
                 if (scoUserData['cmi.core.score.raw']) {
                     value = 'completed';
                 }
             }
-            if (element == 'cmi.core.score.raw') {
-                if (scoUserData['cmi.core.lesson_status'] == 'incomplete') {
+            if (element === 'cmi.core.score.raw') {
+                if (scoUserData['cmi.core.lesson_status'] === 'incomplete') {
                     lessonStatusInserted = true;
 
                     await this.tracksTables[site.id].insert({
@@ -669,7 +660,7 @@ export class AddonModScormOfflineProvider {
             }
         }
 
-        if (scoUserData[element] && element == 'x.start.time') {
+        if (scoUserData[element] && element === 'x.start.time') {
             // Don't update x.start.time, keep the original value.
             return;
         }
@@ -740,13 +731,13 @@ export class AddonModScormOfflineProvider {
         const siteId = CoreSites.getRequiredCurrentSite().id;
 
         if (forceCompleted) {
-            if (element == 'cmi.core.lesson_status' && value == 'incomplete') {
+            if (element === 'cmi.core.lesson_status' && value === 'incomplete') {
                 if (scoUserData['cmi.core.score.raw']) {
                     value = 'completed';
                 }
             }
-            if (element == 'cmi.core.score.raw') {
-                if (scoUserData['cmi.core.lesson_status'] == 'incomplete') {
+            if (element === 'cmi.core.score.raw') {
+                if (scoUserData['cmi.core.lesson_status'] === 'incomplete') {
                     this.tracksTables[siteId].syncInsert({
                         userid: userId,
                         scormid: scormId,
@@ -761,7 +752,7 @@ export class AddonModScormOfflineProvider {
             }
         }
 
-        if (scoUserData[element] && element == 'x.start.time') {
+        if (scoUserData[element] && element === 'x.start.time') {
             // Don't update x.start.time, keep the original value.
             return true;
         }
@@ -903,6 +894,7 @@ export class AddonModScormOfflineProvider {
      * @param attempt Attempt number.
      * @param tracks Tracking data to store.
      * @param userData User data for this attempt and SCO.
+     * @param userId User ID. If not defined use current user.
      * @returns True if data to insert is valid, false otherwise. Returning true doesn't mean that the data
      *         has been stored, this function can return true but the insertion can still fail somehow.
      */
@@ -986,10 +978,6 @@ export class AddonModScormOfflineProvider {
         await this.attemptsTables[site.id].updateWhere(newData, {
             sql: 'scormid = ? AND userid = ? AND attempt = ?',
             sqlParams: [scormId, userId, attempt],
-            js: (record: AddonModScormOfflineDBCommonData) =>
-                record.scormid === scormId &&
-                record.userid === userId &&
-                record.attempt === attempt,
         });
     }
 

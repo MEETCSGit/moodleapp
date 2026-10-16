@@ -12,22 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Injectable } from '@angular/core';
+import { Injectable, Type } from '@angular/core';
 import { Params } from '@angular/router';
 
 import { CoreDelegateDisplayHandler, CoreDelegateToDisplay } from '@classes/delegate';
 import { CoreSortedDelegate } from '@classes/delegate-sorted';
+import { ReloadableComponent } from '@coretypes/reloadable-component';
 import { makeSingleton } from '@singletons';
+import { MAIN_MENU_FEATURE_PREFIX } from '../constants';
+import { CoreConstants } from '@/core/constants';
+import { CoreEvents } from '@static/events';
+import { CoreConfigProvider } from '@services/config';
+import { CoreMainMenuOverrideItem } from './mainmenu';
 
 /**
  * Interface that all main menu handlers must implement.
  */
-export type CoreMainMenuHandler = CoreDelegateDisplayHandler<CoreMainMenuHandlerToDisplay>;
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface CoreMainMenuHandler extends CoreDelegateDisplayHandler<CoreMainMenuHandlerToDisplay> {}
 
 /**
- * Data needed to render a main menu handler. It's returned by the handler.
+ * Data needed to render a main menu handler that navigates to a new page.
  */
-export interface CoreMainMenuHandlerData {
+export type CoreMainMenuPageNavHandlerData = {
     /**
      * Name of the page to load for the handler.
      */
@@ -82,22 +89,37 @@ export interface CoreMainMenuHandlerData {
      * Priority of the handler. If set, overrides the priority defined in CoreMainMenuHandler.
      */
     priority?: number;
-}
+};
+
+/**
+ * Data needed to render a component in the more menu.
+ */
+export type CoreMainMenuComponentHandlerData =  {
+    /**
+     * Component to render.
+     */
+    component: Type<ReloadableComponent>;
+
+    /**
+     * Data to pass to the component.
+     */
+    componentData?: Record<string, unknown>;
+};
+
+/**
+ * Data needed to render a "component" main menu handler.
+ */
+export type CoreMainMenuPageNavHandlerToDisplay = CoreDelegateToDisplay & CoreMainMenuPageNavHandlerData;
+
+/**
+ * Data needed to render a "page nav" main menu handler.
+ */
+export type CoreMainMenuComponentHandlerToDisplay = CoreDelegateToDisplay & CoreMainMenuComponentHandlerData;
 
 /**
  * Data returned by the delegate for each handler.
  */
-export interface CoreMainMenuHandlerToDisplay extends CoreDelegateToDisplay, CoreMainMenuHandlerData {
-    /**
-     * Hide tab. Used then resizing.
-     */
-    hide?: boolean;
-
-    /**
-     * Used to control tabs.
-     */
-    id?: string;
-}
+export type CoreMainMenuHandlerToDisplay = CoreMainMenuPageNavHandlerToDisplay | CoreMainMenuComponentHandlerToDisplay;
 
 /**
  * Service to interact with plugins to be shown in the main menu. Provides functions to register a plugin
@@ -106,7 +128,67 @@ export interface CoreMainMenuHandlerToDisplay extends CoreDelegateToDisplay, Cor
 @Injectable({ providedIn: 'root' })
 export class CoreMainMenuDelegateService extends CoreSortedDelegate<CoreMainMenuHandlerToDisplay, CoreMainMenuHandler> {
 
-    protected featurePrefix = 'CoreMainMenuDelegate_';
+    protected featurePrefix = MAIN_MENU_FEATURE_PREFIX;
+    protected currentOverrides: CoreMainMenuOverrideItem[];
+
+    constructor() {
+        super();
+
+        this.currentOverrides = CoreConstants.CONFIG.overrideMainMenuButtons ?? [];
+
+        CoreEvents.on(CoreConfigProvider.ENVIRONMENT_UPDATED, (config) => {
+            const newConfig = config.overrideMainMenuButtons ?? [];
+            if (JSON.stringify(this.currentOverrides) === JSON.stringify(newConfig)) {
+                return;
+            }
+
+            this.currentOverrides = newConfig;
+
+            this.updateData();
+        });
+    }
+
+    /**
+     * @inheritdoc
+     */
+    protected getHandlerDisplayData(name: string): CoreMainMenuHandlerToDisplay {
+        const data = super.getHandlerDisplayData(name);
+
+        // Override priority and icon if needed.
+        const config = this.currentOverrides;
+
+        const override = config.find((entry) => entry.handler === name);
+        if (override) {
+            if (override.priority !== undefined) {
+                data.priority = override.priority;
+            }
+            if ('icon' in data && override.icon !== undefined) {
+                data.icon = override.icon;
+            }
+        }
+
+        return data;
+    }
+
+    /**
+     * Check if a handler needs to be displayed only in the More menu.
+     *
+     * @param handler Handler to check.
+     * @returns Whether the handler should be displayed only in the More menu.
+     */
+    displayOnlyInMore(handler: CoreMainMenuHandlerToDisplay): boolean {
+        return 'component' in handler || !!handler.onlyInMore;
+    }
+
+    /**
+     * Given a list of handlers, return the ones that can be displayed outside of the More menu.
+     *
+     * @param handlers Handlers to filter.
+     * @returns Handlers that can be displayed outside of the More menu.
+     */
+    skipOnlyMoreHandlers(handlers: CoreMainMenuHandlerToDisplay[]): CoreMainMenuPageNavHandlerToDisplay[] {
+        return handlers.filter((handler): handler is CoreMainMenuPageNavHandlerToDisplay => !this.displayOnlyInMore(handler));
+    }
 
 }
 

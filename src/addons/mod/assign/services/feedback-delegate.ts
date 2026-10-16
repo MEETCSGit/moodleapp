@@ -21,11 +21,12 @@ import {
     AddonModAssignPlugin,
     AddonModAssignSavePluginData,
     AddonModAssignSubmissionFeedback,
+    AddonModAssignFeedbackPluginMultipleMarkers,
 } from './assign';
 import { makeSingleton } from '@singletons';
 import { CoreWSFile } from '@services/ws';
 import { AddonModAssignSubmissionFormatted } from './assign-helper';
-import { CoreFormFields } from '@singletons/form';
+import { CoreFormFields } from '@static/form';
 import type { IAddonModAssignFeedbackPluginComponent } from '@addons/mod/assign/classes/base-feedback-plugin-component';
 import { CoreSites } from '@services/sites';
 import { ADDON_MOD_ASSIGN_FEATURE_NAME } from '../constants';
@@ -304,7 +305,7 @@ export class AddonModAssignFeedbackDelegateService extends CoreDelegate<AddonMod
     async getPluginFiles(
         assign: AddonModAssignAssign,
         submission: AddonModAssignSubmission,
-        plugin: AddonModAssignPlugin,
+        plugin: AddonModAssignFeedbackPluginMultipleMarkers,
         siteId?: string,
     ): Promise<CoreWSFile[]> {
         const files: CoreWSFile[] | undefined =

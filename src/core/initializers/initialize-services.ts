@@ -20,7 +20,8 @@ import { CoreLocalNotifications } from '@services/local-notifications';
 import { CoreNetwork } from '@services/network';
 import { CoreSites } from '@services/sites';
 import { CoreUpdateManager } from '@services/update-manager';
-import { CoreTime } from '@singletons/time';
+import { CoreTime } from '@static/time';
+import { CoreKeyboard } from '@static/keyboard';
 
 /**
  * Initializes various core components asynchronously.
@@ -35,6 +36,7 @@ export default async function(): Promise<void> {
         CoreNetwork.initialize(),
         CoreUpdateManager.initialize(),
         CoreTime.initialize(),
+        CoreKeyboard.initialize(),
         CoreAutoLogout.initialize(),
     ]);
 }

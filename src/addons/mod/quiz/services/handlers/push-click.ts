@@ -17,14 +17,14 @@ import { Injectable } from '@angular/core';
 import { CoreCourseHelper } from '@features/course/services/course-helper';
 import { CorePushNotificationsClickHandler } from '@features/pushnotifications/services/push-delegate';
 import { CorePushNotificationsNotificationBasicData } from '@features/pushnotifications/services/pushnotifications';
-import { CoreUrl } from '@singletons/url';
-import { CoreUtils } from '@singletons/utils';
+import { CoreUrl } from '@static/url';
+import { CoreUtils } from '@static/utils';
 import { makeSingleton } from '@singletons';
 import { AddonModQuiz } from '../quiz';
 import { AddonModQuizHelper } from '../quiz-helper';
 import { isSafeNumber } from '@/core/utils/types';
 import { ADDON_MOD_QUIZ_FEATURE_NAME } from '../../constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 
 /**
  * Handler for quiz push notifications clicks.
@@ -42,9 +42,9 @@ export class AddonModQuizPushClickHandlerService implements CorePushNotification
      * @inheritdoc
      */
     async handles(notification: AddonModQuizPushNotificationData): Promise<boolean> {
-        return CoreUtils.isTrueOrOne(notification.notif) && notification.moodlecomponent == 'mod_quiz' &&
-                AddonModQuizPushClickHandlerService.SUPPORTED_NAMES.indexOf(notification.name ?? '') !== -1 &&
-                !!(notification.customdata?.instance || notification.contexturl);
+        return CoreUtils.isTrueOrOne(notification.notif) && notification.moodlecomponent === 'mod_quiz' &&
+            AddonModQuizPushClickHandlerService.SUPPORTED_NAMES.includes(notification.name ?? '') &&
+            !!(notification.customdata?.instance || notification.contexturl);
     }
 
     /**

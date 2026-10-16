@@ -16,12 +16,12 @@ import { Injectable } from '@angular/core';
 import { CoreApp } from '@services/app';
 import { CoreNetwork } from '@services/network';
 import { CoreCronDelegate } from '@services/cron';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { CoreFilepool } from '@services/filepool';
 import { CoreSite } from '@classes/sites/site';
 import { CoreSites } from '@services/sites';
-import { CorePromiseUtils } from '@singletons/promise-utils';
-import { CoreConstants } from '@/core/constants';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreConstants, CoreConfigSettingKey } from '@/core/constants';
 import { CoreConfig } from '@services/config';
 import { CoreFilter } from '@features/filter/services/filter';
 import { CoreCourseDownloadStatusHelper } from '@features/course/services/course-download-status-helper';
@@ -30,16 +30,17 @@ import { CoreError } from '@classes/errors/error';
 import { Observable, Subject } from 'rxjs';
 import { CoreErrorHelper } from '@services/error-helper';
 import { CoreNavigator } from '@services/navigator';
-import { CoreHTMLClasses } from '@singletons/html-classes';
+import { CoreHTMLClasses } from '@static/html-classes';
 import { CoreAlerts } from '@services/overlays/alerts';
+import { Params } from '@angular/router';
 
 /**
  * Object with space usage and cache entries that can be erased.
  */
-export interface CoreSiteSpaceUsage {
+export type CoreSiteSpaceUsage = {
     cacheEntries: number; // Number of cached entries that can be cleared.
     spaceUsage: number; // Space used in this site (total files + estimate of cache).
-}
+};
 
 /**
  * Constants to define color schemes.
@@ -281,13 +282,13 @@ export class CoreSettingsHelperProvider {
             }
 
             // Reset the value to solve edge cases.
-            CoreConfig.set(CoreConstants.SETTINGS_ZOOM_LEVEL, CoreZoomLevel.NONE);
+            CoreConfig.set(CoreConfigSettingKey.ZOOM_LEVEL, CoreZoomLevel.NONE);
 
             if (fontSize < 100) {
                 if (fontSize > 90) {
-                    CoreConfig.set(CoreConstants.SETTINGS_ZOOM_LEVEL, CoreZoomLevel.HIGH);
+                    CoreConfig.set(CoreConfigSettingKey.ZOOM_LEVEL, CoreZoomLevel.HIGH);
                 } else if (fontSize > 70) {
-                    CoreConfig.set(CoreConstants.SETTINGS_ZOOM_LEVEL, CoreZoomLevel.MEDIUM);
+                    CoreConfig.set(CoreConfigSettingKey.ZOOM_LEVEL, CoreZoomLevel.MEDIUM);
                 }
             }
 
@@ -304,7 +305,7 @@ export class CoreSettingsHelperProvider {
      * @returns The saved zoom Level option.
      */
     async getZoomLevel(): Promise<CoreZoomLevel> {
-        return CoreConfig.get(CoreConstants.SETTINGS_ZOOM_LEVEL, CoreConstants.CONFIG.defaultZoomLevel);
+        return CoreConfig.get(CoreConfigSettingKey.ZOOM_LEVEL, CoreConstants.CONFIG.defaultZoomLevel);
     }
 
     /**
@@ -324,7 +325,7 @@ export class CoreSettingsHelperProvider {
      * @returns True if pinch-to-zoom is enabled.
      */
     async getPinchToZoom(): Promise<boolean> {
-        return Boolean(await CoreConfig.get(CoreConstants.SETTINGS_PINCH_TO_ZOOM, 0));
+        return Boolean(await CoreConfig.get(CoreConfigSettingKey.PINCH_TO_ZOOM, 0));
     }
 
     /**
@@ -348,7 +349,7 @@ export class CoreSettingsHelperProvider {
         if (CoreConstants.CONFIG.forceColorScheme) {
             this.setColorScheme(CoreConstants.CONFIG.forceColorScheme);
         } else {
-            const scheme = await CoreConfig.get(CoreConstants.SETTINGS_COLOR_SCHEME, CoreColorScheme.LIGHT);
+            const scheme = await CoreConfig.get(CoreConfigSettingKey.COLOR_SCHEME, CoreColorScheme.LIGHT);
             this.setColorScheme(scheme);
         }
     }
@@ -403,7 +404,7 @@ export class CoreSettingsHelperProvider {
             return;
         }
 
-        element.setAttribute('content', content.replace(/maximum-scale=\d\.\d/, `maximum-scale=${pinchToZoom ? '4.0' : '1.0'}`));
+        element.setAttribute('content', content.replace(/maximum-scale=\d\.\d/, `maximum-scale=${pinchToZoom ? '2.0' : '1.0'}`));
 
         // Force layout reflow.
         document.body.style.width = '99.9999%';
@@ -443,10 +444,10 @@ export class CoreSettingsHelperProvider {
      */
     setColorScheme(colorScheme: CoreColorScheme): void {
         this.currentColorScheme = colorScheme;
-        if (colorScheme == CoreColorScheme.SYSTEM && this.prefersDark) {
+        if (colorScheme === CoreColorScheme.SYSTEM && this.prefersDark) {
             this.toggleDarkMode(this.prefersDark.matches);
         } else {
-            this.toggleDarkMode(colorScheme == CoreColorScheme.DARK);
+            this.toggleDarkMode(colorScheme === CoreColorScheme.DARK);
         }
     }
 
@@ -475,7 +476,7 @@ export class CoreSettingsHelperProvider {
      *
      * @param enable True to enable dark mode, false to disable.
      */
-    protected toggleDarkMode(enable: boolean = false): void {
+    protected toggleDarkMode(enable = false): void {
         const isDark = this.isDarkModeEnabled();
 
         if (isDark !== enable) {
@@ -528,6 +529,40 @@ export class CoreSettingsHelperProvider {
         window.location.reload();
     }
 
+    /**
+     * Get extra pages items to display in the developer settings page.
+     *
+     * @returns Extra items.
+     */
+    getDevExtraPageItems(): CoreSettingsHelperDevExtraPageItem[] {
+        return [];
+    }
+
 }
 
 export const CoreSettingsHelper = makeSingleton(CoreSettingsHelperProvider);
+
+/**
+ * Data to display extra links to new pages in the developer settings page.
+ */
+export type CoreSettingsHelperDevExtraPageItem = {
+    /**
+     * Title to display. Dev page titles usually aren't translated.
+     */
+    title: string;
+
+    /**
+     * Class to add to the displayed item.
+     */
+    class?: string;
+
+    /**
+     * Relative path of the page to load when clicked.
+     */
+    page: string;
+
+    /**
+     * Params to pass to the page.
+     */
+    pageParams?: Params;
+};

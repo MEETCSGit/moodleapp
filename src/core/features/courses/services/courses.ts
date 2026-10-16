@@ -17,7 +17,7 @@ import { CoreSites, CoreSitesCommonWSOptions, CoreSitesReadingStrategy } from '@
 import { CoreSite  } from '@classes/sites/site';
 import { makeSingleton } from '@singletons';
 import { CoreWarningsWSResponse, CoreWSExternalFile, CoreWSExternalWarning } from '@services/ws';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { CoreCourseAnyCourseDataWithExtraInfoAndOptions, CoreCourseWithImageAndColor } from './courses-helper';
 import { asyncObservable, ignoreErrors, zipIncludingComplete } from '@/core/utils/rxjs';
 import { of, firstValueFrom } from 'rxjs';
@@ -35,12 +35,12 @@ import {
     CORE_COURSES_STATE_HIDDEN,
     CORE_COURSES_DOWNLOAD_FEATURE_NAME,
     CORE_COURSE_DOWNLOAD_FEATURE_NAME,
-    CORE_COURSES_MYCOURSES_MENU_FEATURE_NAME,
+    CORE_COURSES_MENU_FEATURE_NAME,
     CORE_COURSES_SEARCH_FEATURE_NAME,
 } from '../constants';
-import { CoreTextFormat } from '@singletons/text';
+import { CoreTextFormat } from '@static/text';
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.
@@ -122,7 +122,7 @@ export class CoreCoursesProvider {
      */
     async getCategories(
         categoryId: number,
-        addSubcategories: boolean = false,
+        addSubcategories = false,
         siteId?: string,
     ): Promise<CoreCourseGetCategoriesWSResponse> {
         const site = await CoreSites.getSite(siteId);
@@ -166,22 +166,19 @@ export class CoreCoursesProvider {
      * @returns Promise resolved with the list of course IDs.
      */
     protected async getCourseIdsForAdminAndNavOptions(courseIds: number[], siteId?: string): Promise<number[]> {
-        const site = await CoreSites.getSite(siteId);
-
-        const siteHomeId = site.getSiteHomeId();
         if (courseIds.length === 1) {
             // Only 1 course, check if it belongs to the user courses. If so, use all user courses.
             return this.getCourseIdsIfEnrolled(courseIds[0], siteId);
         }
 
-        if (courseIds.length > 1 && courseIds.indexOf(siteHomeId) == -1) {
+        const site = await CoreSites.getSite(siteId);
+        const siteHomeId = site.getSiteHomeId();
+        if (!courseIds.includes(siteHomeId)) {
             courseIds.push(siteHomeId);
         }
 
         // Sort the course IDs.
-        courseIds.sort((a, b) => b - a);
-
-        return courseIds;
+        return courseIds.sort((a, b) => b - a);
     }
 
     /**
@@ -199,26 +196,13 @@ export class CoreCoursesProvider {
         try {
             // Check if user is enrolled in the course.
             const courses = await this.getUserCourses(true, siteId);
-            let useAllCourses = false;
+            const courseIds = courses.map((course) => course.id);
+            // Always add the site home ID.
+            courseIds.push(siteHomeId);
 
-            if (courseId === siteHomeId) {
-                // It's site home, use all courses.
-                useAllCourses = true;
-            } else {
-                useAllCourses = !!courses.find((course) => course.id === courseId);
-            }
-
-            if (useAllCourses) {
-                // User is enrolled, return all the courses.
-                const courseIds = courses.map((course) => course.id);
-
-                // Always add the site home ID.
-                courseIds.push(siteHomeId);
-
-                // Sort the course IDs.
-                courseIds.sort((a, b) => b - a);
-
-                return courseIds;
+            if (courseIds.includes(courseId)) {
+                // It's enrolled, sort the course IDs.
+                return courseIds.sort((a, b) => b - a);
             }
         } catch {
             // Ignore errors.
@@ -236,7 +220,7 @@ export class CoreCoursesProvider {
     async isDownloadCourseDisabled(siteId?: string): Promise<boolean> {
         const site = await CoreSites.getSite(siteId);
 
-        return this.isDownloadCoursesDisabledInSite(site);
+        return this.isDownloadCourseDisabledInSite(site);
     }
 
     /**
@@ -280,10 +264,12 @@ export class CoreCoursesProvider {
      *
      * @param siteId Site Id. If not defined, use current site.
      * @returns Promise resolved with true if disabled, rejected or resolved with false otherwise.
+     * @deprecated since 5.2. Use CoreCoursesMy.isDisabled instead.
      */
     async isMyCoursesDisabled(siteId?: string): Promise<boolean> {
         const site = await CoreSites.getSite(siteId);
 
+        // eslint-disable-next-line @typescript-eslint/no-deprecated
         return this.isMyCoursesDisabledInSite(site);
     }
 
@@ -292,11 +278,12 @@ export class CoreCoursesProvider {
      *
      * @param site Site. If not defined, use current site.
      * @returns Whether it's disabled.
+     * @deprecated since 5.2. Use CoreCoursesMy.isDisabledInSite instead.
      */
     isMyCoursesDisabledInSite(site?: CoreSite): boolean {
         site = site || CoreSites.getCurrentSite();
 
-        return !site || site.isFeatureDisabled(CORE_COURSES_MYCOURSES_MENU_FEATURE_NAME);
+        return !site || site.isFeatureDisabled(CORE_COURSES_MENU_FEATURE_NAME);
     }
 
     /**
@@ -428,11 +415,26 @@ export class CoreCoursesProvider {
      *              category: category id the course belongs to.
      *              sectionid: section id that belongs to a course, since 4.5.
      * @param value The value to match.
-     * @param siteId Site ID. If not defined, use current site.
+     * @param options Other options. Direct usage of siteId is deprecated since 5.2.
      * @returns Promise resolved with the first course.
      */
-    async getCourseByField(field?: string, value?: string | number, siteId?: string): Promise<CoreCourseSearchedData> {
-        const courses = await this.getCoursesByField(field, value, siteId);
+    async getCourseByField(
+        field?: string,
+        value?: string | number,
+        options?: CoreSitesCommonWSOptions,
+    ): Promise<CoreCourseSearchedData>;
+    /**
+     * @deprecated since 5.2. Use the overload accepting CoreSitesCommonWSOptions instead.
+     */
+    async getCourseByField(field?: string, value?: string | number, siteId?: string): Promise<CoreCourseSearchedData>;
+    async getCourseByField(
+        field = '',
+        value: string | number = '',
+        siteIdOrOptions?: string | CoreSitesCommonWSOptions,
+    ): Promise<CoreCourseSearchedData> {
+        const options =
+            typeof siteIdOrOptions === 'string' ? { siteId: siteIdOrOptions } : siteIdOrOptions || {};
+        const courses = await this.getCoursesByField(field, value, options);
 
         if (courses?.length > 0) {
             return courses[0];
@@ -452,15 +454,31 @@ export class CoreCoursesProvider {
      *              category: category id the course belongs to.
      *              sectionid: section id that belongs to a course, since 4.5.
      * @param value The value to match.
-     * @param siteId Site ID. If not defined, use current site.
+     * @param options Other options. Direct usage of siteId is deprecated since 5.2.
      * @returns Promise resolved with the courses.
      */
     async getCoursesByField(
-        field: string = '',
-        value: string | number = '',
+        field?: string,
+        value?: string | number,
+        options?: CoreSitesCommonWSOptions,
+    ): Promise<CoreCourseSearchedData[]>;
+    /**
+     * @deprecated since 5.2. Use the overload accepting CoreSitesCommonWSOptions instead.
+     */
+    async getCoursesByField(
+        field?: string,
+        value?: string | number,
         siteId?: string,
+    ): Promise<CoreCourseSearchedData[]>;
+    async getCoursesByField(
+        field = '',
+        value: string | number = '',
+        siteIdOrOptions?: string | CoreSitesCommonWSOptions,
     ): Promise<CoreCourseSearchedData[]> {
-        return await firstValueFrom(this.getCoursesByFieldObservable(field, value, { siteId }));
+        const options =
+            typeof siteIdOrOptions === 'string' ? { siteId: siteIdOrOptions } : siteIdOrOptions || {};
+
+        return await firstValueFrom(this.getCoursesByFieldObservable(field, value, options));
     }
 
     /**
@@ -478,7 +496,7 @@ export class CoreCoursesProvider {
      * @returns Observable that returns the courses.
      */
     getCoursesByFieldObservable(
-        field: string = '',
+        field = '',
         value: string | number = '',
         options: CoreSitesCommonWSOptions = {},
     ): WSObservable<CoreCourseSearchedData[]> {
@@ -521,7 +539,7 @@ export class CoreCoursesProvider {
                     const courseIds = String(originalValue).split(',').map((id) => parseInt(id, 10));
 
                     // Only courses from the original selection.
-                    response.courses = response.courses.filter((course) => courseIds.indexOf(course.id) >= 0);
+                    response.courses = response.courses.filter((course) => courseIds.includes(course.id));
                 }
 
                 // Courses will be sorted using sortorder if available.
@@ -551,7 +569,7 @@ export class CoreCoursesProvider {
      * @param value The value to match.
      * @returns Cache key.
      */
-    protected getCoursesByFieldCacheKey(field: string = '', value: string | number = ''): string {
+    protected getCoursesByFieldCacheKey(field = '', value: string | number = ''): string {
         return `${CoreCoursesProvider.ROOT_CACHE_KEY}coursesbyfield:${field}:${value}`;
     }
 
@@ -738,7 +756,7 @@ export class CoreCoursesProvider {
         courseIds: number[],
         options: CoreSitesCommonWSOptions = {},
     ): WSObservable<CoreCourseUserAdminOrNavOptionCourseIndexed> {
-        if (!courseIds || courseIds.length == 0) {
+        if (!courseIds || courseIds.length === 0) {
             return of({});
         }
 
@@ -777,6 +795,7 @@ export class CoreCoursesProvider {
     /**
      * Get cache key for get user navigation options WS call.
      *
+     * @param courseIds IDs of courses to get the cache key.
      * @returns Cache key.
      */
     protected getUserNavigationOptionsCacheKey(courseIds: number[]): string {
@@ -808,7 +827,7 @@ export class CoreCoursesProvider {
         courseIds: number[],
         options: CoreSitesCommonWSOptions = {},
     ): WSObservable<CoreCourseUserAdminOrNavOptionCourseIndexed> {
-        if (!courseIds || courseIds.length == 0) {
+        if (!courseIds || courseIds.length === 0) {
             return of({});
         }
 
@@ -889,7 +908,7 @@ export class CoreCoursesProvider {
      * @returns Promise resolved with the courses.
      */
     async getUserCourses(
-        preferCache: boolean = false,
+        preferCache = false,
         siteId?: string,
         strategy?: CoreSitesReadingStrategy,
     ): Promise<CoreEnrolledCourseData[]> {
@@ -899,6 +918,31 @@ export class CoreCoursesProvider {
             readingStrategy: strategy,
             siteId,
         }));
+    }
+
+    /**
+     * Get user courses WS observable.
+     *
+     * This function can be modified to configure the data sent in the request or change the method.
+     *
+     * @param site Site.
+     * @param wsParams WS parameters.
+     * @param preSets PreSets.
+     * @param options Options.
+     * @returns Observable that returns the courses.
+     */
+    protected getWSUserCoursesObservable(
+        site: CoreSite,
+        wsParams: CoreEnrolGetUsersCoursesWSParams,
+        preSets: CoreSiteWSPreSets = {},
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        options: CoreSitesCommonWSOptions = {},
+    ): WSObservable<CoreEnrolGetUsersCoursesWSResponse> {
+        return site.readObservable<CoreEnrolGetUsersCoursesWSResponse>(
+            'core_enrol_get_users_courses',
+            wsParams,
+            preSets,
+        );
     }
 
     /**
@@ -927,11 +971,7 @@ export class CoreCoursesProvider {
                 wsParams.returnusercount = false;
             }
 
-            const observable = site.readObservable<CoreEnrolGetUsersCoursesWSResponse>(
-                'core_enrol_get_users_courses',
-                wsParams,
-                preSets,
-            );
+            const observable = this.getWSUserCoursesObservable(site, wsParams, preSets, options);
 
             return observable.pipe(map(courses => {
                 if (this.userCoursesIds) {
@@ -1062,7 +1102,7 @@ export class CoreCoursesProvider {
      * @param value The value to match.
      * @param siteId Site Id. If not defined, use current site.
      */
-    async invalidateCoursesByField(field: string = '', value: number | string = '', siteId?: string): Promise<void> {
+    async invalidateCoursesByField(field = '', value: number | string = '', siteId?: string): Promise<void> {
         if (typeof value === 'string' && value.length === 0) {
             return;
         }
@@ -1175,9 +1215,9 @@ export class CoreCoursesProvider {
      */
     async search(
         text: string,
-        page: number = 0,
+        page = 0,
         perPage: number = CoreCoursesProvider.SEARCH_PER_PAGE,
-        limitToEnrolled: boolean = false,
+        limitToEnrolled = false,
         siteId?: string,
     ): Promise<{ total: number; courses: CoreCourseBasicSearchedData[] }> {
         const site = await CoreSites.getSite(siteId);
@@ -1276,7 +1316,7 @@ export type CoreCoursesDashboardDownloadEnabledChangedEventData = {
 /**
  * Params of core_enrol_get_users_courses WS.
  */
-type CoreEnrolGetUsersCoursesWSParams = {
+export type CoreEnrolGetUsersCoursesWSParams = {
     userid: number; // User id.
     returnusercount?: boolean; // Include count of enrolled users for each course? This can add several seconds to the response
     // time if a user is on several large courses, so set this to false if the value will not be used to improve performance.
@@ -1285,7 +1325,7 @@ type CoreEnrolGetUsersCoursesWSParams = {
 /**
  * Data returned by core_enrol_get_users_courses WS.
  */
-type CoreEnrolGetUsersCoursesWSResponse = (CoreEnrolledCourseData & {
+export type CoreEnrolGetUsersCoursesWSResponse = (CoreEnrolledCourseData & {
     category?: number; // Course category id.
 })[];
 

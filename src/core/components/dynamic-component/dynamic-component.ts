@@ -28,12 +28,14 @@ import {
     KeyValueDiffer,
     Type,
     inject,
+    EventEmitter,
+    OutputEmitterRef,
 } from '@angular/core';
-import { AsyncDirective } from '@classes/async-directive';
+import type { AsyncDirective } from '@coretypes/async-directive';
 import { CorePromisedValue } from '@classes/promised-value';
 
-import { CoreAngular } from '@singletons/angular';
-import { CoreLogger } from '@singletons/logger';
+import { CoreAngular } from '@static/angular';
+import { CoreLogger } from '@static/logger';
 
 /**
  * Component to create another component dynamically.
@@ -161,7 +163,7 @@ export class CoreDynamicComponent<ComponentClass> implements OnChanges, DoCheck,
             return;
         }
 
-        return instance[method].apply(instance, params);
+        return instance[method](...params);
     }
 
     /**
@@ -218,9 +220,24 @@ export class CoreDynamicComponent<ComponentClass> implements OnChanges, DoCheck,
             return;
         }
 
+        const instance = this.componentRef.instance;
         for (const name in this.data) {
-            this.componentRef.setInput(name, this.data[name]);
+            if (this.isOutput(instance[name]) || (instance[name] === undefined && this.isOutput(this.data[name]))) {
+                instance[name] = this.data[name];
+            } else {
+                this.componentRef.setInput(name, this.data[name]);
+            }
         }
+    }
+
+    /**
+     * Check if a value is an output.
+     *
+     * @param value Value to check.
+     * @returns Whether the value is an output.
+     */
+    protected isOutput(value: unknown): boolean {
+        return value instanceof EventEmitter || value instanceof OutputEmitterRef;
     }
 
 }

@@ -26,6 +26,7 @@ export const CORE_COURSE_STEALTH_MODULES_SECTION_ID = -1;
 export const CORE_COURSE_ALL_COURSES_CLEARED = -1;
 
 export const CORE_COURSE_PROGRESS_UPDATED_EVENT = 'progress_updated';
+export const CORE_COURSE_SELECT_TAB = 'course_select_tab';
 
 export const CORE_COURSE_AUTO_SYNCED = 'core_course_autom_synced';
 
@@ -66,7 +67,6 @@ export const CoreCourseAccessDataType = {
     ACCESS_DEFAULT: 'courses_access_default', // eslint-disable-line @typescript-eslint/naming-convention
 } as const;
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
 export type CoreCourseAccessDataType = typeof CoreCourseAccessDataType[keyof typeof CoreCourseAccessDataType];
 
 /**
@@ -80,4 +80,20 @@ export const enum CoreCourseOverviewContentType {
     ACTION_LINK = 'core\\output\\action_link',
     OVERVIEW_DIALOG = 'core_courseformat\\output\\local\\overview\\overviewdialog',
     OVERVIEW_ACTION = 'core_courseformat\\output\\local\\overview\\overviewaction',
+    PIX_ICON = 'core\\output\\pix_icon',
+};
+
+export const enum CoreCourseDownloadStatusIcon {
+    LOADING = 'spinner',
+    DOWNLOADED = 'fam-cloud-done',
+    DOWNLOADING = CoreCourseDownloadStatusIcon.LOADING,
+    NOT_DOWNLOADED = 'fas-cloud-arrow-down',
+    OUTDATED = 'fam-cloud-refresh',
+    NOT_DOWNLOADABLE = '',
+};
+
+export enum CoreCourseForceLanguageSource {
+    COURSE = 'course',
+    MODULE = 'module',
+    CONTEXT = 'context',
 };

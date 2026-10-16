@@ -14,9 +14,9 @@
 
 import { Injectable } from '@angular/core';
 import { CoreTag } from '../tag';
-import { CoreMainMenuHandler, CoreMainMenuHandlerData } from '@features/mainmenu/services/mainmenu-delegate';
+import { CoreMainMenuHandler, CoreMainMenuPageNavHandlerData } from '@features/mainmenu/services/mainmenu-delegate';
 import { makeSingleton } from '@singletons';
-import { CORE_TAG_MAIN_MENU_PAGE_NAME } from '@features/tag/constants';
+import { CORE_TAG_COMPONENT_NAME, CORE_TAG_MAIN_MENU_PAGE_NAME } from '@features/tag/constants';
 
 /**
  * Handler to inject an option into main menu.
@@ -24,7 +24,7 @@ import { CORE_TAG_MAIN_MENU_PAGE_NAME } from '@features/tag/constants';
 @Injectable({ providedIn: 'root' })
 export class CoreTagMainMenuHandlerService implements CoreMainMenuHandler {
 
-    name = 'CoreTag';
+    name = CORE_TAG_COMPONENT_NAME;
     priority = 400;
 
     /**
@@ -41,7 +41,7 @@ export class CoreTagMainMenuHandlerService implements CoreMainMenuHandler {
      *
      * @returns Data needed to render the handler.
      */
-    getDisplayData(): CoreMainMenuHandlerData {
+    getDisplayData(): CoreMainMenuPageNavHandlerData {
         return {
             icon: 'fas-tags',
             title: 'core.tag.tags',

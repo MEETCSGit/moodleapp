@@ -21,14 +21,19 @@ import {
     CoreUserDelegateContext,
     CoreUserProfileHandlerType ,
     CoreUserProfileHandler,
-    CoreUserProfileHandlerData,
+    CoreUserProfileListHandlerData,
 } from '@features/user/services/user-delegate';
 import { PARTICIPANTS_PAGE_NAME } from '@features/user/constants';
 import { CoreNavigator } from '@services/navigator';
 import { CoreSites } from '@services/sites';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { makeSingleton } from '@singletons';
-import { GRADES_PAGE_NAME } from '../../constants';
+import {
+    CORE_GRADES_USER_MENU_FEATURE_NAME,
+    CORE_GRADES_COMPONENT_NAME,
+    CORE_GRADES_USER_PROFILE_FEATURE_NAME,
+    GRADES_PAGE_NAME,
+} from '../../constants';
 
 /**
  * Profile grades handler.
@@ -36,9 +41,10 @@ import { GRADES_PAGE_NAME } from '../../constants';
 @Injectable({ providedIn: 'root' })
 export class CoreGradesUserHandlerService implements CoreUserProfileHandler {
 
-    name = 'CoreGrades'; // This name doesn't match any disabled feature, they'll be checked in isEnabledForContext.
+    readonly type = CoreUserProfileHandlerType.LIST_ITEM;
+    // This name doesn't match any disabled feature, they'll be checked in isEnabledForContext.
+    name = `${CORE_GRADES_COMPONENT_NAME}:fakename`;
     priority = 500;
-    type = CoreUserProfileHandlerType.LIST_ITEM;
     cacheEnabled = true;
 
     /**
@@ -59,11 +65,10 @@ export class CoreGradesUserHandlerService implements CoreUserProfileHandler {
         }
 
         if (context === CoreUserDelegateContext.USER_MENU) {
-            // This option used to belong to main menu, check the original disabled feature value.
-            if (currentSite.isFeatureDisabled('CoreMainMenuDelegate_CoreGrades')) {
+            if (currentSite.isFeatureDisabled(CORE_GRADES_USER_MENU_FEATURE_NAME)) {
                 return false;
             }
-        } else if (currentSite.isFeatureDisabled('CoreUserDelegate_CoreGrades:viewGrades')) {
+        } else if (currentSite.isFeatureDisabled(CORE_GRADES_USER_PROFILE_FEATURE_NAME)) {
             return false;
         }
 
@@ -89,7 +94,7 @@ export class CoreGradesUserHandlerService implements CoreUserProfileHandler {
     /**
      * @inheritdoc
      */
-    getDisplayData(user: CoreUserProfile, context: CoreUserDelegateContext): CoreUserProfileHandlerData {
+    getDisplayData(user: CoreUserProfile, context: CoreUserDelegateContext): CoreUserProfileListHandlerData {
         if (context === CoreUserDelegateContext.COURSE) {
             return {
                 icon: 'fas-chart-bar',

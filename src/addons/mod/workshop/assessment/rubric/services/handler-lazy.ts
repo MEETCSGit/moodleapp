@@ -22,7 +22,7 @@ import {
 } from '@addons/mod/workshop/services/workshop';
 import { Injectable, Type } from '@angular/core';
 import { Translate, makeSingleton } from '@singletons';
-import { CoreFormFields } from '@singletons/form';
+import { CoreFormFields } from '@static/form';
 import { AddonModWorkshopAssessmentStrategyRubricHandlerService } from './handler';
 
 /**
@@ -59,7 +59,7 @@ export class AddonModWorkshopAssessmentStrategyRubricHandlerLazyService
 
             originalValues[n] = {};
             originalValues[n].chosenlevelid = form.current[n].chosenlevelid || '';
-            originalValues[n].number = field.number; // eslint-disable-line id-blacklist
+            originalValues[n].number = field.number; // eslint-disable-line id-denylist
         });
 
         return originalValues;

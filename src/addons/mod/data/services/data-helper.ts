@@ -19,12 +19,12 @@ import { CoreFileUploader, CoreFileUploaderStoreFilesResult } from '@features/fi
 import { CoreRatingOffline } from '@features/rating/services/rating-offline';
 import { FileEntry } from '@awesome-cordova-plugins/file/ngx';
 import { CoreSites, CoreSitesReadingStrategy } from '@services/sites';
-import { CoreDom } from '@singletons/dom';
-import { CoreFormFields } from '@singletons/form';
-import { CoreText } from '@singletons/text';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CoreDom } from '@static/dom';
+import { CoreFormFields } from '@static/form';
+import { CoreText } from '@static/text';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { makeSingleton, Translate } from '@singletons';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import {
     AddonModDataEntry,
     AddonModData,
@@ -489,7 +489,8 @@ export class AddonModDataHelperProvider {
      * @param database Database activity.
      * @param accessInfo Access info to the activity.
      * @param entry Entry or record where the actions will be performed.
-     * @returns Keyed with the action names and boolean to evalute if it can or cannot be done.
+     * @param mode Mode of the template where the entry is being shown. It can affect to some actions like "more".
+     * @returns Keyed with the action names and boolean to evaluate if it can or cannot be done.
      */
     getActions(
         database: AddonModDataData,
@@ -838,7 +839,7 @@ export class AddonModDataHelperProvider {
     getTemplate(data: AddonModDataData, type: AddonModDataTemplateType, fields: AddonModDataField[]): string {
         let template = data[type] || this.getDefaultTemplate(type, fields);
 
-        if (type != AddonModDataTemplateType.LIST_HEADER && type != AddonModDataTemplateType.LIST_FOOTER) {
+        if (type !== AddonModDataTemplateType.LIST_HEADER && type !== AddonModDataTemplateType.LIST_FOOTER) {
             // Try to fix syntax errors so the template can be parsed by Angular.
             template = CoreDom.fixHtml(template);
         }
@@ -992,7 +993,7 @@ export class AddonModDataHelperProvider {
     ): Promise<number | CoreFileUploaderStoreFilesResult>;
     async uploadOrStoreFiles(
         dataId: number,
-        itemId: number = 0,
+        itemId = 0,
         entryId: number,
         fieldId: number,
         files: CoreFileEntry[],

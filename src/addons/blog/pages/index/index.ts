@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ContextLevel, CoreConstants } from '@/core/constants';
+import { ContextLevel, CoreSyncIcon } from '@/core/constants';
 import {
     ADDON_BLOG_AUTO_SYNCED,
     ADDON_BLOG_ENTRY_UPDATED,
@@ -34,11 +34,11 @@ import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
 import { CoreNavigator } from '@services/navigator';
 import { CoreNetwork } from '@services/network';
 import { CoreSites, CoreSitesReadingStrategy } from '@services/sites';
-import { CoreUrl } from '@singletons/url';
-import { CorePromiseUtils } from '@singletons/promise-utils';
-import { CoreArray } from '@singletons/array';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
-import { CoreTime } from '@singletons/time';
+import { CoreUrl } from '@static/url';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreArray } from '@static/array';
+import { CoreEventObserver, CoreEvents } from '@static/events';
+import { CoreTime } from '@static/time';
 import { CorePopovers } from '@services/overlays/popovers';
 import { CoreLoadings } from '@services/overlays/loadings';
 import { CoreAlerts } from '@services/overlays/alerts';
@@ -90,9 +90,9 @@ export default class AddonBlogIndexPage implements OnInit, OnDestroy {
     syncObserver: CoreEventObserver;
     optionsAvailable = false;
     readonly hasOfflineDataToSync = signal(false);
-    readonly isOnline = CoreNetwork.onlineSignal();
+    readonly isOnline = CoreNetwork.onlineSignal;
     siteId: string;
-    syncIcon = CoreConstants.ICON_SYNC;
+    syncIcon = CoreSyncIcon.SYNC;
     readonly syncHidden = computed(() => !this.loaded() || !this.isOnline() || !this.hasOfflineDataToSync());
 
     constructor() {
@@ -234,6 +234,8 @@ export default class AddonBlogIndexPage implements OnInit, OnDestroy {
      * Fetch blog entries.
      *
      * @param refresh Empty events array first.
+     * @param showSyncErrors Whether to show sync errors or not.
+     * @param sync Whether to try to sync entries or not.
      * @returns Promise with the entries.
      */
     protected async fetchEntries(refresh: boolean, showSyncErrors = false, sync?: boolean): Promise<void> {

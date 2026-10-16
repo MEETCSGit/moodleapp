@@ -1,8 +1,10 @@
-@addon_block_recentlyaccesseditems @app @block @block_recentlyaccesseditems @javascript
-Feature: Basic tests of recent activity block
+@app_parallel_run_courses @addon_block_recentlyaccesseditems @app @block @block_recentlyaccesseditems @javascript
+Feature: Basic tests of recent accessed items block
 
   Background:
-    Given the following "users" exist:
+    Given the following config values are set as admin:
+      | enablemycourses | 1 |
+    And the following "users" exist:
       | username | firstname | lastname | email                |
       | student1 | Student   | 1        | student1@example.com |
     And the following "courses" exist:
@@ -84,6 +86,7 @@ Feature: Basic tests of recent activity block
     And I should find "Test workshop name" within "Recently accessed items" "ion-card" in the app
     And I should not find "Test forum name" within "Recently accessed items" "ion-card" in the app
 
+  @disabled_features
   Scenario: Block is included in disabled features
     # Add another block just to ensure there is something in the block region and the drawer is displayed.
     Given the following "blocks" exist:

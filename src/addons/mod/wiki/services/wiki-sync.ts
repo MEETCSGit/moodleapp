@@ -22,7 +22,7 @@ import { CoreSites } from '@services/sites';
 import { CoreSync, CoreSyncResult } from '@services/sync';
 import { CoreWSError } from '@classes/errors/wserror';
 import { makeSingleton, Translate } from '@singletons';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { AddonModWikiPageDBRecord } from './database/wiki';
 import { AddonModWiki } from './wiki';
 import { AddonModWikiOffline } from './wiki-offline';
@@ -32,7 +32,7 @@ import {
     ADDON_MOD_WIKI_COMPONENT_LEGACY,
     ADDON_MOD_WIKI_MANUAL_SYNCED,
 } from '../constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 
 /**
  * Service to sync wikis.
@@ -73,7 +73,7 @@ export class AddonModWikiSyncProvider extends CoreSyncBaseProvider<AddonModWikiS
      * Try to synchronize all the wikis in a certain site or in all sites.
      *
      * @param siteId Site ID to sync. If not defined, sync all sites.
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
     syncAllWikis(siteId?: string, force?: boolean): Promise<void> {
@@ -83,7 +83,7 @@ export class AddonModWikiSyncProvider extends CoreSyncBaseProvider<AddonModWikiS
     /**
      * Sync all wikis on a site.
      *
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @param siteId Site ID to sync.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
@@ -412,7 +412,7 @@ export type AddonModWikiManualSyncData = AddonModWikiSyncWikiResult & {
     wikiId: number;
 };
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.

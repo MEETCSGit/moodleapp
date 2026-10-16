@@ -14,9 +14,10 @@
 
 import { Injectable } from '@angular/core';
 import { CorePromisedValue } from '@classes/promised-value';
-import { CoreWait } from '@singletons/wait';
+import { CoreWait } from '@static/wait';
 import { makeSingleton, NgZone } from '@singletons';
 import { TestingBehatElementLocator, TestingBehatFindOptions } from './behat-runtime';
+import { TestingBehatBlocking } from './behat-blocking';
 
 /**
  * Behat Dom Utils helper functions.
@@ -24,7 +25,7 @@ import { TestingBehatElementLocator, TestingBehatFindOptions } from './behat-run
 @Injectable({ providedIn: 'root' })
 export class TestingBehatDomUtilsService {
 
-    protected static readonly MULTI_ELEM_ALLOWED = ['P', 'SPAN', 'ION-LABEL'];
+    protected static readonly MULTI_ELEM_ALLOWED = ['P', 'SPAN', 'ION-LABEL', 'LI', 'ION-BUTTON'];
 
     /**
      * Check if an element is clickable.
@@ -223,7 +224,7 @@ export class TestingBehatDomUtilsService {
                 if (labelElement && labelElement.innerText && labelElement.innerText.includes(text)) {
                     elements.push({
                         element: currentNode,
-                        exact: labelElement.innerText.trim() == text,
+                        exact: labelElement.innerText.trim() === text,
                     });
 
                     continue;
@@ -263,7 +264,7 @@ export class TestingBehatDomUtilsService {
                 fallbackCandidates = fallbackCandidates.filter(entry => !entry.element.contains(currentNode));
                 fallbackCandidates.push({
                     element: currentNode,
-                    exact: currentNode.innerText.trim() == text,
+                    exact: currentNode.innerText.trim() === text,
                 });
             }
         }
@@ -372,11 +373,11 @@ export class TestingBehatDomUtilsService {
      * Get closest element matching a selector, without traversing up a given container.
      *
      * @param element Element.
-     * @param selector Selector.
+     * @param selector Ancestor selector.
      * @param container Topmost container to search within.
      * @returns Closest matching element.
      */
-    protected getClosestMatching(element: HTMLElement, selector: string, container: HTMLElement | null): HTMLElement | null {
+    protected getClosestMatching(element: HTMLElement, selector: string, container: HTMLElement): HTMLElement | null {
         if (element.matches(selector)) {
             return element;
         }
@@ -387,6 +388,27 @@ export class TestingBehatDomUtilsService {
         }
 
         return this.getClosestMatching(parent, selector, container);
+    }
+
+    /**
+     * For a list of elements, get the closest matching ancestor for each of them, if matches.
+     *
+     * @param elements List of elements.
+     * @param selector Ancestor selector.
+     * @param container Topmost container to search within.
+     * @returns Closest matching elements.
+     */
+    protected getClosestMatchingElements(elements: HTMLElement[], selector: string, container: HTMLElement): HTMLElement[] {
+        const closestMatchingElements: HTMLElement[] = [];
+
+        elements.forEach((element) => {
+            const closest = this.getClosestMatching(element, selector, container);
+            if (closest) {
+                closestMatchingElements.push(closest);
+            }
+        });
+
+        return closestMatchingElements;
     }
 
     /**
@@ -520,6 +542,29 @@ export class TestingBehatDomUtilsService {
     }
 
     /**
+     * Function to find element based on a CSS selector.
+     *
+     * @param selector Element selector.
+     * @param options Search options.
+     * @returns First found element.
+     */
+    findElementBasedOnSelector(
+        selector: string,
+        options: TestingBehatFindOptions = {},
+    ): HTMLElement | undefined {
+        const topContainers = this.getCurrentTopContainerElements(options.containerName);
+        let elements: HTMLElement[] = [];
+
+        topContainers.some((container) => {
+            elements = this.findElementsBasedOnSelectorInContainer(selector, container, options);
+
+            return elements.length > 0;
+        });
+
+        return elements[0];
+    }
+
+    /**
      * Function to find element based on their text or Aria label.
      *
      * @param locator Element locator.
@@ -567,8 +612,8 @@ export class TestingBehatDomUtilsService {
      */
     async waitForElement<T extends HTMLElement = HTMLElement>(
         selector: string,
-        timeout: number = 2000,
-        retryFrequency: number = 100,
+        timeout = 2000,
+        retryFrequency = 100,
     ): Promise<T> {
         const element = document.body.querySelector<T>(selector);
 
@@ -671,19 +716,48 @@ export class TestingBehatDomUtilsService {
 
             const elements = this.findElementsBasedOnTextWithin(container, locator.text, options);
 
-            let filteredElements: HTMLElement[] = elements;
+            let filteredElements = elements;
 
             if (locator.selector) {
-                filteredElements = [];
-                const selector = locator.selector;
-
-                elements.forEach((element) => {
-                    const closest = this.getClosestMatching(element, selector, container);
-                    if (closest) {
-                        filteredElements.push(closest);
-                    }
-                });
+                filteredElements = this.getClosestMatchingElements(elements, locator.selector, container);
             }
+
+            if (filteredElements.length > 0) {
+                return filteredElements;
+            }
+
+        } while (container !== topContainer && (container = this.getParentElement(container)) && container !== topContainer);
+
+        return [];
+    }
+
+    /**
+     * Function to find elements based on a CSS selector.
+     *
+     * @param selector Element selector.
+     * @param topContainer Container to search in.
+     * @param options Search options.
+     * @returns Found elements
+     */
+    protected findElementsBasedOnSelectorInContainer(
+        selector: string,
+        topContainer: HTMLElement,
+        options: TestingBehatFindOptions = {},
+    ): HTMLElement[] {
+        let container: HTMLElement | null = topContainer;
+
+        do {
+            if (!container) {
+                break;
+            }
+
+            const elements = Array.from(container.querySelectorAll<HTMLElement>(selector))
+                .filter(
+                    element => this.isElementVisible(element, topContainer) &&
+                        (!options.onlyClickable || this.isElementClickable(element)),
+                );
+
+            const filteredElements = this.getClosestMatchingElements(elements, selector, container);
 
             if (filteredElements.length > 0) {
                 return filteredElements;
@@ -781,7 +855,7 @@ export class TestingBehatDomUtilsService {
             // Functions to get/set value depending on field type.
             const setValue = async (text: string) => {
                 if (element.tagName === 'ION-SELECT') {
-                    this.setIonSelectInputValue(element, value);
+                    await this.setIonSelectInputValue(element, value);
                 } else if ('value' in element) {
                     element.value = text;
                 } else {
@@ -868,11 +942,13 @@ export class TestingBehatDomUtilsService {
             const submitButton = optionsContainer.querySelector<HTMLElement>('.alert-button-group button:last-child');
 
             if (!submitButton) {
-                throw new Error('Couldn\'t find ion-select submit button.');
+                throw new Error('Couldn\'t find ion-alert (ion-select) submit button.');
             }
 
             await TestingBehatDomUtils.pressElement(submitButton);
         }
+
+        await TestingBehatBlocking.waitForPending();
     }
 
 }

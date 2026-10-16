@@ -23,7 +23,7 @@ import { CoreSites, CoreSitesCommonWSOptions, CoreSitesReadingStrategy } from '@
 import { CoreWSError } from '@classes/errors/wserror';
 import { CoreWSExternalFile, CoreWSExternalWarning, CoreWSFile } from '@services/ws';
 import { makeSingleton, Translate } from '@singletons';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { AddonModWikiPageDBRecord } from './database/wiki';
 import { AddonModWikiOffline } from './wiki-offline';
 import { CoreSiteWSPreSets } from '@classes/sites/authenticated-site';
@@ -33,8 +33,8 @@ import {
     ADDON_MOD_WIKI_PAGE_CREATED_OFFLINE_EVENT,
 } from '../constants';
 import { CoreCacheUpdateFrequency } from '@/core/constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
-import { CoreTextFormat } from '@singletons/text';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreTextFormat } from '@static/text';
 import { CoreCourseModuleHelper, CoreCourseModuleStandardElements } from '@features/course/services/course-module-helper';
 
 /**
@@ -45,7 +45,7 @@ export class AddonModWikiProvider {
 
     protected static readonly ROOT_CACHE_KEY = 'mmaModWiki:';
 
-    protected subwikiListsCache: {[wikiId: number]: AddonModWikiSubwikiListData} = {};
+    protected subwikiListsCache: { [wikiId: number]: AddonModWikiSubwikiListData } = {};
     protected wikiFirstViewedPage: Record<string, Record<number, string>> = {};
     protected editedPage?: AddonModWikiEditedPageData;
 
@@ -87,6 +87,7 @@ export class AddonModWikiProvider {
      * @param pageId Page ID.
      * @param content content to be saved.
      * @param section section to get.
+     * @param siteId Site ID. If not defined, current site.
      * @returns Promise resolved with the page ID.
      */
     async editPage(pageId: number, content: string, section?: string, siteId?: string): Promise<number> {
@@ -558,7 +559,7 @@ export class AddonModWikiProvider {
             const subwikis = await this.getSubwikis(wikiId, options);
 
             // Search the subwiki.
-            const subwiki = subwikis.find((subwiki) => subwiki.id == subwikiId);
+            const subwiki = subwikis.find((subwiki) => subwiki.id === subwikiId);
 
             if (!subwiki) {
                 return false;
@@ -572,7 +573,7 @@ export class AddonModWikiProvider {
             });
 
             // Check if there's any page with the same title.
-            const page = pages.find((page) => page.title == title);
+            const page = pages.find((page) => page.title === title);
 
             return !!page;
         } catch {
@@ -796,7 +797,7 @@ export class AddonModWikiProvider {
             // Get the subwikis to check if any of them matches the one passed as param.
             const subwikis = await this.getSubwikis(wikiId, options);
 
-            const subwiki = subwikis.find((subwiki) => subwiki.id == subwikiId);
+            const subwiki = subwikis.find((subwiki) => subwiki.id === subwikiId);
 
             return !!subwiki;
         } catch {
@@ -850,7 +851,7 @@ export class AddonModWikiProvider {
 
 export const AddonModWiki = makeSingleton(AddonModWikiProvider);
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.
@@ -1182,7 +1183,7 @@ export type AddonModWikiPageCreatedOfflineData = {
 export type AddonModWikiEditedPageData = {
     cmId?: number;
     courseId?: number;
-    wikiId: number;
+    wikiId?: number;
     pageTitle: string;
     subwikiId?: number;
     userId?: number;

@@ -1,11 +1,13 @@
-@core_course @app @core @core_my @block_myoverview @javascript
+@app_parallel_run_courses @core_course @app @core @core_my @block_myoverview @javascript
 Feature: Test course list shown on app start tab
   In order to select a course
   As a student
   I need to see the correct list of courses
 
   Background:
-    Given the following "courses" exist:
+    Given the following config values are set as admin:
+      | enablemycourses | 1 |
+    And the following "courses" exist:
       | fullname | shortname |
       | Course 1 | C1        |
       | Course 2 | C2        |

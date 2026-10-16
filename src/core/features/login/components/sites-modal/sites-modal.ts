@@ -17,7 +17,6 @@ import { CoreSiteBasicInfo, CoreSites } from '@services/sites';
 import { CoreAccountsList, CoreLoginHelper } from '@features/login/services/login-helper';
 import { CoreNavigator } from '@services/navigator';
 import { CoreFilter } from '@features/filter/services/filter';
-import { CoreAnimations } from '@components/animations';
 import { ModalController, Translate } from '@singletons';
 import { CoreSharedModule } from '@/core/shared.module';
 import { CoreAlerts } from '@services/overlays/alerts';
@@ -28,7 +27,6 @@ import { CoreAlerts } from '@services/overlays/alerts';
 @Component({
     selector: 'core-login-sites-modal',
     templateUrl: 'sites-modal.html',
-    animations: [CoreAnimations.SLIDE_IN_OUT, CoreAnimations.SHOW_HIDE],
     imports: [
         CoreSharedModule,
     ],
@@ -73,7 +71,6 @@ export class CoreLoginSitesModalComponent implements OnInit {
      *
      * @param event Click event.
      * @param site Site to delete.
-     * @returns Promise resolved when done.
      */
     async deleteSite(event: Event, site: CoreSiteBasicInfo): Promise<void> {
         event.stopPropagation();
@@ -102,7 +99,6 @@ export class CoreLoginSitesModalComponent implements OnInit {
      * Login in a site.
      *
      * @param site The site.
-     * @returns Promise resolved when done.
      */
     async login(site: CoreSiteBasicInfo): Promise<void> {
         await this.close(undefined, true);
@@ -122,6 +118,7 @@ export class CoreLoginSitesModalComponent implements OnInit {
      * Close modal.
      *
      * @param event Click event.
+     * @param closeAll Whether to close all modals or just the current one.
      */
     async close(event?: Event, closeAll = false): Promise<void> {
         event?.preventDefault();

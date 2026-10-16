@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Component, Input, ElementRef, OnInit, OnDestroy, OnChanges, SimpleChange, inject } from '@angular/core';
+import { Component, Input, ElementRef, OnInit, OnDestroy, OnChanges, SimpleChange, inject, signal } from '@angular/core';
 
 import { CoreNetwork } from '@services/network';
 import { CoreFilepool } from '@services/filepool';
 import { CoreSites } from '@services/sites';
-import { CoreUrl } from '@singletons/url';
+import { CoreUrl } from '@static/url';
 import { CorePluginFileDelegate } from '@services/plugin-file-delegate';
 import { DownloadStatus } from '@/core/constants';
 import { CoreSite } from '@classes/sites/site';
-import { CoreEvents, CoreEventObserver } from '@singletons/events';
-import { CoreLogger } from '@singletons/logger';
+import { CoreEvents, CoreEventObserver } from '@static/events';
+import { CoreLogger } from '@static/logger';
 import { CoreH5P } from '@features/h5p/services/h5p';
 import { CoreH5PDisplayOptions } from '../../classes/core';
 import { BehaviorSubject } from 'rxjs';
@@ -32,6 +32,8 @@ import { Translate } from '@singletons';
 import { CoreSharedModule } from '@/core/shared.module';
 import { CoreH5PIframeComponent } from '../h5p-iframe/h5p-iframe';
 import { CoreFileHelper } from '@services/file-helper';
+import { CoreH5PUnsupportedPackageError } from '@features/h5p/classes/errors/unsupported-package-error';
+import { CoreH5PUnsupportedPackageDBRecord } from '@features/h5p/services/database/h5p';
 
 /**
  * Component to render an H5P package.
@@ -59,7 +61,10 @@ export class CoreH5PPlayerComponent implements OnInit, OnChanges, OnDestroy {
     calculating$ = new BehaviorSubject(true);
     displayOptions?: CoreH5PDisplayOptions;
     // This param should be initialized as undefined to avoid showing the download button when is not set.
-    urlParams?: {[name: string]: string};
+    urlParams?: { [name: string]: string };
+
+    // Undefined means it hasn't been calculated yet, null means it has been calculated and there's no error.
+    readonly unsupportedPackageError = signal<CoreH5PUnsupportedPackageError|undefined|null>(undefined);
 
     protected site: CoreSite;
     protected siteId: string;
@@ -85,7 +90,7 @@ export class CoreH5PPlayerComponent implements OnInit, OnChanges, OnDestroy {
     /**
      * @inheritdoc
      */
-    ngOnChanges(changes: {[name: string]: SimpleChange}): void {
+    ngOnChanges(changes: { [name: string]: SimpleChange }): void {
         // If it's already playing there's no need to check if it can be downloaded or auto-played.
         if (changes.src && !this.showPackage) {
             this.handleAutoPlay();
@@ -97,6 +102,14 @@ export class CoreH5PPlayerComponent implements OnInit, OnChanges, OnDestroy {
      */
     protected async handleAutoPlay(): Promise<void> {
         await this.checkCanDownload();
+
+        if (this.unsupportedPackageError() === undefined) {
+            await this.checkUnsupportedPackage();
+        }
+
+        if (this.unsupportedPackageError()) {
+            return;
+        }
 
         if (!this.autoPlay) {
             if (this.canDownload$.getValue() && this.state && CoreFileHelper.isStateDownloaded(this.state)) {
@@ -134,6 +147,10 @@ export class CoreH5PPlayerComponent implements OnInit, OnChanges, OnDestroy {
             await this.attemptDownloadInBg();
         } catch (error) {
             this.logger.error('Error downloading H5P in background', error);
+
+            if (error instanceof CoreH5PUnsupportedPackageError) {
+                this.unsupportedPackageError.set(error);
+            }
         }
     }
 
@@ -152,8 +169,15 @@ export class CoreH5PPlayerComponent implements OnInit, OnChanges, OnDestroy {
         }
 
         try {
-            // Check if the package has missing dependencies. If so, it cannot be downloaded.
-            const missingDependencies = await CoreH5P.h5pFramework.getMissingDependenciesForFile(this.urlParams.url);
+            const [missingDependencies, unsupportedPackage] = await Promise.all([
+                CoreH5P.h5pFramework.getMissingDependenciesForFile(this.urlParams.url),
+                this.checkUnsupportedPackage(),
+            ]);
+
+            if (unsupportedPackage) {
+                throw new CoreH5PUnsupportedPackageError(unsupportedPackage.reason);
+            }
+
             if (missingDependencies.length > 0) {
                 throw CoreH5P.h5pFramework.buildMissingDependenciesErrorFromDBRecords(missingDependencies);
             }
@@ -172,9 +196,32 @@ export class CoreH5PPlayerComponent implements OnInit, OnChanges, OnDestroy {
                 return;
             }
 
-            CoreAlerts.showError(error, { default: Translate.instant('core.errordownloading') });
+            if (error instanceof CoreH5PUnsupportedPackageError) {
+                this.unsupportedPackageError.set(error);
+            } else {
+                CoreAlerts.showError(error, { default: Translate.instant('core.errordownloading') });
+            }
+
             this.calculateState();
         }
+    }
+
+    /**
+     * Check if the package is unsupported.
+     *
+     * @returns Unsupported package record if the package is unsupported, undefined otherwise.
+     */
+    protected async checkUnsupportedPackage(): Promise<CoreH5PUnsupportedPackageDBRecord | undefined> {
+        if (!this.urlParams?.url) {
+            return;
+        }
+
+        const unsupportedPackage = await CoreH5P.getUnsupportedPackageForFile(this.urlParams.url, this.fileTimemodified);
+        this.unsupportedPackageError.set(
+            unsupportedPackage ? new CoreH5PUnsupportedPackageError(unsupportedPackage.reason) : null,
+        );
+
+        return unsupportedPackage;
     }
 
     /**
@@ -186,9 +233,12 @@ export class CoreH5PPlayerComponent implements OnInit, OnChanges, OnDestroy {
             return;
         }
 
-        // Check if the package has missing dependencies. If so, it cannot be downloaded.
-        const missingDependencies = await CoreH5P.h5pFramework.getMissingDependenciesForFile(this.urlParams.url);
-        if (missingDependencies.length > 0) {
+        const [missingDependencies, unsupportedPackage] = await Promise.all([
+            CoreH5P.h5pFramework.getMissingDependenciesForFile(this.urlParams.url),
+            this.checkUnsupportedPackage(),
+        ]);
+
+        if (missingDependencies.length > 0 || unsupportedPackage) {
             return;
         }
 
@@ -197,7 +247,7 @@ export class CoreH5PPlayerComponent implements OnInit, OnChanges, OnDestroy {
 
         if (CoreFilepool.shouldDownload(size)) {
             // Download the file in background.
-            CoreFilepool.addToQueueByUrl(this.siteId, this.urlParams.url, this.component, this.componentId);
+            await CoreFilepool.addToQueueByUrl(this.siteId, this.urlParams.url, this.component, this.componentId);
         }
     }
 

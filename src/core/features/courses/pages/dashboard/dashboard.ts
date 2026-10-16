@@ -12,24 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Component, OnDestroy, OnInit, signal, viewChildren } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, signal, viewChildren } from '@angular/core';
 
 import { CoreCourses } from '../../services/courses';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { CoreSites } from '@services/sites';
-import { CoreCoursesDashboard } from '@features/courses/services/dashboard';
+import { CoreCoursesDashboard, CoreCoursesDashboardBlocks } from '@features/courses/services/dashboard';
 import { CoreCourseBlock } from '@features/course/services/course';
 import { CoreBlockComponent } from '@features/block/components/block/block';
 import { CoreNavigator } from '@services/navigator';
 import { CoreBlockDelegate } from '@features/block/services/block-delegate';
-import { CoreTime } from '@singletons/time';
+import { CoreTime } from '@static/time';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
 import { Translate } from '@singletons';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreBlockSideBlocksButtonComponent } from '../../../block/components/side-blocks-button/side-blocks-button';
 import { CoreSharedModule } from '@/core/shared.module';
 import { CORE_BLOCKS_DASHBOARD_FALLBACK_BLOCKS } from '@features/block/constants';
+import { Subscription } from 'rxjs';
+import { CorePageTitle } from '@services/page-title';
+import { ActivatedRoute } from '@angular/router';
 
 /**
  * Page that displays the dashboard page.
@@ -58,6 +61,9 @@ export default class CoreCoursesDashboardPage implements OnInit, OnDestroy {
 
     protected updateSiteObserver: CoreEventObserver;
     protected logView: () => void;
+    protected allBlocks: CoreCoursesDashboardBlocks | undefined;
+    protected blockSubscription: Subscription;
+    protected route = inject(ActivatedRoute);
 
     constructor() {
         // Refresh the enabled flags if site is updated.
@@ -79,6 +85,16 @@ export default class CoreCoursesDashboardPage implements OnInit, OnDestroy {
                 url: '/my/',
             });
         });
+
+        // Re-evaluate if blocks are supported if the list of handlers changed (e.g. site plugins added).
+        this.blockSubscription = CoreBlockDelegate.blocksUpdateObservable.subscribe((): void => {
+            if (!this.allBlocks) {
+                return;
+            }
+
+            this.hasMainBlocks = CoreBlockDelegate.hasSupportedBlock(this.allBlocks.mainBlocks);
+            this.hasSideBlocks = CoreBlockDelegate.hasSupportedBlock(this.allBlocks.sideBlocks);
+        });
     }
 
     /**
@@ -90,6 +106,8 @@ export default class CoreCoursesDashboardPage implements OnInit, OnDestroy {
         this.downloadCoursesEnabled = !CoreCourses.isDownloadCoursesDisabledInSite();
 
         this.loadContent();
+
+        CorePageTitle.setTitle(this.route, Translate.instant('core.courses.mymoodle'));
     }
 
     /**
@@ -98,19 +116,19 @@ export default class CoreCoursesDashboardPage implements OnInit, OnDestroy {
      * @returns Promise resolved when done.
      */
     protected async loadContent(): Promise<void> {
-        const available = await CoreCoursesDashboard.isAvailable();
+        const available = await CoreCoursesDashboard.isWSAvailable();
         const disabled = await CoreCoursesDashboard.isDisabled();
 
         if (available && !disabled) {
             this.userId = CoreSites.getCurrentSiteUserId();
 
             try {
-                const blocks = await CoreCoursesDashboard.getDashboardBlocks();
+                this.allBlocks = await CoreCoursesDashboard.getDashboardBlocks();
 
-                this.blocks.set(blocks.mainBlocks);
+                this.blocks.set(this.allBlocks.mainBlocks);
 
-                this.hasMainBlocks = CoreBlockDelegate.hasSupportedBlock(blocks.mainBlocks);
-                this.hasSideBlocks = CoreBlockDelegate.hasSupportedBlock(blocks.sideBlocks);
+                this.hasMainBlocks = CoreBlockDelegate.hasSupportedBlock(this.allBlocks.mainBlocks);
+                this.hasSideBlocks = CoreBlockDelegate.hasSupportedBlock(this.allBlocks.sideBlocks);
             } catch (error) {
                 CoreAlerts.showError(error);
 
@@ -182,6 +200,7 @@ export default class CoreCoursesDashboardPage implements OnInit, OnDestroy {
      */
     ngOnDestroy(): void {
         this.updateSiteObserver.off();
+        this.blockSubscription.unsubscribe();
     }
 
 }

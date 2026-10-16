@@ -26,9 +26,9 @@ import { CoreFileEntry } from '@services/file-helper';
 import { CoreSites, CoreSitesReadingStrategy } from '@services/sites';
 import { CoreSync, CoreSyncResult } from '@services/sync';
 import { CoreErrorHelper } from '@services/error-helper';
-import { CoreObject } from '@singletons/object';
+import { CoreObject } from '@static/object';
 import { Translate, makeSingleton } from '@singletons';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { AddonModData, AddonModDataData } from './data';
 import { AddonModDataHelper } from './data-helper';
 import { AddonModDataOffline, AddonModDataOfflineAction } from './data-offline';
@@ -38,8 +38,8 @@ import {
     ADDON_MOD_DATA_COMPONENT_LEGACY,
     AddonModDataAction,
 } from '../constants';
-import { CoreText } from '@singletons/text';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CoreText } from '@static/text';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreWSError } from '@classes/errors/wserror';
 
 /**
@@ -69,7 +69,7 @@ export class AddonModDataSyncProvider extends CoreCourseActivitySyncBaseProvider
      * Try to synchronize all the databases in a certain site or in all sites.
      *
      * @param siteId Site ID to sync. If not defined, sync all sites.
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
     syncAllDatabases(siteId?: string, force?: boolean): Promise<void> {
@@ -79,7 +79,7 @@ export class AddonModDataSyncProvider extends CoreCourseActivitySyncBaseProvider
     /**
      * Sync all pending databases on a site.
      *
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @param siteId Site ID to sync. If not defined, sync all sites.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
@@ -91,7 +91,7 @@ export class AddonModDataSyncProvider extends CoreCourseActivitySyncBaseProvider
             // Get data id.
             let dataIds: number[] = offlineActions.map((action) => action.dataid);
             // Get unique values.
-            dataIds = dataIds.filter((id, pos) => dataIds.indexOf(id) == pos);
+            dataIds = dataIds.filter((id, pos) => dataIds.indexOf(id) === pos);
 
             const entriesPromises = dataIds.map(async (dataId) => {
                 const result = force
@@ -282,10 +282,10 @@ export class AddonModDataSyncProvider extends CoreCourseActivitySyncBaseProvider
         };
 
         const editAction = entryActions.find((action) =>
-            action.action == AddonModDataAction.ADD || action.action == AddonModDataAction.EDIT);
+            action.action === AddonModDataAction.ADD || action.action === AddonModDataAction.EDIT);
         const approveAction = entryActions.find((action) =>
-            action.action == AddonModDataAction.APPROVE || action.action == AddonModDataAction.DISAPPROVE);
-        const deleteAction = entryActions.find((action) => action.action == AddonModDataAction.DELETE);
+            action.action === AddonModDataAction.APPROVE || action.action === AddonModDataAction.DISAPPROVE);
+        const deleteAction = entryActions.find((action) => action.action === AddonModDataAction.DELETE);
 
         const options: CoreCourseCommonModWSOptions = {
             cmId: database.coursemodule,
@@ -377,7 +377,7 @@ export class AddonModDataSyncProvider extends CoreCourseActivitySyncBaseProvider
                     }
                 }));
 
-                if (editAction.action == AddonModDataAction.ADD) {
+                if (editAction.action === AddonModDataAction.ADD) {
                     const result = await AddonModData.addEntryOnline(
                         editAction.dataid,
                         editAction.fields,
@@ -406,7 +406,7 @@ export class AddonModDataSyncProvider extends CoreCourseActivitySyncBaseProvider
 
         if (approveAction) {
             try {
-                await AddonModData.approveEntryOnline(entryId, approveAction.action == AddonModDataAction.APPROVE, siteId);
+                await AddonModData.approveEntryOnline(entryId, approveAction.action === AddonModDataAction.APPROVE, siteId);
             } catch (error) {
                 if (CoreWSError.isWebServiceError(error)) {
                     // The WebService has thrown an error, this means it cannot be performed. Discard.
@@ -429,7 +429,7 @@ export class AddonModDataSyncProvider extends CoreCourseActivitySyncBaseProvider
      * Synchronize offline ratings.
      *
      * @param cmId Course module to be synced. If not defined, sync all databases.
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @param siteId Site ID. If not defined, current site.
      * @returns Promise resolved if sync is successful, rejected otherwise.
      */
@@ -494,7 +494,7 @@ export type AddonModDataAutoSyncData = {
     deleted?: boolean;
 };
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.

@@ -20,7 +20,7 @@ import { CoreCourseModuleDelegate } from '@features/course/services/module-deleg
 import { CoreModals } from '@services/overlays/modals';
 import { CoreNavigator } from '@services/navigator';
 import { CoreSites } from '@services/sites';
-import { CoreUtils } from '@singletons/utils';
+import { CoreUtils } from '@static/utils';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreCourseModuleNavigationComponent } from '../../components/module-navigation/module-navigation';
 import { CoreCourseUnsupportedModuleComponent } from '../../components/unsupported-module/unsupported-module';
@@ -78,6 +78,7 @@ export default class CoreCourseModulePreviewPage implements OnInit {
     /**
      * Fetch module.
      *
+     * @param refresh Whether to refresh the module data or not.
      * @returns Promise resolved when done.
      */
     protected async fetchModule(refresh = false): Promise<void> {
@@ -126,7 +127,7 @@ export default class CoreCourseModulePreviewPage implements OnInit {
         });
 
         if (data) {
-            if (this.loaded && data.action == 'refresh') {
+            if (this.loaded && data.action === 'refresh') {
                 this.loaded = false;
                 try {
                     await this.doRefresh(undefined);

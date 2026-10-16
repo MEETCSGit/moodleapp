@@ -19,21 +19,21 @@ import { CoreNetwork } from '@services/network';
 import { CoreSites } from '@services/sites';
 import { CoreWSError } from '@classes/errors/wserror';
 import { Translate, makeSingleton } from '@singletons';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { AddonNotesDBRecord, AddonNotesDeletedDBRecord } from './database/notes';
 import { AddonNotes, AddonNotesCreateNoteData } from './notes';
 import { AddonNotesOffline } from './notes-offline';
-import { CoreArray } from '@singletons/array';
+import { CoreArray } from '@static/array';
 import { CoreAnyError } from '@classes/errors/error';
 import { CoreErrorHelper } from '@services/error-helper';
 import { ADDON_NOTES_AUTO_SYNCED } from './constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
-import { DEFAULT_TEXT_FORMAT } from '@singletons/text';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { DEFAULT_TEXT_FORMAT } from '@static/text';
 
 /**
  * Service to sync notes.
  */
-@Injectable( { providedIn: 'root' } )
+@Injectable({ providedIn: 'root' })
 export class AddonNotesSyncProvider extends CoreSyncBaseProvider<AddonNotesSyncResult> {
 
     constructor() {
@@ -44,7 +44,7 @@ export class AddonNotesSyncProvider extends CoreSyncBaseProvider<AddonNotesSyncR
      * Try to synchronize all the notes in a certain site or in all sites.
      *
      * @param siteId Site ID to sync. If not defined, sync all sites.
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
     syncAllNotes(siteId?: string, force?: boolean): Promise<void> {
@@ -54,7 +54,7 @@ export class AddonNotesSyncProvider extends CoreSyncBaseProvider<AddonNotesSyncR
     /**
      * Synchronize all the notes in a certain site
      *
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @param siteId Site ID to sync.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
@@ -172,7 +172,7 @@ export class AddonNotesSyncProvider extends CoreSyncBaseProvider<AddonNotesSyncR
         promises.push(AddonNotes.addNotesOnline(notesToSend, siteId).then((response) => {
             // Search errors in the response.
             response.forEach((entry) => {
-                if (entry.noteid === -1 && entry.errormessage && errors.indexOf(entry.errormessage) == -1) {
+                if (entry.noteid === -1 && entry.errormessage && !errors.includes(entry.errormessage)) {
                     errors.push(entry.errormessage);
                 }
             });
@@ -254,7 +254,7 @@ export type AddonNotesSyncAutoSyncData = {
     warnings: string[];
 };
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.

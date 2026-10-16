@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Component, OnDestroy, OnInit, Input } from '@angular/core';
+import { Component, OnDestroy, OnInit, Input, HostBinding } from '@angular/core';
 import { ActionSheetButton } from '@ionic/angular';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { CoreSites } from '@services/sites';
 import {
     CoreCourseCustomField,
@@ -29,12 +29,12 @@ import {
 import { CoreCourseHelper } from '@features/course/services/course-helper';
 import { ActionSheetController, ModalController, NgZone, Translate } from '@singletons';
 import { CoreNavigator } from '@services/navigator';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreCourseWithImageAndColor } from '@features/courses/services/courses-helper';
 import { Subscription } from 'rxjs';
-import { CorePath } from '@singletons/path';
+import { CorePath } from '@static/path';
 import { CorePlatform } from '@services/platform';
-import { CoreTime } from '@singletons/time';
+import { CoreTime } from '@static/time';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
 import { CoreEnrolHelper } from '@features/enrol/services/enrol-helper';
 import { CoreEnrolDelegate } from '@features/enrol/services/enrol-delegate';
@@ -43,6 +43,7 @@ import { CORE_COURSES_MY_COURSES_UPDATED_EVENT, CoreCoursesMyCoursesUpdatedEvent
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreRemindersDateComponent } from '../../../reminders/components/date/date';
 import { CoreSharedModule } from '@/core/shared.module';
+import { CoreTimeConstants } from '@/core/constants';
 
 /**
  * Page that shows the summary of a course including buttons to enrol and other available options.
@@ -86,6 +87,14 @@ export default class CoreCourseSummaryPage implements OnInit, OnDestroy {
     protected appResumeSubscription: Subscription;
     protected waitingForBrowserEnrol = false;
     protected logView: () => void;
+
+    @HostBinding('attr.data-course-id') protected get currentCourseId(): number | null {
+        return this.course?.id ?? null;
+    }
+
+    @HostBinding('attr.data-category-id') protected get courseCategoryId(): number | null {
+        return this.course?.categoryid ?? null;
+    }
 
     constructor() {
         // Refresh the view when the app is resumed.
@@ -306,7 +315,7 @@ export default class CoreCourseSummaryPage implements OnInit, OnDestroy {
 
         const hasAccess = await CoreCourseHelper.userHasAccessToCourse(this.courseId);
         if (!hasAccess && this.guestEnrolInstances.length) {
-            if (this.guestEnrolInstances.length == 1) {
+            if (this.guestEnrolInstances.length === 1) {
                 this.validateAccessAndOpen(this.guestEnrolInstances[0], replaceCurrentPage);
 
                 return;
@@ -446,7 +455,7 @@ export default class CoreCourseSummaryPage implements OnInit, OnDestroy {
             await CoreCourses.getUserCourse(this.courseId);
         } catch {
             // Not enrolled, wait a bit and try again.
-            if (this.pageDestroyed || (Date.now() - this.waitStart > 60000)) {
+            if (this.pageDestroyed || (Date.now() - this.waitStart > CoreTimeConstants.MILLISECONDS_MINUTE)) {
                 // Max time reached or the user left the view, stop.
                 return;
             }
@@ -477,13 +486,13 @@ export default class CoreCourseSummaryPage implements OnInit, OnDestroy {
      * Open enrol action sheet.
      */
     async enrolMe(): Promise<void> {
-        if (this.selfEnrolInstances.length == 1 && !this.hasBrowserEnrolments) {
+        if (this.selfEnrolInstances.length === 1 && !this.hasBrowserEnrolments) {
             this.selfEnrolInCourse(this.selfEnrolInstances[0]);
 
             return;
         }
 
-        if (this.selfEnrolInstances.length == 0 && this.hasBrowserEnrolments) {
+        if (this.selfEnrolInstances.length === 0 && this.hasBrowserEnrolments) {
             this.browserEnrol();
 
             return;

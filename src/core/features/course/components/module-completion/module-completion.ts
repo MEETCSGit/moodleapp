@@ -20,7 +20,7 @@ import { CorePopovers } from '@services/overlays/popovers';
 import { CoreCourseHelper } from '@features/course/services/course-helper';
 import { CoreUser } from '@features/user/services/user';
 import { Translate } from '@singletons';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { toBoolean } from '@/core/transforms/boolean';
 import { CoreSharedModule } from '@/core/shared.module';
 
@@ -47,6 +47,7 @@ export class CoreCourseModuleCompletionComponent
 
     @Input({ transform: toBoolean }) showCompletionConditions = false; // Whether to show activity completion conditions.
     @Input({ transform: toBoolean }) showManualCompletion = false; // Whether to show manual completion.
+    @Input({ transform: toBoolean }) inCourse = false; // Whether the component is displayed in a course.
 
     completed = false;
     accessibleDescription: string | null = null;
@@ -61,8 +62,7 @@ export class CoreCourseModuleCompletionComponent
             return;
         }
 
-        const hasConditions = !this.completion.isautomatic || (this.completion.details?.length || 0) > 0;
-        this.showCompletionInfo = hasConditions && (this.showCompletionConditions || this.showManualCompletion);
+        this.showCompletionInfo = this.showCompletionConditions || this.showManualCompletion;
         if (!this.showCompletionInfo) {
             return;
         }

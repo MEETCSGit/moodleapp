@@ -54,11 +54,6 @@
   @include btn-close-white();
 }
 
-:root,
-[data-bs-theme="light"] {
-  --#{$prefix}btn-close-filter: #{$btn-close-filter};
-}
-
 @if $enable-dark-mode {
   @include color-mode(dark, true) {
     @include btn-close-white();

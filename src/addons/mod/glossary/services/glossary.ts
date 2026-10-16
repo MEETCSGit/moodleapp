@@ -22,10 +22,10 @@ import { CoreRatingInfo } from '@features/rating/services/rating';
 import { CoreTagItem } from '@features/tag/services/tag';
 import { CoreNetwork } from '@services/network';
 import { CoreSites, CoreSitesCommonWSOptions, CoreSitesReadingStrategy } from '@services/sites';
-import { CoreObject } from '@singletons/object';
+import { CoreObject } from '@static/object';
 import { CoreWSExternalFile, CoreWSExternalWarning } from '@services/ws';
 import { makeSingleton, Translate } from '@singletons';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { AddonModGlossaryEntryDBRecord, ENTRIES_TABLE_NAME } from './database/glossary';
 import { AddonModGlossaryOffline } from './glossary-offline';
 import { CoreSiteWSPreSets } from '@classes/sites/authenticated-site';
@@ -38,9 +38,9 @@ import {
     ADDON_MOD_GLOSSARY_LIMIT_ENTRIES,
 } from '../constants';
 import { CoreCacheUpdateFrequency } from '@/core/constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreWSError } from '@classes/errors/wserror';
-import { CoreTextFormat, DEFAULT_TEXT_FORMAT } from '@singletons/text';
+import { CoreTextFormat, DEFAULT_TEXT_FORMAT } from '@static/text';
 import { CoreCourseModuleHelper, CoreCourseModuleStandardElements } from '@features/course/services/course-module-helper';
 
 /**
@@ -564,7 +564,7 @@ export class AddonModGlossaryProvider {
      * @param siteId Site ID. If not defined, current site.
      * @returns Promise resolved with the glossary ID and the "from".
      */
-    async getStoredDataForEntry(entryId: number, siteId?: string): Promise<{glossaryId: number; from: number}> {
+    async getStoredDataForEntry(entryId: number, siteId?: string): Promise<{ glossaryId: number; from: number }> {
         const site = await CoreSites.getSite(siteId);
 
         const conditions: Partial<AddonModGlossaryEntryDBRecord> = {
@@ -604,7 +604,7 @@ export class AddonModGlossaryProvider {
             siteId: options.siteId,
         });
 
-        const entry = result.entries.find(entry => entry.id == entryId);
+        const entry = result.entries.find(entry => entry.id === entryId);
 
         if (entry) {
             // Entry found, return it.
@@ -834,7 +834,7 @@ export class AddonModGlossaryProvider {
                 }
             }
 
-            if (typeof attachments == 'number') {
+            if (typeof attachments === 'number') {
                 // When storing in offline the attachments can't be a draft ID.
                 throw new CoreError('Error adding entry.');
             }
@@ -1011,7 +1011,7 @@ export class AddonModGlossaryProvider {
             });
 
             // Check if there's any entry with the same concept.
-            return entries.some((entry) => entry.concept == concept);
+            return entries.some((entry) => entry.concept === concept);
         } catch {
             // Error, assume not used.
             return false;
@@ -1122,7 +1122,7 @@ export class AddonModGlossaryProvider {
 
 export const AddonModGlossary = makeSingleton(AddonModGlossaryProvider);
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.

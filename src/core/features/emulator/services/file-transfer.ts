@@ -163,8 +163,8 @@ export class FileTransferMock {
      * @param urlString The URL to get the credentials from.
      * @returns The header with the credentials, null if no credentials.
      */
-    protected getBasicAuthHeader(urlString: string): {name: string; value: string} | null {
-        let header: {name: string; value: string} | null = null;
+    protected getBasicAuthHeader(urlString: string): { name: string; value: string } | null {
+        let header: { name: string; value: string } | null = null;
 
         // MS Windows doesn't support credentials in http uris so we detect them by regexp and strip off from result url.
         if (window.btoa) {
@@ -195,7 +195,7 @@ export class FileTransferMock {
             for (const i in headers) {
                 const headerString = headers[i];
                 const separatorPos = headerString.indexOf(':');
-                if (separatorPos != -1) {
+                if (separatorPos !== -1) {
                     result[headerString.substring(0, separatorPos)] = headerString.substring(separatorPos + 1).trim();
                 }
             }
@@ -271,7 +271,7 @@ export class FileTransferMock {
                 headers = options.headers;
                 httpMethod = options.httpMethod || 'POST';
 
-                if (httpMethod.toUpperCase() == 'PUT') {
+                if (httpMethod.toUpperCase() === 'PUT') {
                     httpMethod = 'PUT';
                 } else {
                     httpMethod = 'POST';

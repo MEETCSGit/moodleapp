@@ -16,9 +16,9 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CoreCoursesHelper, CoreEnrolledCourseDataWithExtraInfo } from '@features/courses/services/courses-helper';
 import { CoreNavigator } from '@services/navigator';
 import { CoreSites } from '@services/sites';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { CoreCourseBasicSearchedData, CoreCourses } from '../../services/courses';
-import { CoreTime } from '@singletons/time';
+import { CoreTime } from '@static/time';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
 import { Translate } from '@singletons';
 import {
@@ -177,6 +177,9 @@ export default class CoreCoursesListPage implements OnInit, OnDestroy {
             if (this.searchMode) {
                 if (this.searchText) {
                     await this.searchCourses();
+                } else {
+                    this.courses = [];
+                    this.canLoadMore = false;
                 }
             } else {
                 await this.loadCourses(true);
@@ -203,7 +206,7 @@ export default class CoreCoursesListPage implements OnInit, OnDestroy {
                     this.loadedCourses = await CoreCourses.getUserCourses();
                 } else {
                     const courses = await CoreCourses.getCoursesByField();
-                    this.loadedCourses = courses.filter((course) => course.id != this.frontpageCourseId);
+                    this.loadedCourses = courses.filter((course) => course.id !== this.frontpageCourseId);
                 }
 
                 this.coursesLoaded = 0;
@@ -289,7 +292,6 @@ export default class CoreCoursesListPage implements OnInit, OnDestroy {
         this.courses = [];
         this.searchPage = 0;
         this.searchTotal = 0;
-        this.searchMode = false;
 
         this.loaded = false;
         this.fetchCourses();

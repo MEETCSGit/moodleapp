@@ -12,25 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Component, OnDestroy, OnInit, inject, viewChild } from '@angular/core';
+import { Component, HostBinding, OnDestroy, OnInit, inject, viewChild } from '@angular/core';
 import { ActivatedRoute, Params } from '@angular/router';
 
 import { CoreTabsOutletTab, CoreTabsOutletComponent } from '@components/tabs-outlet/tabs-outlet';
 import { CoreCourseFormatDelegate } from '../../services/format-delegate';
 import { CoreCourseOptionsDelegate } from '../../services/course-options-delegate';
 import { CoreCourseAnyCourseData } from '@features/courses/services/courses';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { CoreCourse, CoreCourseWSSection } from '@features/course/services/course';
 import { CoreCourseHelper, CoreCourseModuleData } from '@features/course/services/course-helper';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreNavigationOptions, CoreNavigator } from '@services/navigator';
-import { CORE_COURSE_CONTENTS_PAGE_NAME, CORE_COURSE_PROGRESS_UPDATED_EVENT } from '@features/course/constants';
+import {
+    CORE_COURSE_CONTENTS_PAGE_NAME,
+    CORE_COURSE_PROGRESS_UPDATED_EVENT,
+    CORE_COURSE_SELECT_TAB,
+} from '@features/course/constants';
 import { CoreCourseWithImageAndColor } from '@features/courses/services/courses-helper';
-import { CorePath } from '@singletons/path';
+import { CorePath } from '@static/path';
 import { CoreSites } from '@services/sites';
-import { CoreWait } from '@singletons/wait';
+import { CoreWait } from '@static/wait';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreSharedModule } from '@/core/shared.module';
+import { CorePlatform } from '@services/platform';
 
 /**
  * Page that displays the list of courses the user is enrolled in.
@@ -53,10 +58,8 @@ export default class CoreCourseIndexPage implements OnInit, OnDestroy {
     tabs: CourseTab[] = [];
     loaded = false;
     progress?: number;
-    fullScreenEnabled = false;
 
     protected currentPagePath = '';
-    protected fullScreenObserver: CoreEventObserver;
     protected selectTabObserver: CoreEventObserver;
     protected progressObserver: CoreEventObserver;
     protected sections: CoreCourseWSSection[] = []; // List of course sections.
@@ -73,26 +76,34 @@ export default class CoreCourseIndexPage implements OnInit, OnDestroy {
 
     protected route = inject(ActivatedRoute);
 
+    @HostBinding('attr.data-course-id') protected get courseId(): number | null {
+        return this.course?.id ?? null;
+    }
+
+    @HostBinding('attr.data-category-id') protected get courseCategoryId(): number | null {
+        return this.course?.categoryid ?? null;
+    }
+
     constructor() {
-        this.selectTabObserver = CoreEvents.on(CoreEvents.SELECT_COURSE_TAB, (data) => {
-            if (!data.name) {
-                // If needed, set sectionId and sectionNumber. They'll only be used if the content tabs hasn't been loaded yet.
-                if (data.sectionId) {
-                    this.contentsTab.pageParams.sectionId = data.sectionId;
-                }
-                if (data.sectionNumber !== undefined) {
-                    this.contentsTab.pageParams.sectionNumber = data.sectionNumber;
-                }
+        this.selectTabObserver = CoreEvents.on(CORE_COURSE_SELECT_TAB, (data) => {
+            const index = data.selectedTab
+                ? this.tabs.findIndex((tab) => tab.name === data.selectedTab)
+                : 0;
 
-                // Select course contents.
-                this.tabsComponent()?.selectByIndex(0);
-            } else if (this.tabs) {
-                const index = this.tabs.findIndex((tab) => tab.name === data.name);
+            if (index < 0) {
+                return;
+            }
 
-                if (index >= 0) {
-                    this.tabsComponent()?.selectByIndex(index);
+            if (data.pageParams) {
+                const tab = this.tabs[index];
+
+                if (tab) {
+                    // If needed, set sectionId and sectionNumber. They'll only be used if the content tabs hasn't been loaded yet.
+                    tab.pageParams = { ...tab.pageParams, ...data.pageParams };
                 }
             }
+
+            this.tabsComponent()?.selectByIndex(index);
         });
 
         const siteId = CoreSites.getCurrentSiteId();
@@ -106,9 +117,6 @@ export default class CoreCourseIndexPage implements OnInit, OnDestroy {
             this.updateProgress();
         }, siteId);
 
-        this.fullScreenObserver = CoreEvents.on(CoreEvents.FULL_SCREEN_CHANGED, (event: { enabled: boolean }) => {
-            this.fullScreenEnabled = event.enabled;
-        });
     }
 
     /**
@@ -120,8 +128,16 @@ export default class CoreCourseIndexPage implements OnInit, OnDestroy {
 
         CoreNavigator.increaseRouteDepth(path.replace(/(\/deep)+/, ''));
 
+        const courseId = CoreNavigator.getRequiredRouteNumberParam('courseId');
         try {
-            this.course = CoreNavigator.getRequiredRouteParam('course');
+            if (courseId) {
+                this.course = CoreNavigator.getRouteParam('course');
+                if (!this.course) {
+                    this.course = (await CoreCourseHelper.getCourse(courseId)).course;
+                }
+            }  else {
+                this.course = CoreNavigator.getRequiredRouteParam('course');
+            }
         } catch (error) {
             CoreAlerts.showError(error);
             CoreNavigator.back();
@@ -138,6 +154,13 @@ export default class CoreCourseIndexPage implements OnInit, OnDestroy {
         this.modNavOptions = CoreNavigator.getRouteParam<CoreNavigationOptions>('modNavOptions');
         this.openModule = CoreNavigator.getRouteBooleanParam('openModule') ?? true; // If false, just scroll to module.
         this.currentPagePath = CoreNavigator.getCurrentPath();
+
+        if (!CorePlatform.isMobile()) {
+            // Remove what's after course/courseId in the path using a regex.
+            // This can happen when refreshing the page from browser.
+            this.currentPagePath = this.currentPagePath.replace(/(\/course\/\d+).*/, '$1');
+        }
+
         this.contentsTab.page = CorePath.concatenatePaths(this.currentPagePath, this.contentsTab.page);
         this.contentsTab.pageParams = {
             course: this.course,
@@ -198,11 +221,16 @@ export default class CoreCourseIndexPage implements OnInit, OnDestroy {
         // Create the full path.
         handlers.forEach((handler, index) => {
             handler.data.page = CorePath.concatenatePaths(this.currentPagePath, handler.data.page);
-            handler.data.pageParams = handler.data.pageParams || {};
 
             // Check if this handler should be the first selected tab.
             if (this.firstTabName && handler.name == this.firstTabName) {
                 tabToLoad = index + 1;
+
+                const routeParamsForTab = CoreNavigator.getRouteQueryParams(this.route);
+
+                handler.data.pageParams = { ...handler.data.pageParams, ...routeParamsForTab };
+            } else {
+                handler.data.pageParams = handler.data.pageParams || {};
             }
         });
 
@@ -255,7 +283,6 @@ export default class CoreCourseIndexPage implements OnInit, OnDestroy {
         CoreNavigator.decreaseRouteDepth(path.replace(/(\/deep)+/, ''));
         this.selectTabObserver?.off();
         this.progressObserver?.off();
-        this.fullScreenObserver?.off();
     }
 
     /**

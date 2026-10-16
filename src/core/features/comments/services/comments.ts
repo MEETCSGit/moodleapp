@@ -20,14 +20,15 @@ import { CoreSites } from '@services/sites';
 import { CoreWSError } from '@classes/errors/wserror';
 import { CoreWSExternalWarning } from '@services/ws';
 import { makeSingleton } from '@singletons';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { CoreCommentsOffline } from './comments-offline';
 import { CoreSiteWSPreSets } from '@classes/sites/authenticated-site';
 import { ContextLevel, CoreCacheUpdateFrequency } from '@/core/constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
-import { CoreTextFormat } from '@singletons/text';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreTextFormat } from '@static/text';
+import { CORE_COMMENTS_COUNT_CHANGED_EVENT, CORE_COMMENTS_REFRESH_EVENT } from '../constants';
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.
@@ -35,8 +36,8 @@ declare module '@singletons/events' {
      * @see https://www.typescriptlang.org/docs/handbook/declaration-merging.html#module-augmentation
      */
     export interface CoreEventsData {
-        [CoreCommentsProvider.REFRESH_COMMENTS_EVENT]: CoreCommentsRefreshCommentsEventData;
-        [CoreCommentsProvider.COMMENTS_COUNT_CHANGED_EVENT]: CoreCommentsCountChangedEventData;
+        [CORE_COMMENTS_REFRESH_EVENT]: CoreCommentsRefreshCommentsEventData;
+        [CORE_COMMENTS_COUNT_CHANGED_EVENT]: CoreCommentsCountChangedEventData;
     }
 
 }
@@ -49,8 +50,14 @@ export class CoreCommentsProvider {
 
     protected static readonly ROOT_CACHE_KEY = 'mmComments:';
 
-    static readonly REFRESH_COMMENTS_EVENT = 'core_comments_refresh_comments';
-    static readonly COMMENTS_COUNT_CHANGED_EVENT = 'core_comments_count_changed';
+    /**
+     * @deprecated since 5.2. Use CORE_COMMENTS_REFRESH_EVENT instead.
+     */
+    static readonly REFRESH_COMMENTS_EVENT = CORE_COMMENTS_REFRESH_EVENT;
+    /**
+     * @deprecated since 5.2. Use CORE_COMMENTS_COUNT_CHANGED_EVENT instead.
+     */
+    static readonly COMMENTS_COUNT_CHANGED_EVENT = CORE_COMMENTS_COUNT_CHANGED_EVENT;
 
     static pageSize = 1; // At least it will be one.
     static pageSizeOK = false; // If true, the pageSize is definitive. If not, it's a temporal value to reduce WS calls.
@@ -85,7 +92,7 @@ export class CoreCommentsProvider {
         instanceId: number,
         component: string,
         itemId: number,
-        area: string = '',
+        area = '',
         siteId?: string,
     ): Promise<CoreCommentsData | false> {
         siteId = siteId || CoreSites.getCurrentSiteId();
@@ -133,7 +140,7 @@ export class CoreCommentsProvider {
         instanceId: number,
         component: string,
         itemId: number,
-        area: string = '',
+        area = '',
         siteId?: string,
     ): Promise<CoreCommentsData> {
         const comments: CoreCommentsCommentBasicData[] = [
@@ -179,28 +186,6 @@ export class CoreCommentsProvider {
         };
 
         return site.write('core_comment_add_comments', data);
-    }
-
-    /**
-     * Check if comments are disabled in a certain site.
-     *
-     * @param site Site. If not defined, use current site.
-     * @returns Whether it's disabled.
-     * @deprecated since 4.4. Use areCommentsEnabledInSite instead.
-     */
-    areCommentsDisabledInSite(site?: CoreSite): boolean {
-        return !this.areCommentsEnabledInSite(site);
-    }
-
-    /**
-     * Check if comments are disabled in a certain site.
-     *
-     * @param siteId Site Id. If not defined, use current site.
-     * @returns Promise resolved with true if disabled, rejected or resolved with false otherwise.
-     * @deprecated since 4.4. Use areCommentsEnabled instead.
-     */
-    async areCommentsDisabled(siteId?: string): Promise<boolean> {
-        return !this.areCommentsEnabled(siteId);
     }
 
     /**
@@ -323,7 +308,7 @@ export class CoreCommentsProvider {
         instanceId: number,
         component: string,
         itemId: number,
-        area: string = '',
+        area = '',
         siteId?: string,
     ): Promise<void> {
         const site = await CoreSites.getSite(siteId);
@@ -372,7 +357,7 @@ export class CoreCommentsProvider {
         instanceId: number,
         component: string,
         itemId: number,
-        area: string = '',
+        area = '',
     ): string {
         return `${this.getCommentsPrefixCacheKey(contextLevel, instanceId)}:${component}:${itemId}:${area}`;
     }
@@ -405,8 +390,8 @@ export class CoreCommentsProvider {
         instanceId: number,
         component: string,
         itemId: number,
-        area: string = '',
-        page: number = 0,
+        area = '',
+        page = 0,
         siteId?: string,
     ): Promise<CoreCommentsGetCommentsWSResponse> {
         const site = await CoreSites.getSite(siteId);
@@ -454,7 +439,7 @@ export class CoreCommentsProvider {
         instanceId: number,
         component: string,
         itemId: number,
-        area: string = '',
+        area = '',
         siteId?: string,
     ): Promise<string> {
 
@@ -518,7 +503,7 @@ export class CoreCommentsProvider {
         instanceId: number,
         component: string,
         itemId: number,
-        area: string = '',
+        area = '',
         siteId?: string,
     ): Promise<void> {
         const site = await CoreSites.getSite(siteId);

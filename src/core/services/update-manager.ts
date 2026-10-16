@@ -15,18 +15,19 @@
 import { Injectable } from '@angular/core';
 
 import { CoreConfig } from '@services/config';
-import { CoreConstants } from '@/core/constants';
-import { CoreLogger } from '@singletons/logger';
+import { CoreConstants, CoreConfigSettingKey } from '@/core/constants';
+import { CoreLogger } from '@static/logger';
 import { makeSingleton } from '@singletons';
 import { CoreH5P } from '@features/h5p/services/h5p';
 import { CoreLoginHelper } from '@features/login/services/login-helper';
 import { CoreSites } from './sites';
-import { CorePromiseUtils } from '@singletons/promise-utils';
-import { CoreRedirects } from '@singletons/redirects';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreRedirects } from '@static/redirects';
 import { CoreZoomLevel } from '@features/settings/services/settings-helper';
 import { CorePromisedValue } from '@classes/promised-value';
 import { CoreFile } from './file';
 import { CorePlatform } from './platform';
+import { NO_SITE_ID } from '@features/login/constants';
 
 /**
  * Factory to handle app updates. This factory shouldn't be used outside of core.
@@ -138,7 +139,7 @@ export class CoreUpdateManagerProvider {
         await CoreSites.removeStoredCurrentSite();
 
         // Tell the app to open add site so the user can add the new site.
-        CoreRedirects.storeRedirect(CoreConstants.NO_SITE_ID, {
+        CoreRedirects.storeRedirect(NO_SITE_ID, {
             redirectPath: '/login/sites',
             redirectOptions: {
                 params: {
@@ -149,14 +150,14 @@ export class CoreUpdateManagerProvider {
     }
 
     protected async upgradeFontSizeNames(): Promise<void> {
-        const storedFontSizeName = await CoreConfig.get<string>(CoreConstants.SETTINGS_ZOOM_LEVEL, CoreZoomLevel.NONE);
+        const storedFontSizeName = await CoreConfig.get<string>(CoreConfigSettingKey.ZOOM_LEVEL, CoreZoomLevel.NONE);
         switch (storedFontSizeName) {
             case 'low':
-                await CoreConfig.set(CoreConstants.SETTINGS_ZOOM_LEVEL, CoreZoomLevel.NONE);
+                await CoreConfig.set(CoreConfigSettingKey.ZOOM_LEVEL, CoreZoomLevel.NONE);
                 break;
 
             case 'normal':
-                await CoreConfig.set(CoreConstants.SETTINGS_ZOOM_LEVEL, CoreZoomLevel.MEDIUM);
+                await CoreConfig.set(CoreConfigSettingKey.ZOOM_LEVEL, CoreZoomLevel.MEDIUM);
                 break;
         }
     }

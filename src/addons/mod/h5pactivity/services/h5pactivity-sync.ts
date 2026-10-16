@@ -23,7 +23,7 @@ import { CoreXAPI, XAPI_STATE_DELETED } from '@features/xapi/services/xapi';
 import { CoreNetwork } from '@services/network';
 import { CoreSites, CoreSitesReadingStrategy } from '@services/sites';
 import { makeSingleton, Translate } from '@singletons';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import {
     AddonModH5PActivity,
     AddonModH5PActivityAttempt,
@@ -33,13 +33,13 @@ import { CoreXAPIStateDBRecord, CoreXAPIStatementDBRecord } from '@features/xapi
 import { CoreXAPIIRI } from '@features/xapi/classes/iri';
 import { CoreXAPIItemAgent } from '@features/xapi/classes/item-agent';
 import { CoreWSError } from '@classes/errors/wserror';
-import { CoreArray } from '@singletons/array';
+import { CoreArray } from '@static/array';
 import {
     ADDON_MOD_H5PACTIVITY_AUTO_SYNCED,
     ADDON_MOD_H5PACTIVITY_COMPONENT_LEGACY,
     ADDON_MOD_H5PACTIVITY_TRACK_COMPONENT,
 } from '../constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreCourseModuleHelper } from '@features/course/services/course-module-helper';
 
 /**
@@ -58,7 +58,7 @@ export class AddonModH5PActivitySyncProvider extends CoreCourseActivitySyncBaseP
      * Try to synchronize all the H5P activities in a certain site or in all sites.
      *
      * @param siteId Site ID to sync. If not defined, sync all sites.
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
     syncAllActivities(siteId?: string, force?: boolean): Promise<void> {
@@ -68,7 +68,7 @@ export class AddonModH5PActivitySyncProvider extends CoreCourseActivitySyncBaseP
     /**
      * Sync all H5P activities on a site.
      *
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @param siteId Site ID to sync. If not defined, sync all sites.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
@@ -212,15 +212,46 @@ export class AddonModH5PActivitySyncProvider extends CoreCourseActivitySyncBaseP
             CoreCourseLogHelper.syncActivity(ADDON_MOD_H5PACTIVITY_COMPONENT_LEGACY, h5pActivity.id, siteId),
         );
 
-        const results = await Promise.all([
-            this.syncStatements(h5pActivity.id, statements, siteId),
-            this.syncStates(h5pActivity, states, siteId),
-        ]);
+        // Get the last attempt before synchronizing the statements, otherwise we could have a race condition and detect
+        // that the new statements sent during the sync process were the last online attempt.
+        const lastAttempt = states.length > 0 ? await this.getLastOnlineAttempt(h5pActivity, siteId) : undefined;
 
-        result.updated = results[0].updated || results[1].updated;
-        result.warnings = results[0].warnings.concat(results[1].warnings);
+        // Sync all statements before synchronizing states, because sending a statement deletes the state in LMS.
+        const syncStatementsResult = await this.syncStatements(h5pActivity.id, statements, siteId);
+        const syncStatesResult = await this.syncStates(h5pActivity, states, siteId, lastAttempt);
+
+        result.updated = syncStatementsResult.updated || syncStatesResult.updated;
+        result.warnings = syncStatementsResult.warnings.concat(syncStatesResult.warnings);
 
         return finishSync();
+    }
+
+    /**
+     * Get last online attempt.
+     *
+     * @param h5pActivity The H5P activity.
+     * @param siteId Site ID.
+     * @returns Last online attempt (if any).
+     */
+    protected async getLastOnlineAttempt(
+        h5pActivity: AddonModH5PActivityData,
+        siteId: string,
+    ): Promise<AddonModH5PActivityAttempt | undefined> {
+        try {
+            const attemptsData = await AddonModH5PActivity.getUserAttempts(h5pActivity.id, {
+                cmId: h5pActivity.context,
+                readingStrategy: CoreSitesReadingStrategy.ONLY_NETWORK,
+                siteId,
+            });
+
+            return attemptsData.attempts.pop();
+        } catch (error) {
+            // Error getting attempts. If the WS has thrown an exception it means the user cannot retrieve the attempts for
+            // some reason (it shouldn't happen), continue synchronizing in that case.
+            if (!CoreWSError.isWebServiceError(error)) {
+                throw error;
+            }
+        }
     }
 
     /**
@@ -280,12 +311,14 @@ export class AddonModH5PActivitySyncProvider extends CoreCourseActivitySyncBaseP
      * @param h5pActivity H5P activity instance.
      * @param states States to sync.
      * @param siteId Site ID.
+     * @param lastAttempt Last attempt made by the user (if any).
      * @returns Promise resolved with the sync result.
      */
     protected async syncStates(
         h5pActivity: AddonModH5PActivityData,
         states: CoreXAPIStateDBRecord[],
         siteId: string,
+        lastAttempt: AddonModH5PActivityAttempt | undefined,
     ): Promise<AddonModH5PActivitySyncResult> {
         const result: AddonModH5PActivitySyncResult = {
             warnings: [],
@@ -301,21 +334,6 @@ export class AddonModH5PActivitySyncProvider extends CoreCourseActivitySyncBaseP
             CoreXAPIIRI.generate(h5pActivity.context, 'activity', siteId),
         ]);
         const agent = JSON.stringify(CoreXAPIItemAgent.createFromSite(site).getData());
-
-        let lastAttempt: AddonModH5PActivityAttempt | undefined;
-        try {
-            const attemptsData = await AddonModH5PActivity.getUserAttempts(h5pActivity.id, {
-                cmId: h5pActivity.context,
-                readingStrategy: CoreSitesReadingStrategy.ONLY_NETWORK,
-            });
-            lastAttempt = attemptsData.attempts.pop();
-        } catch (error) {
-            // Error getting attempts. If the WS has thrown an exception it means the user cannot retrieve the attempts for
-            // some reason (it shouldn't happen), continue synchronizing in that case.
-            if (!CoreWSError.isWebServiceError(error)) {
-                throw error;
-            }
-        }
 
         await Promise.all(states.map(async (state) => {
             try {
@@ -402,7 +420,7 @@ export type AddonModH5PActivityAutoSyncData = {
     warnings: string[];
 };
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.

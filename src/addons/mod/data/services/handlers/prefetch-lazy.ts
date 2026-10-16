@@ -19,15 +19,15 @@ import { CoreCourses } from '@features/courses/services/courses';
 import { CoreFilepool } from '@services/filepool';
 import { CoreGroup, CoreGroups } from '@services/groups';
 import { CoreSitesCommonWSOptions, CoreSites, CoreSitesReadingStrategy } from '@services/sites';
-import { CoreTime } from '@singletons/time';
-import { CoreObject } from '@singletons/object';
+import { CoreTime } from '@static/time';
+import { CoreObject } from '@static/object';
 import { CoreWSFile } from '@services/ws';
 import { makeSingleton } from '@singletons';
 import { AddonModDataEntry, AddonModData, AddonModDataData } from '../data';
 import { AddonModDataSync, AddonModDataSyncResult } from '../data-sync';
 import { ContextLevel } from '@/core/constants';
 import { AddonModDataPrefetchHandlerService } from '@addons/mod/data/services/handlers/prefetch';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { ADDON_MOD_DATA_MODNAME } from '../../constants';
 
 /**
@@ -81,7 +81,7 @@ export class AddonModDataPrefetchHandlerLazyService extends AddonModDataPrefetch
         courseId: number,
         omitFail: boolean,
         options: CoreCourseCommonModWSOptions = {},
-    ): Promise<{ database: AddonModDataData; groups: CoreGroup[]; entries: AddonModDataEntry[]; files: CoreWSFile[]}> {
+    ): Promise<{ database: AddonModDataData; groups: CoreGroup[]; entries: AddonModDataEntry[]; files: CoreWSFile[] }> {
         let groups: CoreGroup[] = [];
         let entries: AddonModDataEntry[] = [];
         let files: CoreWSFile[] = [];
@@ -95,7 +95,7 @@ export class AddonModDataPrefetchHandlerLazyService extends AddonModDataPrefetch
             files = this.getIntroFilesFromInstance(module, database);
 
             const groupInfo = await CoreGroups.getActivityGroupInfo(module.id, false, undefined, options.siteId);
-            if (!groupInfo.groups || groupInfo.groups.length == 0) {
+            if (!groupInfo.groups || groupInfo.groups.length === 0) {
                 groupInfo.groups = [{ id: 0, name: '' }];
             }
             groups = groupInfo.groups || [];
@@ -262,7 +262,7 @@ export class AddonModDataPrefetchHandlerLazyService extends AddonModDataPrefetch
         promises.push(CoreCourse.getModuleBasicInfoByInstance(database.id, ADDON_MOD_DATA_MODNAME, { siteId }));
 
         // Get course data, needed to determine upload max size if it's configured to be course limit.
-        promises.push(CorePromiseUtils.ignoreErrors(CoreCourses.getCourseByField('id', courseId, siteId)));
+        promises.push(CorePromiseUtils.ignoreErrors(CoreCourses.getCourseByField('id', courseId, { siteId })));
 
         await Promise.all(promises);
     }

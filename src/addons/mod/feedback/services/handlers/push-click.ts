@@ -16,8 +16,8 @@ import { Injectable } from '@angular/core';
 import { CoreCourseHelper } from '@features/course/services/course-helper';
 import { CorePushNotificationsClickHandler } from '@features/pushnotifications/services/push-delegate';
 import { CorePushNotificationsNotificationBasicData } from '@features/pushnotifications/services/pushnotifications';
-import { CoreUrl } from '@singletons/url';
-import { CoreUtils } from '@singletons/utils';
+import { CoreUrl } from '@static/url';
+import { CoreUtils } from '@static/utils';
 import { makeSingleton } from '@singletons';
 import { AddonModFeedbackHelper } from '../feedback-helper';
 import { ADDON_MOD_FEEDBACK_FEATURE_NAME } from '../../constants';
@@ -36,8 +36,8 @@ export class AddonModFeedbackPushClickHandlerService implements CorePushNotifica
      * @inheritdoc
      */
     async handles(notification: CorePushNotificationsNotificationBasicData): Promise<boolean> {
-        if (CoreUtils.isTrueOrOne(notification.notif) && notification.moodlecomponent == 'mod_feedback' &&
-                (notification.name == 'submission' || notification.name == 'message')) {
+        if (CoreUtils.isTrueOrOne(notification.notif) && notification.moodlecomponent === 'mod_feedback' &&
+            (notification.name === 'submission' || notification.name === 'message')) {
 
             return true;
         }
@@ -53,7 +53,7 @@ export class AddonModFeedbackPushClickHandlerService implements CorePushNotifica
         const courseId = Number(notification.courseid);
         const moduleId = Number(contextUrlParams.id);
 
-        if (notification.name == 'submission') {
+        if (notification.name === 'submission') {
             return AddonModFeedbackHelper.handleShowEntriesLink(contextUrlParams, notification.site);
         } else {
             return CoreCourseHelper.navigateToModule(moduleId, {

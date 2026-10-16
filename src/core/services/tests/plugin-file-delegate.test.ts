@@ -16,7 +16,7 @@ import { mock, mockSingleton } from '@/testing/utils';
 import { CoreSite } from '@classes/sites/site';
 import { CorePluginFileDelegateService, CorePluginFileHandler } from '@services/plugin-file-delegate';
 import { CoreSites } from '@services/sites';
-import { CoreUrl } from '@singletons/url';
+import { CoreUrl } from '@static/url';
 
 describe('CorePluginFileDelegate', () => {
 
@@ -73,7 +73,7 @@ class ModFooRevisionHandler implements CorePluginFileHandler {
      */
     getComponentRevisionRegExp(args: string[]): RegExp | undefined {
         // Check filearea.
-        if (args[2] == 'content') {
+        if (args[2] === 'content') {
             // Component + Filearea + Revision
             return new RegExp('/mod_foo/content/([0-9]+)/');
         }

@@ -21,14 +21,14 @@ import { CoreUser, CoreUserProfile } from '@features/user/services/user';
 import { CoreFileEntry, CoreFileHelper } from '@services/file-helper';
 import { CoreNetwork } from '@services/network';
 import { CoreSites, CoreSitesWSOptionsWithFilter } from '@services/sites';
-import { CoreTime } from '@singletons/time';
-import { CoreObject } from '@singletons/object';
+import { CoreTime } from '@static/time';
+import { CoreObject } from '@static/object';
 import { CoreStatusWithWarningsWSResponse, CoreWSExternalFile, CoreWSExternalWarning } from '@services/ws';
 import { makeSingleton } from '@singletons';
 import { AddonBlogOffline, AddonBlogOfflineEntry } from './blog-offline';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreWSError } from '@classes/errors/wserror';
-import { CoreTextFormat } from '@singletons/text';
+import { CoreTextFormat } from '@static/text';
 
 /**
  * Service to handle blog entries.
@@ -97,6 +97,8 @@ export class AddonBlogProvider {
      * Create a new entry.
      *
      * @param params WS Params.
+     * @param params.created Entry creation date.
+     * @param params.forceOffline Whether to force the entry to be stored offline.
      * @param siteId Site ID where the entry should be created.
      * @returns Entry id.
      * @since 4.4
@@ -149,12 +151,14 @@ export class AddonBlogProvider {
      * Update an entry.
      *
      * @param params WS Params.
+     * @param params.created Entry creation date.
+     * @param params.forceOffline Whether to force the entry to be stored offline.
      * @param siteId Site ID of the entry.
      * @since 4.4
      * @returns void
      */
     async updateEntry(
-        { forceOffline, created, ...params }: AddonBlogUpdateEntryParams,
+        { created, forceOffline, ...params }: AddonBlogUpdateEntryParams,
         siteId?: string,
     ): Promise<void> {
         const site = await CoreSites.getSite(siteId);
@@ -222,6 +226,7 @@ export class AddonBlogProvider {
      * Delete entry by id.
      *
      * @param params WS params.
+     * @param params.subject Entry subject.
      * @param siteId Site ID of the entry.
      * @returns Entry deleted successfully or not.
      * @since 4.4
@@ -366,6 +371,8 @@ export class AddonBlogProvider {
 
     /**
      * Format provided entry to AddonBlogPostFormatted.
+     *
+     * @param entry Entry to format.
      */
     async formatEntry(entry: AddonBlogPostFormatted): Promise<void> {
         entry.publishTranslated = this.getPublishTranslated(entry.publishstate);
@@ -444,7 +451,7 @@ export type CoreBlogGetEntriesWSResponse = {
 /**
  * Data returned by blog's post_exporter.
  */
-export interface AddonBlogPost {
+export type AddonBlogPost = {
     id: number; // Post/entry id.
     module: string; // Where it was published the post (blog, blog_external...).
     userid: number; // Post author.
@@ -467,7 +474,7 @@ export interface AddonBlogPost {
     summaryfiles: CoreWSExternalFile[]; // Summaryfiles.
     attachmentfiles?: CoreWSExternalFile[]; // Attachmentfiles.
     tags?: CoreTagItem[]; // @since 3.7. Tags.
-}
+};
 
 /**
  * Params of core_blog_view_entries WS.
@@ -564,7 +571,7 @@ export type AddonBlogGetEntriesOptions = CoreSitesWSOptionsWithFilter & {
 export type AddonBlogUndoDelete = { created: number } | { id: number };
 
 export const AddonBlogPublishState = { draft: 'draft', site: 'site', public: 'public' } as const;
-// eslint-disable-next-line @typescript-eslint/no-redeclare
+
 export type AddonBlogPublishState = typeof AddonBlogPublishState[keyof typeof AddonBlogPublishState];
 
 /**

@@ -14,7 +14,7 @@
 
 import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, inject, viewChild } from '@angular/core';
 import { IonContent } from '@ionic/angular';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { CoreSites } from '@services/sites';
 import {
     AddonMessagesConversationFormatted,
@@ -25,21 +25,21 @@ import {
 } from '../../services/messages';
 import { AddonMessagesOffline } from '../../services/messages-offline';
 import { AddonMessagesSync } from '../../services/messages-sync';
-import { CorePromiseUtils } from '@singletons/promise-utils';
-import { CoreLogger } from '@singletons/logger';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreLogger } from '@static/logger';
 import { CoreInfiniteLoadingComponent } from '@components/infinite-loading/infinite-loading';
-import { Md5 } from 'ts-md5/dist/md5';
+import { Md5 } from 'ts-md5';
 import { dayjs } from '@/core/utils/dayjs';
 import { CoreError } from '@classes/errors/error';
 import { Translate } from '@singletons';
 import { CoreNavigator } from '@services/navigator';
 import { CoreIonLoadingElement } from '@classes/ion-loading';
 import { ActivatedRoute } from '@angular/router';
-import { CoreConstants } from '@/core/constants';
-import { CoreDom } from '@singletons/dom';
-import { CoreKeyboard } from '@singletons/keyboard';
-import { CoreText } from '@singletons/text';
-import { CoreWait } from '@singletons/wait';
+import { LOADING_ICON } from '@/core/constants';
+import { CoreDom } from '@static/dom';
+import { CoreKeyboard } from '@static/keyboard';
+import { CoreText } from '@static/text';
+import { CoreWait } from '@static/wait';
 import { CoreModals } from '@services/overlays/modals';
 import { CoreLoadings } from '@services/overlays/loadings';
 import {
@@ -56,6 +56,7 @@ import {
 } from '@addons/messages/constants';
 import { CoreAlerts, CoreAlertsConfirmOptions } from '@services/overlays/alerts';
 import { CoreSharedModule } from '@/core/shared.module';
+import { CoreSplitViewComponent } from '@components/split-view/split-view';
 
 /**
  * Page that displays a message discussion page.
@@ -70,7 +71,7 @@ import { CoreSharedModule } from '@/core/shared.module';
 })
 export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, AfterViewInit {
 
-    readonly content = viewChild(IonContent);
+    readonly content = viewChild.required(IonContent);
     readonly infinite = viewChild(CoreInfiniteLoadingComponent);
 
     protected fetching = false;
@@ -80,7 +81,7 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
     protected messagesBeingSent = 0;
     protected pagesLoaded = 1;
     protected lastMessage?: { text: string; timecreated: number };
-    protected keepMessageMap: {[hash: string]: boolean} = {};
+    protected keepMessageMap: { [hash: string]: boolean } = {};
     protected syncObserver: CoreEventObserver;
     protected oldContentHeight = 0;
     protected scrollBottom = true;
@@ -89,6 +90,7 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
     protected showLoadingModal = false; // Whether to show a loading modal while fetching data.
     protected hostElement: HTMLElement = inject(ElementRef).nativeElement;
     protected route = inject(ActivatedRoute);
+    protected splitView = inject(CoreSplitViewComponent, { optional: true });
 
     conversationId?: number; // Conversation ID. Undefined if it's a new individual conversation.
     conversation?: AddonMessagesConversationFormatted; // The conversation object (if it exists).
@@ -106,7 +108,7 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
     showDelete = false;
     canDelete = false;
     isGroup = false;
-    members: {[id: number]: AddonMessagesConversationMember} = {}; // Members that wrote a message, indexed by ID.
+    members: { [id: number]: AddonMessagesConversationMember } = {}; // Members that wrote a message, indexed by ID.
     favouriteIcon = 'fas-star';
     deleteIcon = 'fas-trash';
     blockIcon = 'fas-user-lock';
@@ -157,9 +159,7 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
     }
 
     /**
-     * Runs when the page has loaded. This event only happens once per page being created.
-     * If a page leaves but is cached, then this event will not fire again on a subsequent viewing.
-     * Setup code for the page.
+     * @inheritdoc
      */
     async ngOnInit(): Promise<void> {
         this.conversationId = CoreNavigator.getRouteNumberParam('conversationId');
@@ -173,10 +173,10 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
     }
 
     /**
-     * View has been initialized.
+     * @inheritdoc
      */
     async ngAfterViewInit(): Promise<void> {
-        this.scrollElement = await this.content()?.getScrollElement();
+        this.scrollElement = await this.content().getScrollElement();
     }
 
     /**
@@ -188,7 +188,7 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
      */
     protected addMessage(
         message: AddonMessagesConversationMessageFormatted,
-        keep: boolean = true,
+        keep = true,
     ): boolean {
 
         /* Create a hash to identify the message. The text of online messages isn't reliable because it can have random data
@@ -224,7 +224,7 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
 
         delete this.keepMessageMap[hash];
 
-        const position = this.messages.findIndex((message) => message.hash == hash);
+        const position = this.messages.findIndex((message) => message.hash === hash);
         if (position >= 0) {
             this.messages.splice(position, 1);
         }
@@ -232,8 +232,6 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
 
     /**
      * Convenience function to fetch the conversation data.
-     *
-     * @returns Resolved when done.
      */
     protected async fetchData(): Promise<void> {
         let loader: CoreIonLoadingElement | undefined;
@@ -288,7 +286,8 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
             this.setPolling(); // Make sure we're polling messages.
             this.setContactRequestInfo();
             this.setFooterType();
-            loader && loader.dismiss();
+            // this.loaded = true;
+            loader?.dismiss();
         }
     }
 
@@ -311,9 +310,8 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
      * Convenience function to fetch messages.
      *
      * @param messagesAreNew If messages loaded are new messages.
-     * @returns Resolved when done.
      */
-    protected async fetchMessages(messagesAreNew: boolean = true): Promise<void> {
+    protected async fetchMessages(messagesAreNew = true): Promise<void> {
         this.loadMoreError = false;
 
         if (this.messagesBeingSent > 0) {
@@ -362,7 +360,7 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
      */
     protected loadMessages(
         messages: AddonMessagesConversationMessageFormatted[],
-        messagesAreNew: boolean = true,
+        messagesAreNew = true,
     ): void {
 
         if (this.viewDestroyed) {
@@ -419,7 +417,7 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
      * @param addMessages Number of messages still to be read.
      */
     protected setNewMessagesBadge(addMessages: number): void {
-        if (this.newMessages == 0 && addMessages > 0) {
+        if (this.newMessages === 0 && addMessages > 0) {
             this.scrollFunction();
         }
 
@@ -430,7 +428,7 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
      * The scroll was moved. Update new messages count.
      */
     scrollFunction(): void {
-        if (this.newMessages == 0) {
+        if (this.newMessages === 0) {
             return;
         }
 
@@ -444,7 +442,7 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
         const scrollElRect = this.scrollElement?.getBoundingClientRect();
         const scrollBottomPos = (scrollElRect && scrollElRect.bottom) || 0;
 
-        if (scrollBottomPos == 0) {
+        if (scrollBottomPos === 0) {
             return;
         }
 
@@ -499,7 +497,7 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
                     });
 
                     this.loadMessages(messages);
-                } else if (error.errorcode != 'errorconversationdoesnotexist') {
+                } else if (error.errorcode !== 'errorconversationdoesnotexist') {
                     // Display the error.
                     throw error;
                 }
@@ -554,7 +552,7 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
      */
     protected async getConversationMessages(
         pagesToLoad: number,
-        offset: number = 0,
+        offset = 0,
     ): Promise<AddonMessagesConversationMessageFormatted[]> {
 
         if (!this.conversationId) {
@@ -597,6 +595,9 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
 
     /**
      * Mark messages as read.
+     *
+     * @param forceMark Whether to force mark messages as read or not. If true, messages will be marked as read even
+     *  if there are no unread messages according to the conversation data.
      */
     protected async markMessagesAsRead(forceMark: boolean): Promise<void> {
         let readChanged = false;
@@ -655,7 +656,7 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
             }, this.siteId);
 
             // Update navBar links and buttons.
-            const newCanDelete = (last && 'id' in last && last.id && this.messages.length == 1) || this.messages.length > 1;
+            const newCanDelete = (last && 'id' in last && last.id && this.messages.length === 1) || this.messages.length > 1;
             if (this.canDelete != newCanDelete) {
                 this.checkCanDelete();
             }
@@ -688,7 +689,7 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
         }
 
         // Do not update the message unread from label on next refresh.
-        if (this.unreadMessageFrom == 0) {
+        if (this.unreadMessageFrom === 0) {
             // Using negative to indicate the label is not placed but should not be placed.
             this.unreadMessageFrom = -1;
         }
@@ -714,8 +715,6 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
 
     /**
      * Wait until fetching is false.
-     *
-     * @returns Resolved when done.
      */
     protected async waitForFetch(): Promise<void> {
         if (!this.fetching) {
@@ -817,7 +816,6 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
      * Function to load previous messages.
      *
      * @param infiniteComplete Infinite scroll complete function. Only used from core-infinite-loading.
-     * @returns Resolved when done.
      */
     async loadPrevious(infiniteComplete?: () => void): Promise<void> {
         if (!this.initialized) {
@@ -866,6 +864,11 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
 
     /**
      * Keep scroll position after loading previous messages.
+     *
+     * @param oldScrollHeight Scroll height before loading previous messages.
+     * @param oldScrollBottom Distance from the bottom of the scroll before loading previous messages.
+     * @param infiniteHeight Height of the infinite loading element.
+     * @param retries Number of retries done to check if the scroll height has changed. After 10 retries, it will stop.
      */
     protected keepScroll(oldScrollHeight: number, oldScrollBottom: number, infiniteHeight: number, retries = 0): void {
         setTimeout(() => {
@@ -885,7 +888,7 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
                 const newScrollHeight = (this.scrollElement?.scrollHeight || 0);
                 const scrollTo = newScrollHeight - oldScrollBottom + infiniteHeight;
 
-                this.content()!.scrollToPoint(0, scrollTo, 0);
+                this.content().scrollToPoint(0, scrollTo, 0);
             }, 30);
         }, 30);
     }
@@ -921,11 +924,12 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
      * Scroll to the first new unread message.
      */
     scrollToFirstUnreadMessage(): void {
-        if (this.newMessages > 0) {
-            const messages = Array.from(this.hostElement.querySelectorAll<HTMLElement>('core-message:not(.is-mine)'));
-
-            CoreDom.scrollToElement(messages[messages.length - this.newMessages]);
+        if (this.newMessages <= 0) {
+            return;
         }
+        const messages = Array.from(this.hostElement.querySelectorAll<HTMLElement>('core-message:not(.is-mine)'));
+
+        CoreDom.scrollToElement(messages[messages.length - this.newMessages]);
     }
 
     /**
@@ -1090,10 +1094,8 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
             });
 
             if (userId !== undefined) {
-                const splitViewLoaded = CoreNavigator.isCurrentPathInTablet('**/messages/**/discussion/**');
-
                 // Open user conversation.
-                if (splitViewLoaded) {
+                if (this.splitView?.outletActivated) {
                     // Notify the left pane to load it, this way the right conversation will be highlighted.
                     CoreEvents.trigger(
                         ADDON_MESSAGES_OPEN_CONVERSATION_EVENT,
@@ -1121,7 +1123,7 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
             return;
         }
 
-        this.favouriteIcon = CoreConstants.ICON_LOADING;
+        this.favouriteIcon = LOADING_ICON;
 
         try {
             await AddonMessages.setFavouriteConversation(this.conversation.id, !this.conversation.isfavourite);
@@ -1154,7 +1156,7 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
             return;
         }
 
-        this.muteIcon = CoreConstants.ICON_LOADING;
+        this.muteIcon = LOADING_ICON;
 
         try {
             await AddonMessages.muteConversation(this.conversation.id, !this.conversation.ismuted);
@@ -1184,10 +1186,11 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
         this.requestContactSent = false;
         this.requestContactReceived = false;
         if (this.otherMember && !this.otherMember.iscontact) {
+            const otherMemberId = this.otherMember.id;
             this.requestContactSent = !!this.otherMember.contactrequests?.some((request) =>
-                request.userid == this.currentUserId && request.requesteduserid == this.otherMember!.id);
+                request.userid === this.currentUserId && request.requesteduserid === otherMemberId);
             this.requestContactReceived = !!this.otherMember.contactrequests?.some((request) =>
-                request.userid == this.otherMember!.id && request.requesteduserid == this.currentUserId);
+                request.userid === otherMemberId && request.requesteduserid === this.currentUserId);
         }
     }
 
@@ -1235,7 +1238,7 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
                 okText: Translate.instant('addon.messages.blockuser'),
             });
 
-            this.blockIcon = CoreConstants.ICON_LOADING;
+            this.blockIcon = LOADING_ICON;
 
             const modal = await CoreLoadings.show('core.sending', true);
             this.showLoadingModal = true;
@@ -1271,7 +1274,7 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
 
         try {
             await CoreAlerts.confirmDelete(Translate.instant(confirmMessage));
-            this.deleteIcon = CoreConstants.ICON_LOADING;
+            this.deleteIcon = LOADING_ICON;
 
             try {
                 try {
@@ -1316,7 +1319,7 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
                 okText: Translate.instant('addon.messages.unblockuser'),
             });
 
-            this.blockIcon = CoreConstants.ICON_LOADING;
+            this.blockIcon = LOADING_ICON;
 
             const modal = await CoreLoadings.show('core.sending', true);
             this.showLoadingModal = true;
@@ -1340,8 +1343,6 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
 
     /**
      * Displays a confirmation modal to send a contact request to the other user of the individual conversation.
-     *
-     * @returns Promise resolved when the request is sent or the dialog is cancelled.
      */
     async createContactRequest(): Promise<void> {
         if (!this.otherMember) {
@@ -1354,7 +1355,7 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
                 okText: Translate.instant('core.add'),
             });
 
-            this.addRemoveIcon = CoreConstants.ICON_LOADING;
+            this.addRemoveIcon = LOADING_ICON;
 
             const modal = await CoreLoadings.show('core.sending', true);
             this.showLoadingModal = true;
@@ -1378,8 +1379,6 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
 
     /**
      * Confirms the contact request of the other user of the individual conversation.
-     *
-     * @returns Promise resolved when the request is confirmed.
      */
     async confirmContactRequest(): Promise<void> {
         if (!this.otherMember) {
@@ -1404,8 +1403,6 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
 
     /**
      * Declines the contact request of the other user of the individual conversation.
-     *
-     * @returns Promise resolved when the request is confirmed.
      */
     async declineContactRequest(): Promise<void> {
         if (!this.otherMember) {
@@ -1430,8 +1427,6 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
 
     /**
      * Displays a confirmation modal to remove the other user of the conversation from contacts.
-     *
-     * @returns Promise resolved when the request is sent or the dialog is cancelled.
      */
     async removeContact(): Promise<void> {
         if (!this.otherMember) {
@@ -1444,7 +1439,7 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
                 okText: Translate.instant('core.remove'),
             });
 
-            this.addRemoveIcon = CoreConstants.ICON_LOADING;
+            this.addRemoveIcon = LOADING_ICON;
 
             const modal = await CoreLoadings.show('core.sending', true);
             this.showLoadingModal = true;
@@ -1468,7 +1463,7 @@ export default class AddonMessagesDiscussionPage implements OnInit, OnDestroy, A
     }
 
     /**
-     * Page destroyed.
+     * @inheritdoc
      */
     ngOnDestroy(): void {
         // Unset again, just in case.

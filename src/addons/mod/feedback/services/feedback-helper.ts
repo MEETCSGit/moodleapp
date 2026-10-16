@@ -18,8 +18,8 @@ import { CoreUser } from '@features/user/services/user';
 import { CoreNavigator } from '@services/navigator';
 import { CoreSites, CoreSitesReadingStrategy } from '@services/sites';
 import { CoreFileHelper } from '@services/file-helper';
-import { CoreTime } from '@singletons/time';
-import { CoreUtils } from '@singletons/utils';
+import { CoreTime } from '@static/time';
+import { CoreUtils } from '@static/utils';
 import { makeSingleton, Translate } from '@singletons';
 import {
     AddonModFeedback,
@@ -44,7 +44,7 @@ import {
     AddonModFeedbackQuestionTemplateMultichoicePrefix,
 } from '../constants';
 import { CoreLoadings } from '@services/overlays/loadings';
-import { CoreText } from '@singletons/text';
+import { CoreText } from '@static/text';
 import { CoreAlerts } from '@services/overlays/alerts';
 
 const MODE_RESPONSETIME = 1;
@@ -130,11 +130,14 @@ export class AddonModFeedbackHelperProvider {
                         itemData.typ === AddonModFeedbackQuestionType.MULTICHOICERATED) {
                         value = itemData.value || 0;
                     } else if (this.isNumericItem(itemData)) {
-                        value = itemData.value || itemData.value == 0 ? itemData.value : '';
+                        value = itemData.value;
+                        if (value !== '') {
+                            const valueNumber = Number(value);
+                            const rangeFrom = itemData.rangefrom !== '' ? Number(itemData.rangefrom) : undefined;
+                            const rangeTo = itemData.rangeto !== '' ? Number(itemData.rangeto) : undefined;
 
-                        if (value != '') {
-                            if ((itemData.rangefrom != '' && value < itemData.rangefrom) ||
-                                    (itemData.rangeto != '' && value > itemData.rangeto)) {
+                            if ((rangeFrom !== undefined && valueNumber < rangeFrom) ||
+                                (rangeTo !== undefined && valueNumber > rangeTo)) {
                                 itemData.hasError = true;
                             }
                         }
@@ -283,10 +286,10 @@ export class AddonModFeedbackHelperProvider {
 
         const type = parseInt(formItem.presentation, 10);
 
-        if (type == MODE_COURSE || type == MODE_CATEGORY) {
+        if (type === MODE_COURSE || type === MODE_CATEGORY) {
             formItem.presentation = formItem.otherdata;
             formItem.value = formItem.rawValue !== undefined ? formItem.rawValue : formItem.otherdata;
-        } else if (type == MODE_RESPONSETIME) {
+        } else if (type === MODE_RESPONSETIME) {
             formItem.value = '__CURRENT__TIMESTAMP__';
 
             const rawValue = Number(formItem.rawValue);
@@ -315,8 +318,8 @@ export class AddonModFeedbackHelperProvider {
         const formItem: AddonModFeedbackNumericItem = Object.assign(item, {
             templateName: AddonModFeedbackQuestionTemplateNames.NUMERIC,
             value: item.rawValue !== undefined ? Number(item.rawValue) : '',
-            rangefrom: typeof rangeFrom == 'number' && !isNaN(rangeFrom) ? rangeFrom : '',
-            rangeto: typeof rangeTo == 'number' && !isNaN(rangeTo) ? rangeTo : '',
+            rangefrom: typeof rangeFrom === 'number' && !isNaN(rangeFrom) ? rangeFrom : '',
+            rangeto: typeof rangeTo === 'number' && !isNaN(rangeTo) ? rangeTo : '',
             slottedLabel: true,
         });
         formItem.postfix = this.getNumericBoundariesForDisplay(formItem.rangefrom, formItem.rangeto);
@@ -385,13 +388,13 @@ export class AddonModFeedbackHelperProvider {
         const choices = formItem.presentation.split(ADDON_MOD_FEEDBACK_LINE_SEP) || [];
         formItem.choices = choices.map((choice, index) => {
             const weightValue = choice.split(ADDON_MOD_FEEDBACK_MULTICHOICERATED_VALUE_SEP) || [''];
-            choice = weightValue.length == 1 ? weightValue[0] : `(${weightValue[0]}) ${weightValue[1]}`;
+            choice = weightValue.length === 1 ? weightValue[0] : `(${weightValue[0]}) ${weightValue[1]}`;
 
             return { value: index + 1, label: choice };
         });
 
         if (formItem.subtype === AddonModFeedbackMultichoiceSubtype.RADIO &&
-            formItem.options.search(ADDON_MOD_FEEDBACK_MULTICHOICE_HIDENOSELECT) == -1) {
+            !formItem.options.includes(ADDON_MOD_FEEDBACK_MULTICHOICE_HIDENOSELECT)) {
             formItem.choices.unshift({ value: 0, label: Translate.instant('addon.mod_feedback.not_selected') });
             formItem.value = formItem.rawValue !== undefined ? Number(formItem.rawValue) : 0;
         } else if (formItem.subtype === AddonModFeedbackMultichoiceSubtype.DROPDOWN) {
@@ -403,7 +406,7 @@ export class AddonModFeedbackHelperProvider {
                 const values = formItem.rawValue.split(ADDON_MOD_FEEDBACK_LINE_SEP);
                 formItem.choices.forEach((choice) => {
                     for (const x in values) {
-                        if (choice.value == Number(values[x])) {
+                        if (choice.value === Number(values[x])) {
                             choice.checked = true;
 
                             return;

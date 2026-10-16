@@ -17,7 +17,7 @@ import { toBoolean } from '@/core/transforms/boolean';
 import { Component, Input, OnInit } from '@angular/core';
 import { FormGroup, Validators, FormControl } from '@angular/forms';
 
-import { AuthEmailSignupProfileField } from '@features/login/services/login-helper';
+import { AuthEmailSignupProfileField } from '@features/login/services/signup';
 import { CoreUserProfileField } from '@features/user/services/user';
 
 /**
@@ -91,6 +91,7 @@ export abstract class CoreUserProfileFieldBaseComponent<T = string> implements O
     /**
      * Create the Form control.
      *
+     * @param field Field to create the control for.
      * @returns Form control.
      */
     protected createFormControl(field: AuthEmailSignupProfileField): FormControl<T> {

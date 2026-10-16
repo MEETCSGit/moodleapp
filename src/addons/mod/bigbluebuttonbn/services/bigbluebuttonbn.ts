@@ -19,8 +19,8 @@ import { CoreSiteWSPreSets } from '@classes/sites/authenticated-site';
 import { CoreCourseCommonModWSOptions } from '@features/course/services/course';
 import { CoreCourseLogHelper } from '@features/course/services/log-helper';
 import { CoreSites, CoreSitesCommonWSOptions } from '@services/sites';
-import { CoreText } from '@singletons/text';
-import { CoreObject } from '@singletons/object';
+import { CoreText } from '@static/text';
+import { CoreObject } from '@static/object';
 import { CoreWSExternalFile, CoreWSExternalWarning } from '@services/ws';
 import { makeSingleton, Translate } from '@singletons';
 import { ADDON_MOD_BBB_COMPONENT_LEGACY } from '../constants';
@@ -45,7 +45,7 @@ export class AddonModBBBService {
      */
     async endMeeting(
         id: number,
-        groupId: number = 0,
+        groupId = 0,
         siteId?: string,
     ): Promise<void> {
         const site = await CoreSites.getSite(siteId);
@@ -108,7 +108,7 @@ export class AddonModBBBService {
      */
     async getJoinUrl(
         cmId: number,
-        groupId: number = 0,
+        groupId = 0,
         siteId?: string,
     ): Promise<string> {
         const site = await CoreSites.getSite(siteId);
@@ -148,7 +148,7 @@ export class AddonModBBBService {
      */
     async getMeetingInfo(
         id: number,
-        groupId: number = 0,
+        groupId = 0,
         options: AddonModBBBGetMeetingInfoOptions = {},
     ): Promise<AddonModBBBMeetingInfo> {
         const site = await CoreSites.getSite(options.siteId);
@@ -194,7 +194,7 @@ export class AddonModBBBService {
      * @param groupId Group ID, 0 means that the function will determine the user group.
      * @returns Cache key.
      */
-    protected getMeetingInfoCacheKey(id: number, groupId: number = 0): string {
+    protected getMeetingInfoCacheKey(id: number, groupId = 0): string {
         return this.getMeetingInfoCacheKeyPrefix(id) + groupId;
     }
 
@@ -218,7 +218,7 @@ export class AddonModBBBService {
      */
     async getRecordings(
         id: number,
-        groupId: number = 0,
+        groupId = 0,
         options: AddonModBBBGetMeetingInfoOptions = {},
     ): Promise<AddonModBBBRecordingsTableData> {
         const site = await CoreSites.getSite(options.siteId);
@@ -259,7 +259,7 @@ export class AddonModBBBService {
      * @param groupId Group ID, 0 means that the function will determine the user group.
      * @returns Cache key.
      */
-    protected getRecordingsCacheKey(id: number, groupId: number = 0): string {
+    protected getRecordingsCacheKey(id: number, groupId = 0): string {
         return this.getRecordingsCacheKeyPrefix(id) + groupId;
     }
 
@@ -313,7 +313,7 @@ export class AddonModBBBService {
      * @param groupId Group ID, 0 means that the function will determine the user group.
      * @param siteId Site ID. If not defined, current site.
      */
-    async invalidateMeetingInfo(id: number, groupId: number = 0, siteId?: string): Promise<void> {
+    async invalidateMeetingInfo(id: number, groupId = 0, siteId?: string): Promise<void> {
         const site = await CoreSites.getSite(siteId);
 
         await site.invalidateWsCacheForKey(this.getMeetingInfoCacheKey(id, groupId));
@@ -338,7 +338,7 @@ export class AddonModBBBService {
      * @param groupId Group ID, 0 means that the function will determine the user group.
      * @param siteId Site ID. If not defined, current site.
      */
-    async invalidateRecordings(id: number, groupId: number = 0, siteId?: string): Promise<void> {
+    async invalidateRecordings(id: number, groupId = 0, siteId?: string): Promise<void> {
         const site = await CoreSites.getSite(siteId);
 
         await site.invalidateWsCacheForKey(this.getRecordingsCacheKey(id, groupId));
@@ -437,6 +437,7 @@ export type AddonModBBBMeetingInfoWSResponse = {
         isenabled: boolean;
     }[];
     showpresentations?: boolean; // @since 4.5. Whether to show presentation files.
+    usermustwaittojoin?: boolean; // @since 5.2. User must wait to join.
 };
 
 /**

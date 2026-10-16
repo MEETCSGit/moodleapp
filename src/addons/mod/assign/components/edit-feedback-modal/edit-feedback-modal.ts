@@ -23,7 +23,7 @@ import {
 import { CoreSharedModule } from '@/core/shared.module';
 import { AddonModAssignFeedbackPluginComponent } from '../feedback-plugin/feedback-plugin';
 import { isSafeNumber, SafeNumber } from '@/core/utils/types';
-import { CoreMenuItem, CoreUtils } from '@singletons/utils';
+import { CoreMenuItem, CoreUtils } from '@static/utils';
 import {
     ADDON_MOD_ASSIGN_COMPONENT,
     ADDON_MOD_ASSIGN_GRADED_EVENT,
@@ -33,19 +33,19 @@ import {
 } from '../../constants';
 import { CoreCourse, CoreCourseModuleGradeInfo, CoreCourseModuleGradeOutcome } from '@features/course/services/course';
 import { AddonModAssignHelper, AddonModAssignSubmissionFormatted } from '../../services/assign-helper';
-import { CoreError } from '@classes/errors/error';
+import { CoreAnyError, CoreError } from '@classes/errors/error';
 import { CoreLoadings } from '@services/overlays/loadings';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { CoreSites, CoreSitesReadingStrategy } from '@services/sites';
 import { AddonModAssignSync } from '../../services/assign-sync';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreSync } from '@services/sync';
 import { AddonModAssignOffline } from '../../services/assign-offline';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreGradesHelper, CoreGradesFormattedItem } from '@features/grades/services/grades-helper';
 import { CoreLang } from '@services/lang';
-import { CoreText } from '@singletons/text';
-import { CoreFormFields, CoreForms } from '@singletons/form';
+import { CoreText } from '@static/text';
+import { CoreFormFields, CoreForms } from '@static/form';
 
 /**
  * Modal that allows editing a submission feedback.
@@ -154,7 +154,7 @@ export class AddonModAssignEditFeedbackModalComponent implements OnDestroy, OnIn
             // Treat the grade info.
             await this.treatGradeInfo(assign);
 
-            const isManual = assign.attemptreopenmethod == AddonModAssignAttemptReopenMethodValues.MANUAL;
+            const isManual = assign.attemptreopenmethod === AddonModAssignAttemptReopenMethodValues.MANUAL;
             const isUnlimited = assign.maxattempts === ADDON_MOD_ASSIGN_UNLIMITED_ATTEMPTS;
             const isLessThanMaxAttempts = !!this.userSubmission && (this.userSubmission.attemptnumber < (assign.maxattempts - 1));
 
@@ -167,7 +167,7 @@ export class AddonModAssignEditFeedbackModalComponent implements OnDestroy, OnIn
 
             await this.loadFeedbackData();
         } catch (error) {
-            CoreAlerts.showError(error);
+            CoreAlerts.showError(error as CoreAnyError);
             this.closeModal(true);
         } finally {
             this.loaded = true;
@@ -338,8 +338,6 @@ export class AddonModAssignEditFeedbackModalComponent implements OnDestroy, OnIn
                         ? CoreUtils.formatFloat(parsedGrade)
                         : undefined;
                 }
-
-                this.grade.disabled = !!grade.gradeislocked || !!grade.gradeisoverridden;
                 this.grade.modified = grade.gradedategraded;
             } else if (grade.outcomeid) {
 
@@ -357,13 +355,30 @@ export class AddonModAssignEditFeedbackModalComponent implements OnDestroy, OnIn
                         outcomes.push(outcome);
                     }
                 });
-                gradeInfo.disabled = grade.gradeislocked || grade.gradeisoverridden;
             }
-
+            this.grade.disabled = this.gradeIsDisabled(grade, assign);
             this.grade.penalty = CoreGradesHelper.getPenaltyFromGrade(grade.gradeformatted);
         });
 
         gradeInfo.outcomes = outcomes;
+    }
+
+    /**
+     * Check if the grade is disabled based on the assignment settings and grading status.
+     *
+     * @param grade The grade item to check.
+     * @param assign The assignment object.
+     * @returns Whether the grade is disabled.
+     */
+    protected gradeIsDisabled(grade: CoreGradesFormattedItem, assign: AddonModAssignAssign): boolean {
+        if (assign.markingworkflow && this.gradingStatus &&
+            [AddonModAssignGradingStates.MARKING_WORKFLOW_STATE_READYFORRELEASE,
+                AddonModAssignGradingStates.MARKING_WORKFLOW_STATE_RELEASED]
+                .includes(this.gradingStatus)) {
+            return true;
+        }
+
+        return !!grade.gradeislocked || !!grade.gradeisoverridden;
     }
 
     /**
@@ -427,7 +442,7 @@ export class AddonModAssignEditFeedbackModalComponent implements OnDestroy, OnIn
                 inputData,
             );
         } catch {
-            // Error ocurred, consider there are no changes.
+            // Error occurred, consider there are no changes.
             return false;
         }
     }
@@ -606,7 +621,6 @@ type AddonModAssignSubmissionGrade = {
 
 type AddonModAssignGradeInfo = Omit<CoreCourseModuleGradeInfo, 'outcomes'> & {
     outcomes?: AddonModAssignGradeOutcome[];
-    disabled?: boolean;
 };
 
 type AddonModAssignGradeOutcome = CoreCourseModuleGradeOutcome & {

@@ -1,8 +1,10 @@
-@core_navigation @app @javascript
+@app_parallel_run_core @core_navigation @app @javascript
 Feature: It navigates properly in pages with a split-view component.
 
   Background:
-    Given the following "users" exist:
+    Given the following config values are set as admin:
+     | enablemycourses | 1 |
+    And the following "users" exist:
       | username |
       | student1 |
     And the following "courses" exist:
@@ -31,6 +33,7 @@ Feature: It navigates properly in pages with a split-view component.
     # Open grades page
     When I press "Grades" in the app
     Then the header should be "Grades" in the app
+    And the page title should be "Grades | Acceptance test site" in the app
     And I should find "Course 1" in the app
     And I should find "Course 2" in the app
 
@@ -82,6 +85,7 @@ Feature: It navigates properly in pages with a split-view component.
     # Open grades page
     When I press "Grades" in the app
     Then the header should be "Grades" in the app
+    And the page title should be "Grades | Acceptance test site" in the app
     And I should find "Course 1" in the app
     And I should find "Course 2" in the app
     And I should find "Grade category C1" in the app

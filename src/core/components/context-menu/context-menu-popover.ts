@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { CoreConstants } from '@/core/constants';
+import { LOADING_ICON } from '@/core/constants';
 import { Component, input } from '@angular/core';
 import { PopoverController } from '@singletons';
 import { CoreContextMenuItemComponent } from './context-menu-item';
@@ -39,6 +39,8 @@ export class CoreContextMenuPopoverComponent {
 
     /**
      * Close the popover.
+     *
+     * @param item Item that triggered the close. It will be passed to onClosed output of the item, if set.
      */
     closeMenu(item?: CoreContextMenuItemComponent): void {
         PopoverController.dismiss(item);
@@ -55,14 +57,14 @@ export class CoreContextMenuPopoverComponent {
         if (item.iconAction() === 'toggle' && !event.defaultPrevented) {
             event.preventDefault();
             event.stopPropagation();
-            item.toggle.set(!item.toggle);
+            item.toggle.set(!item.toggle());
         }
 
-        if (item.action.observed) {
+        if (item.actionEmitter.observed) {
             event.preventDefault();
             event.stopPropagation();
 
-            if (item.iconAction() === CoreConstants.ICON_LOADING) {
+            if (item.iconAction() === LOADING_ICON) {
                 return false;
             }
 
@@ -70,8 +72,8 @@ export class CoreContextMenuPopoverComponent {
                 this.closeMenu(item);
             }
 
-            item.action.emit(() => this.closeMenu(item));
-        } else if (item.closeOnClick() && (item.effectiveHref() || (!!item.onClosed && item.onClosed.observed))) {
+            item.actionEmitter.next(() => this.closeMenu(item));
+        } else if (item.closeOnClick() && (item.effectiveHref() || (!!item.onClosed && item.onClosedEmitter.observed))) {
             this.closeMenu(item);
         }
 

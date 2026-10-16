@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Md5 } from 'ts-md5/dist/md5';
-
+import { Md5 } from 'ts-md5';
 import { CoreSites } from '@services/sites';
-import { CoreText } from '@singletons/text';
-import { CoreUtils } from '@singletons/utils';
+import { CoreText } from '@static/text';
+import { CoreUtils } from '@static/utils';
 import { CoreH5P } from '@features/h5p/services/h5p';
 import { CoreH5PFileStorage } from './file-storage';
 import { CoreH5PFramework } from './framework';
@@ -24,7 +23,7 @@ import { CoreH5PContentValidator, CoreH5PSemantics } from './content-validator';
 import { Translate } from '@singletons';
 import { CoreH5PContentBeingSaved } from './storage';
 import { CoreH5PLibraryAddTo } from './validator';
-import { CorePath } from '@singletons/path';
+import { CorePath } from '@static/path';
 
 /**
  * Equivalent to H5P's H5PCore class.
@@ -33,13 +32,16 @@ export class CoreH5PCore {
 
     static readonly API_VERSION = {
         majorVersion: 1,
-        minorVersion: 27,
+        minorVersion: 28,
     };
 
     static readonly STYLES = [
+        'styles/h5p-fonts.css',
         'styles/h5p.css',
         'styles/h5p-confirmation-dialog.css',
         'styles/h5p-core-button.css',
+        'styles/h5p-theme.css',
+        'styles/h5p-theme-variables.css',
         'styles/h5p-tooltip.css',
         'styles/h5p-table.css',
     ];
@@ -106,15 +108,15 @@ export class CoreH5PCore {
      */
     static determineEmbedType(contentEmbedType: string, libraryEmbedTypes: string): string {
         // Detect content embed type.
-        let embedType = contentEmbedType.toLowerCase().indexOf('div') != -1 ? 'div' : 'iframe';
+        let embedType = contentEmbedType.toLowerCase().includes('div') ? 'div' : 'iframe';
 
         if (libraryEmbedTypes) {
             // Check that embed type is available for library
             const embedTypes = libraryEmbedTypes.toLowerCase();
 
-            if (embedTypes.indexOf(embedType) == -1) {
+            if (!embedTypes.includes(embedType)) {
                 // Not available, pick default.
-                embedType = embedTypes.indexOf('div') != -1 ? 'div' : 'iframe';
+                embedType = embedTypes.includes('div') ? 'div' : 'iframe';
             }
         }
 
@@ -127,7 +129,7 @@ export class CoreH5PCore {
      * @param dependencies Dependencies.
      * @returns Hash.
      */
-    static getDependenciesHash(dependencies: {[machineName: string]: CoreH5PContentDependencyData}): string {
+    static getDependenciesHash(dependencies: { [machineName: string]: CoreH5PContentDependencyData }): string {
         // Build hash of dependencies.
         const toHash: string[] = [];
 
@@ -354,10 +356,10 @@ export class CoreH5PCore {
      * @returns Promise resolved with the next weight.
      */
     async findLibraryDependencies(
-        dependencies: {[key: string]: CoreH5PContentDepsTreeDependency},
+        dependencies: { [key: string]: CoreH5PContentDepsTreeDependency },
         library: CoreH5PLibraryData | CoreH5PLibraryAddonData,
-        nextWeight: number = 1,
-        editor: boolean = false,
+        nextWeight = 1,
+        editor = false,
         siteId?: string,
     ): Promise<number> {
 
@@ -478,14 +480,14 @@ export class CoreH5PCore {
      * @param assetsFolderPath The path of the folder where the assets are.
      * @returns List of urls.
      */
-    getAssetsUrls(assets: CoreH5PDependencyAsset[], assetsFolderPath: string = ''): string[] {
+    getAssetsUrls(assets: CoreH5PDependencyAsset[], assetsFolderPath = ''): string[] {
         const urls: string[] = [];
 
         assets.forEach((asset) => {
             let url = asset.path;
 
             // Add URL prefix if not external.
-            if (asset.path.indexOf('://') == -1 && assetsFolderPath) {
+            if (!asset.path.includes('://') && assetsFolderPath) {
                 url = CorePath.concatenatePaths(assetsFolderPath, url);
             }
 
@@ -510,9 +512,9 @@ export class CoreH5PCore {
      * @returns Promise resolved with the files.
      */
     async getDependenciesFiles(
-        dependencies: {[machineName: string]: CoreH5PContentDependencyData},
+        dependencies: { [machineName: string]: CoreH5PContentDependencyData },
         folderName: string,
-        prefix: string = '',
+        prefix = '',
         siteId?: string,
     ): Promise<CoreH5PDependenciesFiles> {
         siteId = siteId || CoreSites.getCurrentSiteId();
@@ -576,7 +578,7 @@ export class CoreH5PCore {
      * @param siteId The site ID. If not defined, current site.
      * @returns Promise resolved with an object containing the path of each content dependency.
      */
-    async getDependencyRoots(id: number, siteId?: string): Promise<{[libString: string]: string}> {
+    async getDependencyRoots(id: number, siteId?: string): Promise<{ [libString: string]: string }> {
         siteId = siteId || CoreSites.getCurrentSiteId();
 
         const roots = {};
@@ -605,7 +607,7 @@ export class CoreH5PCore {
         dependency: CoreH5PContentDependencyData,
         type: string,
         assets: CoreH5PDependencyAsset[],
-        prefix: string = '',
+        prefix = '',
     ): void {
 
         // Check if dependency has any files of this type
@@ -622,7 +624,7 @@ export class CoreH5PCore {
             const file = dependency[type][key];
 
             assets.push({
-                path: `${prefix}/${dependency.path}/${(typeof file != 'string' ? file.path : file).trim()}`,
+                path: `${prefix}/${dependency.path}/${(typeof file !== 'string' ? file.path : file).trim()}`,
                 version: dependency.version || '',
             });
         }
@@ -872,13 +874,14 @@ export class CoreH5PCore {
      *
      * @param id Content ID.
      * @param type The dependency type.
+     * @param siteId Site ID. If not defined, current site.
      * @returns Content dependencies, indexed by machine name.
      */
     loadContentDependencies(
         id: number,
         type?: string,
         siteId?: string,
-    ): Promise<{[machineName: string]: CoreH5PContentDependencyData}> {
+    ): Promise<{ [machineName: string]: CoreH5PContentDependencyData }> {
         return this.h5pFramework.loadContentDependencies(id, type, siteId);
     }
 
@@ -957,7 +960,7 @@ export class CoreH5PCore {
      */
     protected textAddonMatches(params: unknown, pattern: string): boolean {
 
-        if (typeof params == 'string') {
+        if (typeof params === 'string') {
             if (params.match(pattern)) {
                 return true;
             }
@@ -1043,7 +1046,7 @@ export type CoreH5PContentData = {
     libraryMinorVersion: number; // Main library's minor version.
     metadata: unknown; // Content metadata.
     library: CoreH5PContentMainLibraryData; // Main library data.
-    dependencies?: {[key: string]: CoreH5PContentDepsTreeDependency}; // Dependencies. Calculated in filterParameters.
+    dependencies?: { [key: string]: CoreH5PContentDepsTreeDependency }; // Dependencies. Calculated in filterParameters.
 };
 
 /**

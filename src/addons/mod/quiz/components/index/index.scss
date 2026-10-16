@@ -1,4 +1,4 @@
-@use "theme/globals" as *;
+@use "src/theme/globals" as *;
 
 :host {
 
@@ -17,14 +17,6 @@
             .addon-mod_quiz-grade-overridden-notice {
                 margin-top: var(--mdl-spacing-2);
                 margin-bottom: 0px;
-            }
-
-            .addon-mod_quiz-grade-result-grade {
-                display: flex;
-
-                span:first-child {
-                    flex-grow: 1;
-                }
             }
         }
 

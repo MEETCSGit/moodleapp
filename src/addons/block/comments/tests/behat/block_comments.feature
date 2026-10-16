@@ -1,9 +1,11 @@
-@addon_block_comments @app @block @block_comments @javascript
+@app_parallel_run_comments @addon_block_comments @app @block @block_comments @javascript
 Feature: View the comments block and check
     it links to the correct comments page
 
   Background:
-    Given the following "users" exist:
+    Given the following config values are set as admin:
+      | enablemyhome | 1 |
+    And the following "users" exist:
       | username | firstname | lastname | email | idnumber |
       | student1 | Student | 1 | student1@example.com | S1 |
     And the following "courses" exist:
@@ -36,6 +38,7 @@ Feature: View the comments block and check
     And I should find "No comments" in the app
     And I should find "Acceptance test site" in the app
 
+  @disabled_features
   Scenario: Block is included in disabled features
     # Add another block just to ensure there is something in the block region and the drawer is displayed.
     Given the following "blocks" exist:

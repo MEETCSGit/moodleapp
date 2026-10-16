@@ -13,13 +13,13 @@
 // limitations under the License.
 
 import { Component, OnDestroy, OnInit, signal } from '@angular/core';
-import { Md5 } from 'ts-md5/dist/md5';
+import { Md5 } from 'ts-md5';
 
 import { CoreNetwork } from '@services/network';
 import { CoreSites } from '@services/sites';
-import { CoreText } from '@singletons/text';
+import { CoreText } from '@static/text';
 import { Translate } from '@singletons';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import {
     AddonPrivateFiles,
     AddonPrivateFilesProvider,
@@ -28,9 +28,9 @@ import {
     AddonPrivateFilesGetFilesWSParams,
 } from '@addons/privatefiles/services/privatefiles';
 import { AddonPrivateFilesHelper } from '@addons/privatefiles/services/privatefiles-helper';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreNavigator } from '@services/navigator';
-import { CoreTime } from '@singletons/time';
+import { CoreTime } from '@static/time';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
 import { CoreModals } from '@services/overlays/modals';
 import { CoreFilepool } from '@services/filepool';
@@ -167,7 +167,7 @@ export default class AddonPrivateFilesIndexPage implements OnInit, OnDestroy {
      */
     rootChanged(): void {
         this.filesLoaded = false;
-        this.component = this.root == 'my' ? AddonPrivateFilesProvider.PRIVATE_FILES_COMPONENT :
+        this.component = this.root === 'my' ? AddonPrivateFilesProvider.PRIVATE_FILES_COMPONENT :
             AddonPrivateFilesProvider.SITE_FILES_COMPONENT;
 
         this.fetchFiles().finally(() => {
@@ -216,11 +216,11 @@ export default class AddonPrivateFilesIndexPage implements OnInit, OnDestroy {
             }
 
             // The path is unknown, the user must be requesting a root.
-            if (this.root == 'site') {
+            if (this.root === 'site') {
                 this.title = Translate.instant('addon.privatefiles.sitefiles');
 
                 this.files = await AddonPrivateFiles.getSiteFiles();
-            } else if (this.root == 'my') {
+            } else if (this.root === 'my') {
                 this.title = Translate.instant('addon.privatefiles.files');
 
                 this.files = await AddonPrivateFiles.getPrivateFiles();
@@ -297,6 +297,8 @@ export default class AddonPrivateFilesIndexPage implements OnInit, OnDestroy {
 
     /**
      * Delete private files.
+     *
+     * @param showConfirmation Whether to show a confirmation modal before deleting the files.
      */
     async deleteSelectedFiles(showConfirmation = false): Promise<void> {
         if (this.selectedFiles.length === 0) {

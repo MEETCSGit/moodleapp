@@ -27,17 +27,17 @@ import { CoreNetwork } from '@services/network';
 import { CoreFilepool } from '@services/filepool';
 import { CoreNavigator } from '@services/navigator';
 import { CoreSites } from '@services/sites';
-import { CoreText } from '@singletons/text';
-import { CoreUtils } from '@singletons/utils';
-import { ModalController, NgZone, Translate } from '@singletons';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
-import { Subscription } from 'rxjs';
+import { CoreText } from '@static/text';
+import { CoreUtils } from '@static/utils';
+import { ModalController, Translate } from '@singletons';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { CoreSharedModule } from '@/core/shared.module';
 import { toBoolean } from '@/core/transforms/boolean';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { ModFeature } from '@addons/mod/constants';
 import { CoreCourseModuleHelper } from '@features/course/services/course-module-helper';
+import { CoreCoursePrefetch } from '@features/course/services/course-prefetch';
 
 /**
  * Component to display a module summary modal.
@@ -75,13 +75,12 @@ export class CoreCourseModuleSummaryComponent implements OnInit, OnDestroy {
     downloadTimeReadable = ''; // Last download time in a readable format.
     grades?: CoreGradesFormattedTableRow[];
     blog = false; // If blog is available.
-    isOnline = false; // If the app is online or not.
+    readonly isOnline = CoreNetwork.onlineSignal;
     course?: CoreCourseAnyCourseData;
     modicon = '';
     moduleNameTranslated = '';
     isTeacher = false;
 
-    protected onlineSubscription: Subscription; // It will observe the status of the network connection.
     protected packageStatusObserver?: CoreEventObserver; // Observer of package status.
     protected fileStatusObserver?: CoreEventObserver; // Observer of file status.
     protected siteId: string;
@@ -89,15 +88,6 @@ export class CoreCourseModuleSummaryComponent implements OnInit, OnDestroy {
 
     constructor() {
         this.siteId = CoreSites.getCurrentSiteId();
-        this.isOnline = CoreNetwork.isOnline();
-
-        // Refresh online status when changes.
-        this.onlineSubscription = CoreNetwork.onChange().subscribe(() => {
-            // Execute the callback in the Angular zone, so change detection doesn't stop working.
-            NgZone.run(() => {
-                this.isOnline = CoreNetwork.isOnline();
-            });
-        });
     }
 
     /**
@@ -221,7 +211,7 @@ export class CoreCourseModuleSummaryComponent implements OnInit, OnDestroy {
         }
 
         const moduleInfo =
-            await CoreCourseHelper.getModulePrefetchInfo(this.module, this.courseId, refresh, this.component);
+            await CoreCoursePrefetch.getModulePrefetchInfo(this.module, this.courseId, refresh, this.component);
 
         const site = CoreSites.getRequiredCurrentSite();
         this.isOfflineUseDisabled = site.isFeatureDisabled('NoDelegate_CoreOffline');
@@ -353,10 +343,10 @@ export class CoreCourseModuleSummaryComponent implements OnInit, OnDestroy {
 
             this.removeFilesLoading = true;
 
-            await CoreCourseHelper.removeModuleStoredData(this.module, this.courseId);
+            await CoreCoursePrefetch.removeModuleStoredData(this.module, this.courseId);
 
         } catch (error) {
-            if (!this.isDestroyed &&error) {
+            if (!this.isDestroyed && error) {
                 CoreAlerts.showError(error);
             }
         } finally {
@@ -403,7 +393,6 @@ export class CoreCourseModuleSummaryComponent implements OnInit, OnDestroy {
         this.isDestroyed = true;
         this.packageStatusObserver?.off();
         this.fileStatusObserver?.off();
-        this.onlineSubscription.unsubscribe();
     }
 
 }

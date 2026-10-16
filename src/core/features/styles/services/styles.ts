@@ -17,11 +17,11 @@ import { CoreError } from '@classes/errors/error';
 import { CoreSitePublicConfigResponse } from '@classes/sites/unauthenticated-site';
 import { CoreApp } from '@services/app';
 import { CoreSites } from '@services/sites';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { makeSingleton } from '@singletons';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { Md5 } from 'ts-md5';
-import { CoreLogger } from '../../../singletons/logger';
+import { CoreLogger } from '@static/logger';
 
 /**
  * Interface that all style handlers must implement.
@@ -39,11 +39,11 @@ export interface CoreStyleHandler {
     priority: number;
 
     /**
-     * Wether the handler should be enabled for the site.
+     * Whether the handler should be enabled for the site.
      *
      * @param siteId Site Id.
      * @param config Site public config for temp sites.
-     * @returns Wether the handler should be enabled for the site.
+     * @returns Whether the handler should be enabled for the site.
      */
     isEnabled(siteId: string, config?: CoreSitePublicConfigResponse): boolean | Promise<boolean>;
 

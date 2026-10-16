@@ -19,23 +19,23 @@ import { CoreIonLoadingElement } from '@classes/ion-loading';
 import { CoreFile } from '@services/file';
 import { CoreFileHelper } from '@services/file-helper';
 import { CoreSites } from '@services/sites';
-import { CoreMimetype } from '@singletons/mimetype';
-import { CoreText } from '@singletons/text';
-import { CoreTime } from '@singletons/time';
-import { CoreOpener, CoreOpenerOpenFileOptions, OpenFileAction } from '@singletons/opener';
-import { CoreForms } from '@singletons/form';
-import { CorePath } from '@singletons/path';
+import { CoreMimetype } from '@static/mimetype';
+import { CoreText } from '@static/text';
+import { CoreTime } from '@static/time';
+import { CoreOpener, CoreOpenerOpenFileOptions, OpenFileAction } from '@static/opener';
+import { CoreForms } from '@static/form';
+import { CorePath } from '@static/path';
 import { CorePlatform } from '@services/platform';
 import { toBoolean } from '@/core/transforms/boolean';
 import { CoreLoadings } from '@services/overlays/loadings';
-import { CoreFileUtils } from '@singletons/file-utils';
+import { CoreFileUtils } from '@static/file-utils';
 import { Translate } from '@singletons';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreBaseModule } from '@/core/base.module';
 import { CoreAriaButtonClickDirective } from '@directives/aria-button';
 import { CoreAutoFocusDirective } from '@directives/auto-focus';
 import { CoreFaIconDirective } from '@directives/fa-icon';
-import { CoreSupressEventsDirective } from '@directives/supress-events';
+import { CoreSuppressEventsDirective } from '@directives/supress-events';
 import { CoreUpdateNonReactiveAttributesDirective } from '@directives/update-non-reactive-attributes';
 
 /**
@@ -54,7 +54,7 @@ import { CoreUpdateNonReactiveAttributesDirective } from '@directives/update-non
         CoreAutoFocusDirective,
         CoreUpdateNonReactiveAttributesDirective,
         CoreFaIconDirective,
-        CoreSupressEventsDirective,
+        CoreSuppressEventsDirective,
     ],
 })
 export class CoreLocalFileComponent implements OnInit {
@@ -108,6 +108,8 @@ export class CoreLocalFileComponent implements OnInit {
 
     /**
      * Load the basic data for the file.
+     *
+     * @param file File entry.
      */
     protected loadFileBasicData(file: FileEntry): void {
         this.fileName = file.name;

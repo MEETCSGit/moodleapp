@@ -16,10 +16,10 @@ import { toBoolean } from '@/core/transforms/boolean';
 import { Component, OnInit, OnDestroy, ElementRef, input, output, signal, computed, effect, inject } from '@angular/core';
 import { CoreUserPreferences } from '@features/user/services/user-preferences';
 
-import { CoreTime } from '@singletons/time';
+import { CoreTime } from '@static/time';
 import { CoreBaseModule } from '@/core/base.module';
 import { CoreSecondsToHMSPipe } from '@pipes/seconds-to-hms';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 
 /**
  * This directive shows a timer in format HH:MM:SS. When the countdown reaches 0, a function is called.
@@ -49,10 +49,6 @@ export class CoreTimerComponent implements OnInit, OnDestroy {
     readonly underTimeClassThresholds = input([]); // Number of seconds to add the class 'core-timer-under-'.
     readonly timerHiddenPreferenceName = input<string>(); // Name of the preference to store the timer visibility.
     readonly finished = output<void>(); // Will emit an event when the timer reaches 0.
-    /**
-     * @deprecated since 4.4. Use hidable instead.
-     */
-    readonly hiddable = input(false, { transform: toBoolean }); // Whether the user can hide the time left.
 
     readonly timeLeft = signal(-1); // Seconds left to end.
     readonly hiddenByUser = signal(false); // Whether the user has hidden the timer.
@@ -60,8 +56,7 @@ export class CoreTimerComponent implements OnInit, OnDestroy {
     readonly showTimeLeft = computed(() => !this.canHideTimer() || !this.hiddenByUser());
 
     readonly canHideTimer = computed(() => {
-        // eslint-disable-next-line @typescript-eslint/no-deprecated
-        if (!this.hidable() && !this.hiddable()) {
+        if (!this.hidable()) {
             return false;
         }
 
@@ -156,7 +151,7 @@ export class CoreTimerComponent implements OnInit, OnDestroy {
 
         const timerHiddenPreferenceName = this.timerHiddenPreferenceName();
         if (timerHiddenPreferenceName) {
-            CoreUserPreferences.setPreference(timerHiddenPreferenceName, this.hiddenByUser() ? '0' : '1');
+            CoreUserPreferences.setPreference(timerHiddenPreferenceName, this.hiddenByUser() ? '1' : '0');
         }
     }
 

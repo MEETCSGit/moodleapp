@@ -16,18 +16,18 @@ import { Input, Output, EventEmitter, Component, ElementRef, OnInit, inject } fr
 import { CoreFileHelper } from '@services/file-helper';
 
 import { CoreSites } from '@services/sites';
-import { CoreDom } from '@singletons/dom';
-import { CoreText } from '@singletons/text';
-import { CoreUrl } from '@singletons/url';
+import { CoreDom } from '@static/dom';
+import { CoreText } from '@static/text';
+import { CoreUrl } from '@static/url';
 import { CoreWSFile } from '@services/ws';
-import { CoreIonicColorNames } from '@singletons/colors';
-import { CoreLogger } from '@singletons/logger';
+import { CoreIonicColorNames } from '@static/colors';
+import { CoreLogger } from '@static/logger';
 import { CoreQuestionBehaviourButton, CoreQuestionHelper, CoreQuestionQuestion } from '../services/question-helper';
 import { ContextLevel } from '@/core/constants';
 import { toBoolean } from '@/core/transforms/boolean';
 import { convertTextToHTMLElement } from '@/core/utils/create-html-element';
 import { CorePromisedValue } from '@classes/promised-value';
-import { AsyncDirective } from '@classes/async-directive';
+import type { AsyncDirective } from '@coretypes/async-directive';
 
 /**
  * Base class for components to render a question.
@@ -284,10 +284,10 @@ export class CoreQuestionBaseComponent<T extends AddonModQuizQuestion = AddonMod
 
         if (question.parsedSettings) {
             question.allowsAttachments = question.parsedSettings.attachments != '0';
-            question.allowsAnswerFiles = question.parsedSettings.responseformat == 'editorfilepicker';
-            question.isMonospaced = question.parsedSettings.responseformat == 'monospaced';
-            question.isPlainText = question.isMonospaced || question.parsedSettings.responseformat == 'plain';
-            question.hasInlineText = question.parsedSettings.responseformat != 'noinline';
+            question.allowsAnswerFiles = question.parsedSettings.responseformat === 'editorfilepicker';
+            question.isMonospaced = question.parsedSettings.responseformat === 'monospaced';
+            question.isPlainText = question.isMonospaced || question.parsedSettings.responseformat === 'plain';
+            question.hasInlineText = question.parsedSettings.responseformat !== 'noinline';
         } else {
             question.allowsAttachments = !!questionEl.querySelector('div[id*=filemanager]');
             question.allowsAnswerFiles = !!answerDraftIdInput;
@@ -588,13 +588,13 @@ export class CoreQuestionBaseComponent<T extends AddonModQuizQuestion = AddonMod
             };
 
             // Check if answer is correct.
-            if (columns[1].className.indexOf('partiallycorrect') >= 0) {
+            if (columns[1].className.includes('partiallycorrect')) {
                 rowModel.correctClass = 'partiallycorrect';
                 rowModel.correctColor = CoreIonicColorNames.WARNING;
-            } else if (columns[1].className.indexOf('incorrect') >= 0) {
+            } else if (columns[1].className.includes('incorrect')) {
                 rowModel.correctClass = 'incorrect';
                 rowModel.correctColor = CoreIonicColorNames.DANGER;
-            } else if (columns[1].className.indexOf('correct') >= 0) {
+            } else if (columns[1].className.includes('correct')) {
                 rowModel.correctClass = 'correct';
                 rowModel.correctColor = CoreIonicColorNames.SUCCESS;
             }
@@ -714,13 +714,13 @@ export class CoreQuestionBaseComponent<T extends AddonModQuizQuestion = AddonMod
 
                 if (parent) {
                     // Check if answer is correct.
-                    if (parent.className.indexOf('partiallycorrect') >= 0) {
+                    if (parent.className.includes('partiallycorrect')) {
                         option.correctClass = 'partiallycorrect';
                         option.correctColor = CoreIonicColorNames.WARNING;
-                    } else if (parent.className.indexOf('incorrect') >= 0) {
+                    } else if (parent.className.includes('incorrect')) {
                         option.correctClass = 'incorrect';
                         option.correctColor = CoreIonicColorNames.DANGER;
-                    } else if (parent.className.indexOf('correct') >= 0) {
+                    } else if (parent.className.includes('correct')) {
                         option.correctClass = 'correct';
                         option.correctColor = CoreIonicColorNames.SUCCESS;
                     }

@@ -29,7 +29,7 @@ import {
     CoreSitePluginsCourseModuleHandlerData,
 } from '@features/siteplugins/services/siteplugins';
 import { CoreModals } from '@services/overlays/modals';
-import { CoreUtils } from '@singletons/utils';
+import { CoreUtils } from '@static/utils';
 import { CoreSitePluginsPluginContentComponent, CoreSitePluginsPluginContentLoadedData } from '../plugin-content/plugin-content';
 import { CoreSharedModule } from '@/core/shared.module';
 import { CoreCourseModuleInfoComponent } from '../../../course/components/module-info/module-info';
@@ -144,6 +144,8 @@ export class CoreSitePluginsModuleIndexComponent implements OnInit, OnDestroy, C
 
     /**
      * Function called when the data of the site plugin content is loaded.
+     *
+     * @param data Data loaded. It contains the content and whether it was loaded successfully.
      */
     contentLoaded(data: CoreSitePluginsPluginContentLoadedData): void {
         this.addDefaultModuleInfo = !data.content.includes('<core-course-module-info');
@@ -192,7 +194,7 @@ export class CoreSitePluginsModuleIndexComponent implements OnInit, OnDestroy, C
         });
 
         const content = this.content();
-        if (data && data.action == 'refresh' && content?.dataLoaded) {
+        if (data && data.action === 'refresh' && content?.dataLoaded) {
             content?.refreshContent(true);
         }
     }

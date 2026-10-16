@@ -28,7 +28,7 @@
 
         <ion-item class="ion-text-wrap">
             @if (profile) {
-                <core-user-avatar [user]="profile" slot="start" [courseId]="courseId" [userId]="profile.id" />
+                <core-user-avatar [user]="profile" slot="start" [courseId]="courseId" />
             }
 
             <ion-label>
@@ -42,12 +42,12 @@
                     </p>
                 }
                 @if (workshop && access && access.canviewallsubmissions && assessment && showGrade(assessment.gradinggrade)) {
-                    <p [class.core-has-overriden-grade]=" showGrade(assessment.gradinggrade)">
+                    <p [class.core-has-overridden-grade]=" showGrade(assessment.gradinggrade)">
                         {{ 'addon.mod_workshop.gradinggradeof' | translate:{$a: workshop.gradinggrade } }}: {{assessment.gradinggrade}}
                     </p>
                 }
                 @if (access && access.canviewallsubmissions && assessment && showGrade(assessment.gradinggradeover)) {
-                    <p class="core-overriden-grade">
+                    <p class="core-overridden-grade">
                         {{ 'addon.mod_workshop.gradinggradeover' | translate }}: {{assessment.gradinggradeover}}
                     </p>
                 }
@@ -77,12 +77,7 @@
                         <h3 class="item-heading">{{ 'addon.mod_workshop.assessmentsettings' | translate }}</h3>
                     </ion-label>
                 </ion-item>
-                <ion-card class="core-warning-card">
-                    <ion-item>
-                        <ion-icon name="fas-triangle-exclamation" slot="start" aria-hidden="true" />
-                        <ion-label>{{ loadFeedbackToEditErrorMessage }}</ion-label>
-                    </ion-item>
-                </ion-card>
+                <core-alert-card type="warning" [message]="loadFeedbackToEditErrorMessage"/>
             } @else {
                 <form [formGroup]="evaluateForm" #evaluateFormEl>
                     <ion-item class="ion-text-wrap">
@@ -134,7 +129,7 @@
             <ion-list>
                 <ion-item class="ion-text-wrap">
                     @if (evaluateByProfile) {
-                        <core-user-avatar [user]="evaluateByProfile" slot="start" [courseId]="courseId" [userId]="evaluateByProfile.id" />
+                        <core-user-avatar [user]="evaluateByProfile" slot="start" [courseId]="courseId" />
                     }
                     <ion-label>
                         @if (evaluateByProfile && evaluateByProfile.fullname) {

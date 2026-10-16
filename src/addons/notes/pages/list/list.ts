@@ -12,24 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { CoreConstants } from '@/core/constants';
+import { CoreRefreshIcon, CoreSyncIcon } from '@/core/constants';
 import { AddonNotesAddModalReturn } from '@addons/notes/components/add/add-modal';
 import { AddonNotes, AddonNotesNoteFormatted, AddonNotesPublishState } from '@addons/notes/services/notes';
 import { AddonNotesOffline } from '@addons/notes/services/notes-offline';
 import { AddonNotesSync } from '@addons/notes/services/notes-sync';
 import { Component, OnDestroy, OnInit, viewChild } from '@angular/core';
-import { CoreAnimations } from '@components/animations';
 import { CoreUser, CoreUserProfile } from '@features/user/services/user';
 import { IonContent } from '@ionic/angular';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
 import { CoreNavigator } from '@services/navigator';
 import { CoreSites } from '@services/sites';
-import { CoreText } from '@singletons/text';
-import { CoreUrl } from '@singletons/url';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CoreText } from '@static/text';
+import { CoreUrl } from '@static/url';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { Translate } from '@singletons';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
-import { CoreTime } from '@singletons/time';
+import { CoreEventObserver, CoreEvents } from '@static/events';
+import { CoreTime } from '@static/time';
 import { CoreToasts, ToastDuration } from '@services/overlays/toasts';
 import { CoreModals } from '@services/overlays/modals';
 import { ADDON_NOTES_AUTO_SYNCED } from '@addons/notes/services/constants';
@@ -42,20 +41,19 @@ import { CoreSharedModule } from '@/core/shared.module';
 @Component({
     selector: 'page-addon-notes-list-page',
     templateUrl: 'list.html',
-    animations: [CoreAnimations.SLIDE_IN_OUT],
     imports: [
         CoreSharedModule,
     ],
 })
 export default class AddonNotesListPage implements OnInit, OnDestroy {
 
-    readonly content = viewChild(IonContent);
+    readonly content = viewChild.required(IonContent);
 
     courseId!: number;
     userId?: number;
     type: AddonNotesPublishState = 'course';
-    refreshIcon = CoreConstants.ICON_LOADING;
-    syncIcon = CoreConstants.ICON_LOADING;
+    refreshIcon = CoreRefreshIcon.LOADING;
+    syncIcon = CoreSyncIcon.LOADING;
     notes: AddonNotesNoteFormatted[] = [];
     hasOffline = false;
     notesLoaded = false;
@@ -89,10 +87,10 @@ export default class AddonNotesListPage implements OnInit, OnDestroy {
 
                 // Refresh the data.
                 this.notesLoaded = false;
-                this.refreshIcon = CoreConstants.ICON_LOADING;
-                this.syncIcon = CoreConstants.ICON_LOADING;
+                this.refreshIcon = CoreRefreshIcon.LOADING;
+                this.syncIcon = CoreSyncIcon.LOADING;
 
-                this.content()?.scrollToTop();
+                this.content().scrollToTop();
                 this.fetchNotes(false);
             }
         }, CoreSites.getCurrentSiteId());
@@ -146,14 +144,14 @@ export default class AddonNotesListPage implements OnInit, OnDestroy {
             CoreAlerts.showError(error);
         } finally {
             let canDelete = this.notes && this.notes.length > 0;
-            if (canDelete && this.type == 'personal') {
-                canDelete = !!this.notes.find((note) => note.usermodified == this.currentUserId);
+            if (canDelete && this.type === 'personal') {
+                canDelete = !!this.notes.find((note) => note.usermodified === this.currentUserId);
             }
             this.canDeleteNotes = canDelete;
 
             this.notesLoaded = true;
-            this.refreshIcon = CoreConstants.ICON_REFRESH;
-            this.syncIcon = CoreConstants.ICON_SYNC;
+            this.refreshIcon = CoreRefreshIcon.REFRESH;
+            this.syncIcon = CoreSyncIcon.SYNC;
         }
     }
 
@@ -164,8 +162,8 @@ export default class AddonNotesListPage implements OnInit, OnDestroy {
      * @param refresher Refresher instance.
      */
     refreshNotes(showSyncErrors: boolean, refresher?: HTMLIonRefresherElement): void {
-        this.refreshIcon = CoreConstants.ICON_LOADING;
-        this.syncIcon = CoreConstants.ICON_LOADING;
+        this.refreshIcon = CoreRefreshIcon.LOADING;
+        this.syncIcon = CoreSyncIcon.LOADING;
 
         AddonNotes.invalidateNotes(this.courseId, this.userId).finally(() => {
             this.fetchNotes(true, showSyncErrors).finally(() => {
@@ -181,8 +179,8 @@ export default class AddonNotesListPage implements OnInit, OnDestroy {
      */
     async typeChanged(): Promise<void> {
         this.notesLoaded = false;
-        this.refreshIcon = CoreConstants.ICON_LOADING;
-        this.syncIcon = CoreConstants.ICON_LOADING;
+        this.refreshIcon = CoreRefreshIcon.LOADING;
+        this.syncIcon = CoreSyncIcon.LOADING;
 
         await this.fetchNotes(true);
     }
@@ -348,6 +346,8 @@ export default class AddonNotesListPage implements OnInit, OnDestroy {
 
     /**
      * Log view.
+     *
+     * @param note Note to log.
      */
     protected async logViewDelete(note: AddonNotesNoteFormatted): Promise<void> {
         if (!note.id) {

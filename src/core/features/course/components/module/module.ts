@@ -28,13 +28,14 @@ import {
     CoreCourseModulePrefetchHandler,
 } from '@features/course/services/module-prefetch-delegate';
 import { CoreConstants, DownloadStatus } from '@/core/constants';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { toBoolean } from '@/core/transforms/boolean';
 import { CoreRemindersDateComponent } from '../../../reminders/components/date/date';
 import { CoreCourseModuleCompletionComponent } from '../module-completion/module-completion';
 import { CoreCourseModuleCompletionLegacyComponent } from '../module-completion-legacy/module-completion-legacy';
 import { CoreSharedModule } from '@/core/shared.module';
 import { CoreCourseModuleHelper } from '@features/course/services/course-module-helper';
+import { CoreCourseDownloadStatusIcon } from '@features/course/constants';
 
 /**
  * Component to display a module entry in a list of modules.
@@ -154,11 +155,11 @@ export class CoreCourseModuleComponent implements OnInit, OnDestroy {
 
         switch (prefetchStatus) {
             case DownloadStatus.OUTDATED:
-                this.prefetchStatusIcon.set(CoreConstants.ICON_OUTDATED);
+                this.prefetchStatusIcon.set(CoreCourseDownloadStatusIcon.OUTDATED);
                 this.prefetchStatusText.set('core.outdated');
                 break;
             case DownloadStatus.DOWNLOADED:
-                this.prefetchStatusIcon.set(CoreConstants.ICON_DOWNLOADED);
+                this.prefetchStatusIcon.set(CoreCourseDownloadStatusIcon.DOWNLOADED);
                 this.prefetchStatusText.set('core.downloaded');
                 break;
             default:
@@ -178,7 +179,6 @@ export class CoreCourseModuleComponent implements OnInit, OnDestroy {
             await CoreCourseModuleDelegate.manualCompletionAlwaysShown(this.module);
 
         this.hasCompletion = !!this.module.completiondata && this.module.uservisible &&
-            (!this.module.completiondata.isautomatic || (this.module.completiondata.details?.length || 0) > 0) &&
             (this.showCompletionConditions || this.showManualCompletion);
 
     }

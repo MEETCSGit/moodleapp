@@ -13,9 +13,9 @@
 // limitations under the License.
 
 import { CoreSites } from '@services/sites';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { CoreSite } from '@classes/sites/site';
-import { CoreLogger } from '@singletons/logger';
+import { CoreLogger } from '@static/logger';
 import { Subject, BehaviorSubject } from 'rxjs';
 import { CorePromisedValue } from './promised-value';
 
@@ -66,7 +66,7 @@ export class CoreDelegate<HandlerType extends CoreDelegateHandler> {
     /**
      * Set of promises to update a handler, to prevent doing the same operation twice.
      */
-    protected updatePromises: {[siteId: string]: {[name: string]: Promise<void>}} = {};
+    protected updatePromises: { [siteId: string]: { [name: string]: Promise<void> } } = {};
 
     /**
      * Subject to subscribe to handlers changes.
@@ -147,9 +147,9 @@ export class CoreDelegate<HandlerType extends CoreDelegateHandler> {
      */
     private execute<T = unknown>(handler: HandlerType, fnName: string, params?: unknown[]): T | undefined {
         if (handler && handler[fnName]) {
-            return handler[fnName].apply(handler, params);
+            return handler[fnName](...(params || []));
         } else if (this.defaultHandler && this.defaultHandler[fnName]) {
-            return this.defaultHandler[fnName].apply(this.defaultHandler, params);
+            return this.defaultHandler[fnName](...(params || []));
         }
     }
 
@@ -160,7 +160,7 @@ export class CoreDelegate<HandlerType extends CoreDelegateHandler> {
      * @param enabled Only enabled, or any.
      * @returns Handler.
      */
-    protected getHandler(handlerName: string, enabled: boolean = false): HandlerType {
+    protected getHandler(handlerName: string, enabled = false): HandlerType {
         return enabled ? this.enabledHandlers[handlerName] : this.handlers[handlerName];
     }
 
@@ -189,7 +189,7 @@ export class CoreDelegate<HandlerType extends CoreDelegateHandler> {
      * @param onlyEnabled If check only enabled handlers or all.
      * @returns Function returned value or default value.
      */
-    protected hasFunction(handlerName: string, fnName: string, onlyEnabled: boolean = true): boolean {
+    protected hasFunction(handlerName: string, fnName: string, onlyEnabled = true): boolean {
         const handler = this.getHandler(handlerName, onlyEnabled);
 
         return handler && typeof handler[fnName] === 'function';
@@ -202,7 +202,7 @@ export class CoreDelegate<HandlerType extends CoreDelegateHandler> {
      * @param enabled Only enabled, or any.
      * @returns If the handler is registered or not.
      */
-    hasHandler(name: string, enabled: boolean = false): boolean {
+    hasHandler(name: string, enabled = false): boolean {
         return this.getHandler(name, enabled) !== undefined;
     }
 
@@ -412,7 +412,7 @@ export interface CoreDelegateHandler {
 /**
  * Data returned by the delegate for each handler to be displayed.
  */
-export interface CoreDelegateToDisplay {
+export type CoreDelegateToDisplay = {
     /**
      * Name of the handler.
      */
@@ -422,7 +422,7 @@ export interface CoreDelegateToDisplay {
      * Priority of the handler.
      */
     priority?: number;
-}
+};
 
 /**
  * Base interface for a core delegate needed to be displayed.

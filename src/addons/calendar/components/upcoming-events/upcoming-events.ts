@@ -24,7 +24,7 @@ import {
     KeyValueDiffer,
     inject,
 } from '@angular/core';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { CoreSites } from '@services/sites';
 import {
     AddonCalendarEventToDisplay,
@@ -33,15 +33,16 @@ import {
 import { AddonCalendarHelper, AddonCalendarFilter } from '../../services/calendar-helper';
 import { AddonCalendarOffline } from '../../services/calendar-offline';
 import { CoreCategoryData, CoreCourses } from '@features/courses/services/courses';
-import { CoreConstants } from '@/core/constants';
+import { CoreTimeConstants } from '@/core/constants';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
-import { CoreUrl } from '@singletons/url';
-import { CoreTime } from '@singletons/time';
+import { CoreUrl } from '@static/url';
+import { CoreTime } from '@static/time';
 import { Translate } from '@singletons';
 import { ADDON_CALENDAR_UNDELETED_EVENT_EVENT } from '@addons/calendar/constants';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreSharedModule } from '@/core/shared.module';
 import { CoreUserPreferences } from '@features/user/services/user-preferences';
+import { AddonCalendarEventCardComponent } from '../calendar-event-card/calendar-event-card';
 
 /**
  * Component that displays upcoming events.
@@ -52,6 +53,7 @@ import { CoreUserPreferences } from '@features/user/services/user-preferences';
     styleUrl: '../../calendar-common.scss',
     imports: [
         CoreSharedModule,
+        AddonCalendarEventCardComponent,
     ],
 })
 export class AddonCalendarUpcomingEventsComponent implements OnInit, DoCheck, OnDestroy {
@@ -97,7 +99,7 @@ export class AddonCalendarUpcomingEventsComponent implements OnInit, DoCheck, On
 
                 // Remove it from the list of deleted events if it's there.
                 const index = this.deletedEvents.indexOf(data.eventId);
-                if (index != -1) {
+                if (index !== -1) {
                     this.deletedEvents.splice(index, 1);
                 }
             },
@@ -125,14 +127,14 @@ export class AddonCalendarUpcomingEventsComponent implements OnInit, DoCheck, On
     }
 
     /**
-     * Component loaded.
+     * @inheritdoc
      */
     ngOnInit(): void {
         this.fetchData();
     }
 
     /**
-     * Detect and act upon changes that Angular can’t or won’t detect on its own (objects and arrays).
+     * @inheritdoc
      */
     ngDoCheck(): void {
         // Check if there's any change in the filter object.
@@ -144,8 +146,6 @@ export class AddonCalendarUpcomingEventsComponent implements OnInit, DoCheck, On
 
     /**
      * Fetch data.
-     *
-     * @returns Promise resolved when done.
      */
     async fetchData(): Promise<void> {
         const promises: Promise<void>[] = [];
@@ -198,8 +198,6 @@ export class AddonCalendarUpcomingEventsComponent implements OnInit, DoCheck, On
 
     /**
      * Fetch upcoming events.
-     *
-     * @returns Promise resolved when done.
      */
     async fetchEvents(): Promise<void> {
         // Don't pass courseId and categoryId, we'll filter them locally.
@@ -223,8 +221,6 @@ export class AddonCalendarUpcomingEventsComponent implements OnInit, DoCheck, On
 
     /**
      * Load categories to be able to filter events.
-     *
-     * @returns Promise resolved when done.
      */
     protected async loadCategories(): Promise<void> {
         if (this.categoriesRetrieved) {
@@ -294,20 +290,20 @@ export class AddonCalendarUpcomingEventsComponent implements OnInit, DoCheck, On
         }
 
         const start = CoreTime.timestamp();
-        const end = start + (CoreConstants.SECONDS_DAY * this.lookAhead);
+        const end = start + (CoreTimeConstants.SECONDS_DAY * this.lookAhead);
         let result: AddonCalendarEventToDisplay[] = this.onlineEvents;
 
         if (this.deletedEvents.length) {
             // Mark as deleted the events that were deleted in offline.
             result.forEach((event) => {
-                event.deleted = this.deletedEvents.indexOf(event.id) != -1;
+                event.deleted = this.deletedEvents.includes(event.id);
             });
         }
 
         if (this.offlineEvents.length) {
             // Remove the online events that were modified in offline.
             result = result.filter((event) => {
-                const offlineEvent = this.offlineEvents.find((ev) => ev.id == event.id);
+                const offlineEvent = this.offlineEvents.find((ev) => ev.id === event.id);
 
                 return !offlineEvent;
             });
@@ -330,7 +326,7 @@ export class AddonCalendarUpcomingEventsComponent implements OnInit, DoCheck, On
      * @param eventId Event ID.
      */
     protected undeleteEvent(eventId: number): void {
-        const event = this.onlineEvents.find((event) => event.id == eventId);
+        const event = this.onlineEvents.find((event) => event.id === eventId);
 
         if (event) {
             event.deleted = false;
@@ -338,10 +334,10 @@ export class AddonCalendarUpcomingEventsComponent implements OnInit, DoCheck, On
     }
 
     /**
-     * Component destroyed.
+     * @inheritdoc
      */
     ngOnDestroy(): void {
-        this.undeleteEventObserver?.off();
+        this.undeleteEventObserver.off();
     }
 
 }

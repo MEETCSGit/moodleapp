@@ -17,8 +17,8 @@ import { Component, Input, OnInit } from '@angular/core';
 
 import { CoreLang, CoreLangFormat } from '@services/lang';
 import { CoreSites } from '@services/sites';
-import { CoreOpener } from '@singletons/opener';
-import { CorePath } from '@singletons/path';
+import { CoreOpener } from '@static/opener';
+import { CorePath } from '@static/path';
 import { CoreBaseModule } from '@/core/base.module';
 import { CoreUpdateNonReactiveAttributesDirective } from '@directives/update-non-reactive-attributes';
 
@@ -94,9 +94,9 @@ export class CoreRecaptchaComponent implements OnInit {
                 return;
             }
 
-            if (event.data.action == 'expired') {
+            if (event.data.action === 'expired') {
                 this.expireRecaptchaAnswer();
-            } else if (event.data.action == 'callback') {
+            } else if (event.data.action === 'callback') {
                 this.expired = false;
                 this.model[this.modelValueName] = event.data.value;
 

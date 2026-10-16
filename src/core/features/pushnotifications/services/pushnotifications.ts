@@ -13,21 +13,21 @@
 // limitations under the License.
 
 import { Injectable } from '@angular/core';
-import { ILocalNotification } from '@awesome-cordova-plugins/local-notifications';
+import { ILocalNotification } from '@awesome-cordova-plugins/local-notifications/ngx';
 import { NotificationEventResponse, PushOptions, RegistrationEventResponse } from '@awesome-cordova-plugins/push/ngx';
 
 import { CoreAppDB } from '@services/app-db';
 import { CoreSites } from '@services/sites';
 import { CorePushNotificationsDelegate } from './push-delegate';
 import { CoreLocalNotifications } from '@services/local-notifications';
-import { CoreUtils } from '@singletons/utils';
-import { CoreText } from '@singletons/text';
+import { CoreUtils } from '@static/utils';
+import { CoreText } from '@static/text';
 import { CoreConfig } from '@services/config';
-import { CoreConstants } from '@/core/constants';
+import { CoreConstants, CoreConfigSettingKey } from '@/core/constants';
 import { CoreSite } from '@classes/sites/site';
 import { makeSingleton, Badge, Device, Translate, ApplicationInit, NgZone } from '@singletons';
-import { CoreLogger } from '@singletons/logger';
-import { CoreEvents } from '@singletons/events';
+import { CoreLogger } from '@static/logger';
+import { CoreEvents } from '@static/events';
 import {
     APP_SCHEMA,
     BADGE_TABLE_NAME,
@@ -47,17 +47,19 @@ import { CoreSitesFactory } from '@services/sites-factory';
 import { AsyncInstance, asyncInstance } from '@/core/utils/async-instance';
 import { CoreDatabaseTable } from '@classes/database/database-table';
 import { CoreDatabaseCachingStrategy, CoreDatabaseTableProxy } from '@classes/database/database-table-proxy';
-import { CoreObject } from '@singletons/object';
+import { CoreObject } from '@static/object';
 import { lazyMap, LazyMap } from '@/core/utils/lazy-map';
 import { CorePlatform } from '@services/platform';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
 import { CoreSiteInfo } from '@classes/sites/unauthenticated-site';
 import { Push } from '@features/native/plugins';
 import { CoreNavigator } from '@services/navigator';
-import { CoreWait } from '@singletons/wait';
+import { CoreWait } from '@static/wait';
 import { MAIN_MENU_HANDLER_BADGE_UPDATED_EVENT } from '@features/mainmenu/constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreWSError } from '@classes/errors/wserror';
+import { CoreNative } from '@features/native/services/native';
+import { AndroidNotificationPriority } from '@features/native/constants';
 
 /**
  * Service to handle push notifications.
@@ -118,6 +120,8 @@ export class CorePushNotificationsProvider {
             this.initializeDatabase(),
             this.initializeDefaultChannel(),
         ]);
+
+        CoreSites.registerDeleteTokensListener(() => this.deletePendingUnregistersFromOtherSites());
 
         // Now register the device to receive push notifications. Don't block for this.
         this.registerDevice();
@@ -209,13 +213,19 @@ export class CorePushNotificationsProvider {
         await CoreAppDB.createTablesFromSchema(APP_SCHEMA);
 
         const database = CoreAppDB.getDB();
-        const badgesTable = new CoreDatabaseTableProxy<CorePushNotificationsBadgeDBRecord, CorePushNotificationsBadgeDBPrimaryKeys>(
+        const badgesTable = CoreDatabaseTableProxy.createInstance<
+            CorePushNotificationsBadgeDBRecord,
+            CorePushNotificationsBadgeDBPrimaryKeys
+        >(
             { cachingStrategy: CoreDatabaseCachingStrategy.Eager },
             database,
             BADGE_TABLE_NAME,
             [...BADGE_TABLE_PRIMARY_KEYS],
         );
-        const pendingUnregistersTable = new CoreDatabaseTableProxy<CorePushNotificationsPendingUnregisterDBRecord, 'siteid'>(
+        const pendingUnregistersTable = CoreDatabaseTableProxy.createInstance<
+            CorePushNotificationsPendingUnregisterDBRecord,
+            'siteid'
+        >(
             { cachingStrategy: CoreDatabaseCachingStrategy.Eager },
             database,
             PENDING_UNREGISTER_TABLE_NAME,
@@ -268,7 +278,7 @@ export class CorePushNotificationsProvider {
             await Push.createChannel({
                 id: 'PushPluginChannel',
                 description: Translate.instant('core.misc'),
-                importance: 4,
+                importance: AndroidNotificationPriority.HIGH,
             });
         } catch (error) {
             this.logger.error('Error changing push channel name', error);
@@ -284,7 +294,7 @@ export class CorePushNotificationsProvider {
         let soundEnabled = true;
 
         if (CoreLocalNotifications.canDisableSound()) {
-            soundEnabled = await CoreConfig.get<boolean>(CoreConstants.SETTINGS_NOTIFICATION_SOUND, true);
+            soundEnabled = await CoreConfig.get<boolean>(CoreConfigSettingKey.NOTIFICATION_SOUND, true);
         }
 
         return {
@@ -492,10 +502,7 @@ export class CorePushNotificationsProvider {
         } catch (error) {
             if (CoreWSError.isWebServiceError(error) || CoreWSError.isExpiredTokenError(error)) {
                 // Cannot unregister. Don't try again.
-                await CorePromiseUtils.ignoreErrors(this.pendingUnregistersTable.delete({
-                    token: site.getToken(),
-                    siteid: site.getId(),
-                }));
+                await CorePromiseUtils.ignoreErrors(this.removePendingUnregister(site.getId()));
 
                 throw error;
             }
@@ -504,9 +511,13 @@ export class CorePushNotificationsProvider {
             await this.pendingUnregistersTable.insert({
                 siteid: site.getId(),
                 siteurl: site.getURL(),
-                token: site.getToken(),
+                token: '',
                 info: JSON.stringify(site.getInfo()),
             });
+
+            await CoreNative.plugin('secureStorage')?.store({
+                token: site.getToken(),
+            }, `pendingunregister-${site.getId()}`);
 
             return;
         }
@@ -516,10 +527,8 @@ export class CorePushNotificationsProvider {
         }
 
         await CorePromiseUtils.ignoreErrors(Promise.all([
-            // Remove the device from the local DB.
             this.registeredDevicesTables[site.getId()].delete(this.getRequiredRegisterData()),
-            // Remove pending unregisters for this site.
-            this.pendingUnregistersTable.deleteByPrimaryKey({ siteid: site.getId() }),
+            this.removePendingUnregister(site.getId()),
         ]));
     }
 
@@ -599,7 +608,7 @@ export class CorePushNotificationsProvider {
 
             const pushObject = Push.init(options);
 
-            pushObject.on('notification').subscribe((notification: NotificationEventResponse | {registrationType: string}) => {
+            pushObject.on('notification').subscribe((notification: NotificationEventResponse | { registrationType: string }) => {
                 // Execute the callback in the Angular zone, so change detection doesn't stop working.
                 NgZone.run(() => {
                     if ('registrationType' in notification) {
@@ -702,7 +711,7 @@ export class CorePushNotificationsProvider {
             }
         } finally {
             // Remove pending unregisters for this site.
-            await CorePromiseUtils.ignoreErrors(this.pendingUnregistersTable.deleteByPrimaryKey({ siteid: site.getId() }));
+            await CorePromiseUtils.ignoreErrors(this.removePendingUnregister(site.getId()));
         }
     }
 
@@ -768,7 +777,7 @@ export class CorePushNotificationsProvider {
      * @param addon Registered addon name. If not defined it will store the site total.
      * @returns Promise resolved with the stored badge counter for the addon or site or 0 if none.
      */
-    protected async getAddonBadge(siteId?: string, addon: string = 'site'): Promise<number> {
+    protected async getAddonBadge(siteId?: string, addon = 'site'): Promise<number> {
         try {
             const entry = await this.badgesTable.getOne({ siteid: siteId, addon });
 
@@ -788,16 +797,42 @@ export class CorePushNotificationsProvider {
         const results = await this.pendingUnregistersTable.getMany(CoreObject.withoutEmpty({ siteid: siteId }));
 
         await Promise.all(results.map(async (result) => {
+            const secureData = await CoreNative.plugin('secureStorage')?.get('token', `pendingunregister-${result.siteid}`);
+            if (!secureData?.token) {
+                await CorePromiseUtils.ignoreErrors(this.removePendingUnregister(result.siteid));
+
+                return;
+            }
+
             // Create a temporary site to unregister.
             const tmpSite = CoreSitesFactory.makeSite(
                 result.siteid,
                 result.siteurl,
-                result.token,
+                secureData?.token,
                 { info: CoreText.parseJSON<CoreSiteInfo | null>(result.info, null) || undefined },
             );
 
             await this.unregisterDeviceOnMoodle(tmpSite);
         }));
+    }
+
+    /**
+     * Delete pending unregisters from sites that don't match current site URL.
+     */
+    async deletePendingUnregistersFromOtherSites(): Promise<void> {
+        const currentSite = CoreSites.getCurrentSite();
+        if (!currentSite) {
+            return;
+        }
+
+        const pendingUnregisters = await this.pendingUnregistersTable.getMany();
+        const pendingUnregistersToDelete = pendingUnregisters.filter(
+            pendingUnregister => currentSite.getURL() !== pendingUnregister.siteurl,
+        );
+
+        await CorePromiseUtils.allPromisesIgnoringErrors(
+            pendingUnregistersToDelete.map(pendingUnregister => this.removePendingUnregister(pendingUnregister.siteid)),
+        );
     }
 
     /**
@@ -808,13 +843,13 @@ export class CorePushNotificationsProvider {
      * @param addon Registered addon name. If not defined it will store the site total.
      * @returns Promise resolved with the stored badge counter for the addon or site.
      */
-    protected async saveAddonBadge(value: number, siteId?: string, addon: string = 'site'): Promise<number> {
+    protected async saveAddonBadge(value: number, siteId?: string, addon = 'site'): Promise<number> {
         siteId = siteId || CoreSites.getCurrentSiteId();
 
         await this.badgesTable.insert({
             siteid: siteId,
             addon,
-            number: value, // eslint-disable-line id-blacklist
+            number: value, // eslint-disable-line id-denylist
         });
 
         return value;
@@ -875,6 +910,18 @@ export class CorePushNotificationsProvider {
         };
     }
 
+    /**
+     * Remove pending unregisters for a certain site.
+     *
+     * @param siteId Site ID.
+     */
+    protected async removePendingUnregister(siteId: string): Promise<void> {
+        await Promise.all([
+            this.pendingUnregistersTable.deleteByPrimaryKey({ siteid: siteId }),
+            CoreNative.plugin('secureStorage')?.deleteCollection(`pendingunregister-${siteId}`),
+        ]);
+    }
+
 }
 
 export const CorePushNotifications = makeSingleton(CorePushNotificationsProvider);
@@ -883,24 +930,24 @@ export const CorePushNotifications = makeSingleton(CorePushNotificationsProvider
  * Additional data sent in push notifications.
  */
 export type CorePushNotificationsNotificationBasicRawData = {
-    customdata?: string; // Custom data.
-    extrafeatures?: string; // "1" if the notification uses extrafeatures, "0" otherwise.
-    foreground?: boolean; // Whether the app was in foreground.
+    'customdata'?: string; // Custom data.
+    'extrafeatures'?: string; // "1" if the notification uses extrafeatures, "0" otherwise.
+    'foreground'?: boolean; // Whether the app was in foreground.
     'image-type'?: string; // How to display the notification image.
-    moodlecomponent?: string; // Moodle component that triggered the notification.
-    name?: string; // A name to identify the type of notification.
-    notId?: string; // Notification ID.
-    notif?: string; // "1" if it's a notification, "0" if it's a Moodle message.
-    site?: string; // ID of the site sending the notification.
-    siteurl?: string; // URL of the site the notification is related to.
-    usertoid?: string; // ID of user receiving the push.
-    conversationtype?: string; // Conversation type. Only if it's a push generated by a Moodle message.
-    userfromfullname?: string; // Fullname of user sending the push. Only if it's a push generated by a Moodle message.
-    userfromid?: string; // ID of user sending the push. Only if it's a push generated by a Moodle message.
-    picture?: string; // Notification big picture. "Extra" feature.
-    summaryText?: string; // Notification summary text. "Extra" feature.
-    sender?: string; // Name of the user who sent the message. "Extra" feature.
-    senderImage?: string; // Image of the user who sent the message. "Extra" feature.
+    'moodlecomponent'?: string; // Moodle component that triggered the notification.
+    'name'?: string; // A name to identify the type of notification.
+    'notId'?: string; // Notification ID.
+    'notif'?: string; // "1" if it's a notification, "0" if it's a Moodle message.
+    'site'?: string; // ID of the site sending the notification.
+    'siteurl'?: string; // URL of the site the notification is related to.
+    'usertoid'?: string; // ID of user receiving the push.
+    'conversationtype'?: string; // Conversation type. Only if it's a push generated by a Moodle message.
+    'userfromfullname'?: string; // Fullname of user sending the push. Only if it's a push generated by a Moodle message.
+    'userfromid'?: string; // ID of user sending the push. Only if it's a push generated by a Moodle message.
+    'picture'?: string; // Notification big picture. "Extra" feature.
+    'summaryText'?: string; // Notification summary text. "Extra" feature.
+    'sender'?: string; // Name of the user who sent the message. "Extra" feature.
+    'senderImage'?: string; // Image of the user who sent the message. "Extra" feature.
 };
 
 /**

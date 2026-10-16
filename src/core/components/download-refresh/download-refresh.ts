@@ -14,7 +14,6 @@
 
 import { Component, input, output, computed } from '@angular/core';
 import { DownloadStatus } from '@/core/constants';
-import { CoreAnimations } from '@components/animations';
 import { toBoolean } from '@/core/transforms/boolean';
 import { CoreBaseModule } from '@/core/base.module';
 import { CoreFaIconDirective } from '@directives/fa-icon';
@@ -31,7 +30,6 @@ import { CoreUpdateNonReactiveAttributesDirective } from '@directives/update-non
     selector: 'core-download-refresh',
     templateUrl: 'core-download-refresh.html',
     styleUrl: 'download-refresh.scss',
-    animations: [CoreAnimations.SHOW_HIDE],
     imports: [
         CoreBaseModule,
         CoreUpdateNonReactiveAttributesDirective,
@@ -47,11 +45,6 @@ export class CoreDownloadRefreshComponent {
     readonly loading = input(true, { transform: toBoolean }); // Force loading status when is not downloading.
     readonly canTrustDownload = input(false, { transform: toBoolean }); // If false, refresh will be shown if downloaded.
     readonly action = output<boolean>(); // Will emit an event when the item clicked.
-
-    /**
-     * @deprecated since 4.5. Use statusesTranslatable instead.
-     */
-    readonly statusTranslatable = input<string>(); // Download status translatable string.
 
     statusDownloaded = DownloadStatus.DOWNLOADED;
     statusNotDownloaded = DownloadStatus.DOWNLOADABLE_NOT_DOWNLOADED;

@@ -17,9 +17,9 @@ import { CoreNavigationBarItem } from '@components/navigation-bar/navigation-bar
 import { CoreNavigator } from '@services/navigator';
 import { CoreSites, CoreSitesReadingStrategy } from '@services/sites';
 import { CoreSync } from '@services/sync';
-import { CoreTime } from '@singletons/time';
-import { CorePromiseUtils } from '@singletons/promise-utils';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreTime } from '@static/time';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { AddonModScormDataModel12 } from '../../classes/data-model-12';
 import {
     AddonModScorm,
@@ -40,7 +40,7 @@ import {
     ADDON_MOD_SCORM_UPDATE_TOC_EVENT,
     ADDON_MOD_SCORM_COMPONENT,
 } from '../../constants';
-import { CoreWait } from '@singletons/wait';
+import { CoreWait } from '@static/wait';
 import { CoreModals } from '@services/overlays/modals';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { Translate } from '@singletons';
@@ -448,7 +448,7 @@ export default class AddonModScormPlayerPage implements OnInit, OnDestroy {
         // Load the SCO source.
         this.src = await AddonModScorm.getScoSrc(this.scorm, sco);
 
-        if (sco.scormtype == 'asset') {
+        if (sco.scormtype === 'asset') {
             // Mark the asset as completed.
             this.markCompleted(sco);
         }
@@ -484,7 +484,7 @@ export default class AddonModScormPlayerPage implements OnInit, OnDestroy {
                 cmId: this.cmId,
             });
 
-            if (data[sco.id] && data[sco.id].userdata['cmi.core.lesson_status'] == 'completed') {
+            if (data[sco.id] && data[sco.id].userdata['cmi.core.lesson_status'] === 'completed') {
                 // Already marked as completed.
                 return;
             }
@@ -576,6 +576,8 @@ export default class AddonModScormPlayerPage implements OnInit, OnDestroy {
 
     /**
      * Log event.
+     *
+     * @param scoId SCO ID.
      */
     protected async logEvent(scoId: number): Promise<void> {
         await CorePromiseUtils.ignoreErrors(AddonModScorm.logLaunchSco(this.scorm.id, scoId));

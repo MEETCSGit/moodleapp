@@ -14,15 +14,14 @@
 
 import { Injectable } from '@angular/core';
 import { CoreSiteInfoUserHomepage } from '@classes/sites/unauthenticated-site';
-import { CoreMainMenuHandler, CoreMainMenuHandlerData } from '@features/mainmenu/services/mainmenu-delegate';
-import { CoreSiteHomeHomeHandler } from '@features/sitehome/services/handlers/sitehome-home';
+import { CoreMainMenuHandler, CoreMainMenuPageNavHandlerData } from '@features/mainmenu/services/mainmenu-delegate';
 import { CoreSites } from '@services/sites';
 import { makeSingleton } from '@singletons';
-import { CoreCourses } from '../courses';
-import { CoreDashboardHomeHandler } from './dashboard-home';
-import { CORE_COURSES_MYCOURSES_PAGE_NAME, CoreCoursesMyPageName } from '@features/courses/constants';
-import { CoreCoursesDashboard } from '../dashboard';
-import { CoreBlockDelegate } from '@features/block/services/block-delegate';
+import {
+    CORE_COURSES_MY_COURSES_COMPONENT_NAME,
+    CORE_COURSES_MYCOURSES_PAGE_NAME,
+} from '@features/courses/constants';
+import { CoreCoursesMy } from '../my';
 
 /**
  * Handler to add my courses into main menu.
@@ -30,45 +29,21 @@ import { CoreBlockDelegate } from '@features/block/services/block-delegate';
 @Injectable({ providedIn: 'root' })
 export class CoreCoursesMyCoursesMainMenuHandlerService implements CoreMainMenuHandler {
 
-    name = 'CoreCoursesMyCourses';
+    // @todo: Check why the component name does not match the disabled feature name.
+    name = CORE_COURSES_MY_COURSES_COMPONENT_NAME;
     priority = 900;
 
     /**
      * @inheritdoc
      */
     async isEnabled(): Promise<boolean> {
-        const site = CoreSites.getRequiredCurrentSite();
-
-        const disabled = CoreCourses.isMyCoursesDisabledInSite(site);
-
-        if (disabled) {
-            return false;
-        }
-
-        const siteId = site.getId();
-
-        if (site.isVersionGreaterEqualThan('4.0')) {
-            const blocks = await CoreCoursesDashboard.getDashboardBlocks(
-                undefined,
-                siteId,
-                CoreCoursesMyPageName.COURSES,
-            );
-
-            return CoreBlockDelegate.hasSupportedBlock(blocks.mainBlocks) ||
-                CoreBlockDelegate.hasSupportedBlock(blocks.sideBlocks);
-        }
-
-        // Dashboard cannot be disabled on 3.5 or 3.6 so it will never show this tab.
-        const dashboardEnabled = await CoreDashboardHomeHandler.isEnabledForSite(siteId);
-        const siteHomeEnabled = await CoreSiteHomeHomeHandler.isEnabledForSite(siteId);
-
-        return !dashboardEnabled && !siteHomeEnabled;
+        return CoreCoursesMy.isAvailable();
     }
 
     /**
      * @inheritdoc
      */
-    getDisplayData(): CoreMainMenuHandlerData {
+    getDisplayData(): CoreMainMenuPageNavHandlerData {
         const userHomePage = CoreSites.getCurrentSite()?.getInfo()?.userhomepage;
 
         const displayMyCourses = userHomePage === CoreSiteInfoUserHomepage.HOMEPAGE_MYCOURSES ||

@@ -19,7 +19,7 @@ import { CoreCourseLogHelper } from '@features/course/services/log-helper';
 import { CoreNetwork } from '@services/network';
 import { CoreFilepool } from '@services/filepool';
 import { CoreSites, CoreSitesCommonWSOptions, CoreSitesReadingStrategy } from '@services/sites';
-import { CoreObject } from '@singletons/object';
+import { CoreObject } from '@static/object';
 import { CoreWSExternalFile, CoreWSExternalWarning, CoreWSStoredFile } from '@services/ws';
 import { makeSingleton } from '@singletons';
 import { AddonModFeedbackOffline } from './feedback-offline';
@@ -37,9 +37,9 @@ import {
     AddonModFeedbackQuestionType,
 } from '../constants';
 import { CoreCacheUpdateFrequency } from '@/core/constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreWSError } from '@classes/errors/wserror';
-import { CoreTextFormat } from '@singletons/text';
+import { CoreTextFormat } from '@static/text';
 import { CoreCourseModuleHelper } from '@features/course/services/course-module-helper';
 
 /**
@@ -120,7 +120,7 @@ export class AddonModFeedbackProvider {
                     }
 
                     // We can finish checking if only searching on one value and we found it.
-                    if (values.length == 1) {
+                    if (values.length === 1) {
                         return false;
                     }
                 }
@@ -343,7 +343,7 @@ export class AddonModFeedbackProvider {
      * @param groupId Group ID.
      * @returns Cache key.
      */
-    protected getAnalysisDataCacheKey(feedbackId: number, groupId: number = 0): string {
+    protected getAnalysisDataCacheKey(feedbackId: number, groupId = 0): string {
         return this.getAnalysisDataPrefixCacheKey(feedbackId) + groupId;
     }
 
@@ -384,13 +384,13 @@ export class AddonModFeedbackProvider {
             ...options, // Include all options.
         });
 
-        const attempt = responses.attempts.find((attempt) => attemptId == attempt.id);
+        const attempt = responses.attempts.find((attempt) => attemptId === attempt.id);
 
         if (attempt) {
             return attempt;
         }
 
-        const anonAttempt = responses.anonattempts.find((attempt) => attemptId == attempt.id);
+        const anonAttempt = responses.anonattempts.find((attempt) => attemptId === attempt.id);
 
         if (anonAttempt) {
             return anonAttempt;
@@ -710,7 +710,7 @@ export class AddonModFeedbackProvider {
      * @param groupId Group id, 0 means that the function will determine the user group.
      * @returns Cache key.
      */
-    protected getNonRespondentsDataCacheKey(feedbackId: number, groupId: number = 0): string {
+    protected getNonRespondentsDataCacheKey(feedbackId: number, groupId = 0): string {
         return this.getNonRespondentsDataPrefixCacheKey(feedbackId) + groupId;
     }
 
@@ -818,6 +818,8 @@ export class AddonModFeedbackProvider {
      * @param page Page where we want to jump.
      * @param changePage If page change is forward (1) or backward (-1).
      * @param options Other options.
+     * @param options.cmId Course module ID.
+     * @param options.siteId Site ID. If not defined, current site.
      * @returns Page number where to jump. Or false if completed or first page.
      */
     protected async getPageJumpTo(
@@ -839,7 +841,7 @@ export class AddonModFeedbackProvider {
         }
 
         // Check we can jump futher.
-        if ((changePage == 1 && response.hasnextpage) || (changePage == -1 && response.hasprevpage)) {
+        if ((changePage === 1 && response.hasnextpage) || (changePage === -1 && response.hasprevpage)) {
             return this.getPageJumpTo(feedbackId, page + changePage, changePage, options);
         }
 
@@ -886,7 +888,7 @@ export class AddonModFeedbackProvider {
      * @param groupId Group id, 0 means that the function will determine the user group.
      * @returns Cache key.
      */
-    protected getResponsesAnalysisDataCacheKey(feedbackId: number, groupId: number = 0): string {
+    protected getResponsesAnalysisDataCacheKey(feedbackId: number, groupId = 0): string {
         return this.getResponsesAnalysisDataPrefixCacheKey(feedbackId) + groupId;
     }
 
@@ -1092,7 +1094,7 @@ export class AddonModFeedbackProvider {
      * @param siteId Site ID. If not defined, current site.
      * @returns Promise resolved when the WS call is successful.
      */
-    async logView(id: number, formViewed: boolean = false, siteId?: string): Promise<void> {
+    async logView(id: number, formViewed = false, siteId?: string): Promise<void> {
         const params: AddonModFeedbackViewFeedbackWSParams = {
             feedbackid: id,
             moduleviewed: formViewed,
@@ -1156,7 +1158,7 @@ export class AddonModFeedbackProvider {
             });
 
             // Check completion.
-            if (changePage == 1 && !pageItems.hasnextpage) {
+            if (changePage === 1 && !pageItems.hasnextpage) {
                 response.completed = true;
 
                 return response;
@@ -1166,7 +1168,7 @@ export class AddonModFeedbackProvider {
 
             if (loadPage === false) {
                 // Completed or first page.
-                if (changePage == -1) {
+                if (changePage === -1) {
                     response.jumpto = 0;
                 } else {
                     response.completed = true;
@@ -1239,7 +1241,7 @@ export class AddonModFeedbackProvider {
 
 export const AddonModFeedback = makeSingleton(AddonModFeedbackProvider);
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.
@@ -1590,7 +1592,7 @@ export type AddonModFeedbackWSAttempt = {
 export type AddonModFeedbackWSAnonAttempt = {
     id: number; // Completed id.
     courseid: number; // Course id.
-    // eslint-disable-next-line id-blacklist
+    // eslint-disable-next-line id-denylist
     number: number; // Response number.
     responses: AddonModFeedbackWSAttemptResponse[];
 };

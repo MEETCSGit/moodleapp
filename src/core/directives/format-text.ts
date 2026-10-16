@@ -15,21 +15,22 @@
 import {
     Directive,
     ElementRef,
-    Input,
     Output,
     EventEmitter,
-    OnChanges,
-    SimpleChange,
     ViewContainerRef,
     OnDestroy,
     ChangeDetectorRef,
     inject,
     viewChild,
+    input,
+    computed,
+    effect,
+    untracked,
 } from '@angular/core';
 
 import { CoreSites } from '@services/sites';
-import { CoreIframe } from '@singletons/iframe';
-import { CoreText } from '@singletons/text';
+import { CoreIframe } from '@static/iframe';
+import { CoreText } from '@static/text';
 import { CoreErrorHelper } from '@services/error-helper';
 import { CoreSite } from '@classes/sites/site';
 import { NgZone, Translate } from '@singletons';
@@ -38,28 +39,45 @@ import { CoreLinkDirective } from './link';
 import { CoreFilter, CoreFilterFilter, CoreFilterFormatTextOptions } from '@features/filter/services/filter';
 import { CoreFilterDelegate } from '@features/filter/services/filter-delegate';
 import { CoreFilterHelper } from '@features/filter/services/filter-helper';
-import { CoreSubscriptions } from '@singletons/subscriptions';
-import { CoreDirectivesRegistry } from '@singletons/directives-registry';
+import { CoreSubscriptions } from '@static/subscriptions';
+import { CoreDirectivesRegistry } from '@static/directives-registry';
 import { CoreCollapsibleItemDirective } from './collapsible-item';
 import { CoreCancellablePromise } from '@classes/cancellable-promise';
-import { AsyncDirective } from '@classes/async-directive';
-import { CoreDom } from '@singletons/dom';
-import { CoreEvents } from '@singletons/events';
+import type { AsyncDirective } from '@coretypes/async-directive';
+import { CoreDom } from '@static/dom';
+import { CoreEvents } from '@static/events';
 import { CoreRefreshContext, CORE_REFRESH_CONTEXT } from '@/core/utils/refresh-context';
 import { CorePlatform } from '@services/platform';
 import { ElementController } from '@classes/element-controllers/ElementController';
 import { MediaElementController } from '@classes/element-controllers/MediaElementController';
 import { FrameElement, FrameElementController } from '@classes/element-controllers/FrameElementController';
-import { CoreUrl } from '@singletons/url';
-import { CoreIcons } from '@singletons/icons';
-import { ContextLevel } from '../constants';
-import { CoreWait } from '@singletons/wait';
+import { CoreUrl } from '@static/url';
+import { CoreIcons } from '@static/icons';
+import {
+    ContextLevel,
+    CoreLinkOpenMethod,
+    DATA_APP_ALT_MSG,
+    DATA_APP_ALT_URL,
+    DATA_APP_URL,
+    DataAppAltUrlType,
+    DATASET_APP_ALT_MSG,
+    DATASET_APP_ALT_URL,
+    DATASET_APP_ALT_URL_LABEL,
+    DATASET_APP_ALT_URL_TYPE,
+    DATASET_APP_OPEN_IN,
+    DATASET_APP_OPEN_IN_LEGACY,
+    DATASET_APP_SITE_REFERER,
+    DATASET_APP_URL,
+    DATASET_APP_URL_CONFIRM,
+    DATASET_APP_URL_RESUME_ACTION,
+} from '../constants';
+import { CoreWait } from '@static/wait';
 import { toBoolean } from '../transforms/boolean';
 import { CoreViewer } from '@features/viewer/services/viewer';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreLang, CoreLangFormat } from '@services/lang';
-import { CoreBootstrap } from '@singletons/bootstrap';
+import { CoreBootstrap } from '@static/bootstrap';
 
 /**
  * Directive to format text rendered. It renders the HTML and treats all links and media, using CoreLinkDirective
@@ -73,38 +91,118 @@ import { CoreBootstrap } from '@singletons/bootstrap';
 @Directive({
     selector: 'core-format-text',
 })
-export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirective {
+export class CoreFormatTextDirective implements OnDestroy, AsyncDirective {
 
-    readonly collapsible = viewChild(CoreCollapsibleItemDirective);
-
-    @Input() text?: string; // The text to format.
-    @Input() siteId?: string; // Site ID to use.
-    @Input() component?: string; // Component for CoreExternalContentDirective.
-    @Input() componentId?: string | number; // Component ID to use in conjunction with the component.
-    @Input({ transform: toBoolean }) adaptImg = true; // Whether to adapt images to screen width.
-    @Input({ transform: toBoolean }) clean = false; // Whether all the HTML tags should be removed.
-    @Input({ transform: toBoolean }) singleLine = false; // Whether new lines should be removed. Only if clean=true.
-    @Input({ transform: toBoolean }) sanitize = false; // Whether to sanitize the text.
-    @Input() highlight?: string; // Text to highlight.
-    @Input({ transform: toBoolean }) filter?: boolean; // Whether to filter the text.
-                                                       // If not defined, true if contextLevel and instanceId are set.
-    @Input() contextLevel?: ContextLevel; // The context level of the text.
-    @Input() contextInstanceId?: number; // The instance ID related to the context.
-    @Input() courseId?: number; // Course ID the text belongs to. It can be used to improve performance with filters.
-    @Input({ transform: toBoolean }) wsNotFiltered = false; // If true it means the WS didn't filter the text for some reason.
-    @Input({ transform: toBoolean }) captureLinks = true; // Whether links should tried to be opened inside the app.
-    @Input({ transform: toBoolean }) openLinksInApp?: boolean; // Whether links should be opened in InAppBrowser.
-    @Input({ transform: toBoolean }) showBrowserWarningInLinks = true; // Whether to show browser warning in all links.
-    @Input({ transform: toBoolean }) disabled = false; // If disabled, autoplay elements will be disabled.
+    protected readonly collapsible = viewChild(CoreCollapsibleItemDirective);
 
     /**
+     * The text to format.
+     */
+    readonly text = input<string>('');
+    protected readonly textComputed = computed(() => {
+        const text = this.text();
+
+        return text ? text.trim() : '';
+    });
+
+    /**
+     * Site ID to use. If not defined, current site.
+     * Do not use it directly, use getSiteId() instead.
+     */
+    readonly siteId = input<string>();
+
+    /**
+     * Component and componentId to use when treating links and media for CoreExternalContentDirective.
+     */
+    readonly component = input<string>();
+    /**
+     * Component ID to use in conjunction with the component.
+     */
+    readonly componentId = input<string | number>();
+    /**
+     * Whether to adapt images to screen width.
+     */
+    readonly adaptImg = input(true, { transform: toBoolean });
+    /**
+     * Whether all the HTML tags should be removed.
+     */
+    readonly clean = input(false, { transform: toBoolean });
+    /**
+     * Whether to remove new lines from the text. Only if clean=true.
+     */
+    readonly singleLine = input(false, { transform: toBoolean });
+    /**
+     * Whether to sanitize the text.
+     */
+    readonly sanitize = input(false, { transform: toBoolean });
+    /**
+     * Text to highlight.
+     */
+    readonly highlight = input<string>();
+    /**
+     * Whether to filter the text. If not defined, true if contextLevel and instanceId are set.
+     */
+    readonly filter = input<boolean, undefined>(undefined, { transform: toBoolean });
+    /**
+     * The context level of the text.
+     */
+    readonly contextLevel = input<ContextLevel>();
+    /**
+     * The instance ID related to the context.
+     * Do not use it directly, use getContextInstanceId() instead.
+     */
+    readonly contextInstanceId = input<number>();
+
+    /**
+     * The course ID the text belongs to. It can be used to improve performance with filters.
+     */
+    readonly courseId = input<number>();
+    /**
+     * Whether the text has been returned from a web service that doesn't filter it, so we should always filter it.
+     */
+    readonly wsNotFiltered = input(false, { transform: toBoolean });
+    /**
+     * Whether links should be captured. If not, they will be opened in the system browser.
+     */
+    readonly captureLinks = input(true, { transform: toBoolean });
+    /**
+     * If set, force the open method for links.
+     */
+    readonly openLinksIn = input<Exclude<CoreLinkOpenMethod, CoreLinkOpenMethod.APP> | undefined>(undefined);
+    /**
+     * Whether links should be opened in InAppBrowser.
+     *
+     * @deprecated since 5.2. Use openLinksIn instead.
+     */
+    readonly openLinksInApp = input<boolean, undefined>(undefined, { transform: toBoolean });
+    /**
+     * Whether to show browser warning in all links.
+     */
+    readonly showBrowserWarningInLinks = input(true, { transform: toBoolean });
+    /**
+     * If true, autoplay elements will be disabled.
+     */
+    readonly disabled = input(false, { transform: toBoolean });
+
+    /**
+     * If true, the tag will contain nothing if text is empty.
+     *
      * @deprecated since 5.0. Not used anymore.
      */
-    @Input() hideIfEmpty = false; // If true, the tag will contain nothing if text is empty.
+    readonly hideIfEmpty = input(false);
 
-    @Output() afterRender = new EventEmitter<void>(); // Called when the data is rendered.
-    @Output() filterContentRenderingComplete = new EventEmitter<void>(); // Called when the filters have finished rendering content.
-    @Output() onClick: EventEmitter<void> = new EventEmitter(); // Called when clicked.
+    /**
+     * Called when the data is rendered.
+     */
+    @Output() afterRender = new EventEmitter<void>();
+    /**
+     * Called when the filters have finished rendering content.
+     */
+    @Output() filterContentRenderingComplete = new EventEmitter<void>();
+    /**
+     * Called when the element is clicked.
+     */
+    @Output() onClick: EventEmitter<void> = new EventEmitter();
 
     protected elementControllers: ElementController[] = [];
     protected domPromises: CoreCancellablePromise<void>[] = [];
@@ -124,25 +222,23 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
         this.element.innerHTML = CoreFormatTextDirective.EMPTY_TEXT;
 
         this.element.addEventListener('click', (event: MouseEvent) => this.elementClicked(event));
-    }
 
-    /**
-     * @inheritdoc
-     */
-    ngOnChanges(changes: { [name: string]: SimpleChange }): void {
-        this.siteId = this.siteId ?? CoreSites.getCurrentSiteId();
+        effect(async () => {
+            // Refresh the contents if any of the relevant inputs change.
+            this.textComputed();
+            this.filter();
+            this.contextLevel();
+            this.contextInstanceId();
 
-        if (changes.text || changes.filter || changes.contextLevel || changes.contextInstanceId) {
-            this.formatAndRenderContents();
+            await untracked(async () => {
+                await this.formatAndRenderContents();
+            });
+        });
 
-            return;
-        }
-
-        if ('disabled' in changes) {
-            const disabled = changes['disabled'].currentValue;
-
+        effect(() => {
+            const disabled = this.disabled();
             this.elementControllers.forEach(controller => disabled ? controller.disable() : controller.enable());
-        }
+        });
     }
 
     /**
@@ -172,6 +268,52 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
     }
 
     /**
+     * Get the siteId to use.
+     *
+     * @returns The siteId. Empty if no site is logged in.
+     */
+    protected getSiteId(): string {
+        return this.siteId() ?? CoreSites.getCurrentSiteId();
+    }
+
+    /**
+     * Get the site to use.
+     *
+     * @returns The site. Undefined if no site is logged in.
+     */
+    protected async getSite(): Promise<CoreSite | undefined> {
+        const siteId = this.getSiteId();
+
+        return await CorePromiseUtils.ignoreErrors(CoreSites.getSite(siteId));
+    }
+
+    /**
+     * Get the context instance ID to use.
+     *
+     * @returns The context instance ID. Undefined if not available.
+     */
+    protected async getContextInstanceId(): Promise<number | undefined> {
+        const contextLevel = this.contextLevel();
+        const courseId = this.courseId();
+        const contextInstanceId = this.contextInstanceId();
+
+        if (contextLevel !== ContextLevel.COURSE) {
+            return contextInstanceId;
+        }
+
+        if (contextInstanceId === undefined && courseId !== undefined) {
+            return courseId;
+        }
+
+        const site = await this.getSite();
+        if (site && contextInstanceId !== undefined && contextInstanceId <= 0) {
+            return site.getSiteHomeId();
+        }
+
+        return contextInstanceId;
+    }
+
+    /**
      * Apply CoreExternalContentDirective to a certain element.
      *
      * @param element Element to add the attributes to.
@@ -179,16 +321,17 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
      * @returns External content instance or undefined if siteId is not provided.
      */
     protected addExternalContent(element: Element, onlyInlineStyles = false): CoreExternalContentDirective | undefined {
-        if (!this.siteId) {
+        const siteId = this.getSiteId();
+        if (!siteId) {
             return;
         }
 
         // Angular doesn't let adding directives dynamically. Create the CoreExternalContentDirective manually.
         const extContent = new CoreExternalContentDirective(new ElementRef(element));
 
-        extContent.component = this.component;
-        extContent.componentId = this.componentId;
-        extContent.siteId = this.siteId;
+        extContent.component = this.component();
+        extContent.componentId = this.componentId();
+        extContent.siteId = siteId;
         extContent.url = element.getAttribute('src') ?? element.getAttribute('href') ?? element.getAttribute('xlink:href');
         extContent.posterUrl = element.getAttribute('poster');
 
@@ -221,6 +364,7 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
 
     /**
      * Wrap an image with a container to adapt its width.
+     * If the image is inside a picture element, the picture element is wrapped instead.
      *
      * @param img Image to adapt.
      */
@@ -229,13 +373,18 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
             return;
         }
 
+        // If the image is inside a picture element, wrap the picture element instead.
+        const elementToWrap = img.parentElement?.tagName === 'PICTURE'
+            ? img.parentElement
+            : img;
+
         // Element to wrap the image.
         const container = document.createElement('span');
         const originalWidth = img.attributes.getNamedItem('width');
 
         const forcedWidth = Number(originalWidth?.value);
         if (originalWidth && !isNaN(forcedWidth)) {
-            if (originalWidth.value.indexOf('%') < 0) {
+            if (!originalWidth.value.includes('%')) {
                 img.style.width = `${forcedWidth}px`;
             } else {
                 img.style.width = `${forcedWidth}%`;
@@ -256,34 +405,27 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
             container.classList.add('atto_image_button_text-bottom');
         }
 
-        CoreDom.wrapElement(img, container);
+        CoreDom.wrapElement(elementToWrap, container);
     }
 
     /**
      * Add image viewer button to view adapted images at full size.
      */
     protected async addImageViewerButton(): Promise<void> {
-        const imgs = Array.from(this.element.querySelectorAll('.core-adapted-img-container > img'));
+        const imgs = Array.from(
+            this.element.querySelectorAll<HTMLImageElement>(
+                '.core-adapted-img-container > img, .core-adapted-img-container > picture > img',
+            ),
+        );
         if (!imgs.length) {
             return;
         }
 
         // If cannot calculate element's width, use viewport width to avoid false adapt image icons appearing.
         const elWidth = await this.getElementWidth();
-
-        imgs.forEach((img: HTMLImageElement) => {
+        imgs.forEach((img) => {
             // Skip image if it's inside a link.
             if (img.closest('a')) {
-                return;
-            }
-
-            let imgWidth = Number(img.getAttribute('width'));
-            if (!imgWidth) {
-                // No width attribute, use real size.
-                imgWidth = img.naturalWidth;
-            }
-
-            if (imgWidth <= elWidth) {
                 return;
             }
 
@@ -299,21 +441,27 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
             button.innerHTML = `<ion-icon name="fas-${iconName}" aria-hidden="true" src="${src}"></ion-icon>`;
 
             button.addEventListener('click', (e: Event) => {
-                const imgSrc = CoreText.escapeHTML(img.getAttribute('data-original-src') || img.getAttribute('src'));
-
                 e.preventDefault();
                 e.stopPropagation();
-                CoreViewer.viewImage(imgSrc, img.getAttribute('alt'), this.component, this.componentId);
+
+                const imgElement = img.parentElement?.tagName === 'PICTURE' ? img.parentElement : img;
+                CoreViewer.viewImageElement(imgElement);
             });
 
-            img.parentNode?.appendChild(button);
+            img.closest('.core-adapted-img-container')?.appendChild(button);
 
             if (img.complete && img.naturalWidth > 0) {
-                // Image has already loaded, show the button.
-                button.classList.remove('hidden');
+                // Image has already loaded, show the button only if it's wider than the container.
+                if (img.naturalWidth > elWidth) {
+                    button.classList.remove('hidden');
+                }
             } else {
-                // Show the button when the image is loaded.
-                img.onload = () => button.classList.remove('hidden');
+                // Show the button when the image is loaded, only if it's wider than the container.
+                img.onload = () => {
+                    if (img.naturalWidth > elWidth) {
+                        button.classList.remove('hidden');
+                    }
+                };
             }
         });
     }
@@ -335,7 +483,7 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
             return;
         }
 
-        if (!this.text) {
+        if (!this.textComputed()) {
             return;
         }
 
@@ -356,8 +504,19 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
         // Emit the afterRender output.
         this.afterRender.emit();
         if (triggerFilterRender) {
-            this.filterContentRenderingComplete.emit();
+            this.finishFilterContentRendering();
         }
+    }
+
+    /**
+     * Finish the rendering once filters have been applied.
+     */
+    protected async finishFilterContentRendering(): Promise<void> {
+        // Force redraw to make sure emojis are displayed on iOS.
+        if (CorePlatform.isIOS() && CoreText.containsEmoji(this.element.innerText)) {
+            await CoreDom.forceElementRedraw(this.element);
+        }
+        this.filterContentRenderingComplete.emit();
     }
 
     /**
@@ -368,7 +527,7 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
         this.externalContentInstances.forEach(extContent => extContent.ngOnDestroy());
         this.externalContentInstances = [];
 
-        if (!this.text) {
+        if (!this.textComputed()) {
             this.element.innerHTML = CoreFormatTextDirective.EMPTY_TEXT; // Remove current contents.
 
             await this.finishRender();
@@ -377,12 +536,10 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
         }
 
         if (!this.element.getAttribute('singleLine')) {
-            this.element.setAttribute('singleLine', String(this.singleLine));
+            this.element.setAttribute('singleLine', String(this.singleLine()));
         }
 
-        this.text = this.text ? this.text.trim() : '';
-
-        const result = await this.formatContents();
+        const contentsFormatted = await this.formatContents();
 
         // Disable media adapt to correctly calculate the height.
         this.element.classList.add('core-disable-media-adapt');
@@ -390,34 +547,36 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
         this.element.innerHTML = ''; // Remove current contents.
 
         // Move the children to the current element to be able to calculate the height.
-        CoreDom.moveChildren(result.div, this.element);
+        CoreDom.moveChildren(contentsFormatted.div, this.element);
 
         this.elementControllers.forEach(controller => controller.destroy());
-        this.elementControllers = result.elementControllers;
+        this.elementControllers = contentsFormatted.elementControllers;
 
         await CoreWait.nextTick();
 
         // Add magnifying glasses to images.
         this.addImageViewerButton();
 
-        if (result.options.filter) {
+        if (contentsFormatted.options.filter) {
             // Let filters handle HTML. We do it here because we don't want them to block the render of the text.
             CoreFilterDelegate.handleHtml(
                 this.element,
-                result.filters,
+                contentsFormatted.filters,
                 this.viewContainerRef,
-                result.options,
+                contentsFormatted.options,
                 [],
-                this.component,
-                this.componentId,
-                result.siteId,
+                this.component(),
+                this.componentId(),
+                this.getSiteId(),
             ).finally(() => {
-                this.filterContentRenderingComplete.emit();
+                this.finishFilterContentRendering();
             });
         }
 
+        this.activateAllowedScripts();
+
         this.element.classList.remove('core-disable-media-adapt');
-        await this.finishRender(!result.options.filter);
+        await this.finishRender(!contentsFormatted.options.filter);
     }
 
     /**
@@ -426,30 +585,22 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
      * @returns Promise resolved with a div element containing the code.
      */
     protected async formatContents(): Promise<FormatContentsResult> {
-        // Retrieve the site since it might be needed later.
-        const site = await CorePromiseUtils.ignoreErrors(CoreSites.getSite(this.siteId));
+        const siteId = this.getSiteId();
 
-        const siteId = site?.getId();
+        const contextLevel = this.contextLevel();
+        const courseId = this.courseId();
+        const contextInstanceId = await this.getContextInstanceId();
+        const text = this.textComputed();
 
-        if (
-            site && this.contextLevel === ContextLevel.COURSE && this.contextInstanceId !== undefined && this.contextInstanceId <= 0
-        ) {
-            this.contextInstanceId = site.getSiteHomeId();
-        }
-
-        if (this.contextLevel === ContextLevel.COURSE && this.contextInstanceId === undefined && this.courseId !== undefined) {
-            this.contextInstanceId = this.courseId;
-        }
-
-        const filter = this.filter ?? !!(this.contextLevel && this.contextInstanceId !== undefined);
+        const filter = this.filter() ?? !!(contextLevel && contextInstanceId !== undefined);
 
         const options: CoreFilterFormatTextOptions = {
-            clean: this.clean,
-            sanitize: this.sanitize,
-            singleLine: this.singleLine,
-            highlight: this.highlight,
-            courseId: this.courseId,
-            wsNotFiltered: this.wsNotFiltered,
+            clean: this.clean(),
+            sanitize: this.sanitize(),
+            singleLine: this.singleLine(),
+            highlight: this.highlight(),
+            courseId: courseId,
+            wsNotFiltered: this.wsNotFiltered(),
         };
 
         let formatted: string;
@@ -457,9 +608,9 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
 
         if (filter && siteId) {
             const filterResult = await CoreFilterHelper.getFiltersAndFormatText(
-                this.text || '',
-                this.contextLevel || ContextLevel.SYSTEM,
-                this.contextInstanceId ?? -1,
+                text,
+                contextLevel ?? ContextLevel.SYSTEM,
+                contextInstanceId ?? -1,
                 options,
                 siteId,
             );
@@ -467,7 +618,7 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
             filters = filterResult.filters;
             formatted = filterResult.text;
         } else {
-            formatted = await CoreFilter.formatText(this.text || '', options, [], siteId);
+            formatted = await CoreFilter.formatText(text, options, [], siteId);
         }
 
         formatted = this.treatWindowOpen(formatted);
@@ -476,29 +627,91 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
 
         div.innerHTML = formatted;
 
-        const elementControllers = this.treatHTMLElements(div, site);
+        this.disableScripts(div);
+
+        const elementControllers = await this.treatHTMLElements(div);
 
         return {
             div,
             filters,
             options,
-            siteId,
             elementControllers,
         };
+    }
+
+    /**
+     * Disable scripts in the content by moving their src to data-original-src to prevent the browser from loading them.
+     * If the script is added to the DOM using innerHTML it isn't loaded anyway, but it's better to be careful.
+     * The scripts remain in the DOM at their original position so they can be activated later if allowed.
+     *
+     * @param div Container where to search the scripts.
+     */
+    protected disableScripts(div: HTMLElement): void {
+        const scripts = Array.from(div.querySelectorAll<HTMLScriptElement>('script[src]'));
+
+        scripts.forEach((script) => {
+            script.dataset.originalSrc = script.getAttribute('src') ?? '';
+            script.removeAttribute('src');
+        });
+    }
+
+    /**
+     * Activate scripts in the rendered content that are allowed by the site, and remove those that aren't.
+     * For each allowed script, a new script element is created via JS (so the browser executes it) and it
+     * replaces the placeholder element, preserving all data attributes and the original DOM position.
+     */
+    protected async activateAllowedScripts(): Promise<void> {
+        const scripts = Array.from(this.element.querySelectorAll<HTMLScriptElement>('script[data-original-src]'));
+        if (!scripts.length) {
+            return;
+        }
+
+        const site = await this.getSite();
+        const allowedScriptUrls = site?.getContentAllowedScriptUrls() ?? [];
+
+        await CorePromiseUtils.allPromisesIgnoringErrors(scripts.map(async (script) => {
+            const url = script.dataset.originalSrc ?? '';
+
+            // For now, only absolute URLs are supported to keep it simple. If a script uses a relative URL it won't be loaded.
+            const isAllowed = allowedScriptUrls.some((allowedUrl) => CoreUrl.isSubpathOf(allowedUrl, url));
+            if (isAllowed) {
+                // Create a new script element via JS so the browser executes it, keeping the original DOM position.
+                const newScript = document.createElement('script');
+
+                // Copy all attributes except data-original-src, then set src.
+                Array.from(script.attributes).forEach((attr) => {
+                    if (attr.name !== 'data-original-src') {
+                        newScript.setAttribute(attr.name, attr.value);
+                    }
+                });
+
+                let scriptUrl = CoreUrl.resolveProtocolRelativeUrl(url, site?.getURL());
+                if (site?.isSitePluginFileUrl(scriptUrl)) {
+                    scriptUrl = await site.checkAndFixPluginfileURL(scriptUrl);
+                }
+                newScript.src = scriptUrl;
+
+                script.replaceWith(newScript);
+            } else {
+                script.remove();
+            }
+        }));
     }
 
     /**
      * Treat HTML elements when formatting contents.
      *
      * @param div Div element.
-     * @param site Site instance.
      * @returns Promise resolved when done.
      */
-    protected treatHTMLElements(div: HTMLElement, site?: CoreSite): ElementController[] {
+    protected async treatHTMLElements(div: HTMLElement): Promise<ElementController[]> {
         // Treat alternative content elements first, that way the search of elements won't treat the elements that are removed.
         this.treatAlternativeContentElements(div);
 
+        const site = await this.getSite();
+
         const images = Array.from(div.querySelectorAll('img'));
+        const pictures = Array.from(div.querySelectorAll('picture'));
         const anchors = Array.from(div.querySelectorAll('a'));
         const audios = Array.from(div.querySelectorAll('audio'));
         const videos = Array.from(div.querySelectorAll('video'));
@@ -512,53 +725,80 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
         const svgImages = Array.from(div.querySelectorAll('image'));
         const promises: Promise<void>[] = [];
 
-        this.treatAppUrlElements(div, site);
+        this.treatAppUrlElements(div);
 
         // Walk through the content to find the links and add our directive to it.
         // Important: We need to look for links first because in 'img' we add new links without core-link.
         anchors.forEach((anchor) => {
-            if (anchor.dataset.appUrl) {
+            if (anchor.dataset[DATASET_APP_URL]) {
                 // Link already treated in treatAppUrlElements, ignore it.
                 return;
             }
 
             // Angular doesn't let adding directives dynamically. Create the CoreLinkDirective manually.
             const linkDir = new CoreLinkDirective(new ElementRef(anchor));
-            linkDir.capture = this.captureLinks ?? true;
-            linkDir.inApp = this.openLinksInApp;
-            linkDir.showBrowserWarning = this.showBrowserWarningInLinks;
+            linkDir.capture = this.captureLinks() ?? true;
+            // eslint-disable-next-line @typescript-eslint/no-deprecated
+            linkDir.openIn = this.openLinksIn() ?? (this.openLinksInApp() ? CoreLinkOpenMethod.INAPPBROWSER : undefined);
+            linkDir.showBrowserWarning = this.showBrowserWarningInLinks();
             linkDir.ngOnInit();
 
             this.addExternalContent(anchor);
         });
 
+        const siteId = this.getSiteId();
         const externalImages: CoreExternalContentDirective[] = [];
         if (images && images.length > 0) {
             // Walk through the content to find images, and add our directive.
-            images.forEach((img: HTMLElement) => {
+            images.forEach((img) => {
                 this.addMediaAdaptClass(img);
+
+                if (siteId) {
+                    // Avoid WebView starting network requests before external-content can rewrite URLs.
+                    const srcset = img.getAttribute('srcset');
+                    if (srcset) {
+                        img.setAttribute('data-original-srcset', srcset);
+                        img.removeAttribute('srcset');
+                    }
+                }
 
                 const externalImage = this.addExternalContent(img);
                 if (externalImage && !externalImage.invalid) {
                     externalImages.push(externalImage);
                 }
 
-                if (this.adaptImg && !img.classList.contains('icon')) {
+                if (this.adaptImg() && !img.classList.contains('icon')) {
                     this.adaptImage(img);
                 }
             });
         }
 
+        pictures.forEach(picture => {
+            const sources = Array.from(picture.querySelectorAll('source'));
+
+            sources.forEach((source) => {
+                if (siteId) {
+                    // Avoid WebView starting network requests before external-content can rewrite URLs.
+                    const srcset = source.getAttribute('srcset');
+                    if (srcset) {
+                        source.setAttribute('data-original-srcset', srcset);
+                        source.removeAttribute('srcset');
+                    }
+                }
+                this.addExternalContent(source);
+            });
+        });
+
         const audioControllers = audios.map(audio => {
             this.treatMedia(audio);
 
-            return new MediaElementController(audio, !this.disabled);
+            return new MediaElementController(audio, !this.disabled());
         });
 
         const videoControllers = videos.map(video => {
             this.treatMedia(video, true);
 
-            return new MediaElementController(video, !this.disabled);
+            return new MediaElementController(video, !this.disabled());
         });
 
         const iframeControllers = iframes.map(iframe => {
@@ -569,7 +809,7 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
 
             promises.push(this.treatIframe(iframe, site));
 
-            return new FrameElementController(iframe, !this.disabled);
+            return new FrameElementController(iframe, !this.disabled());
         }).filter((controller): controller is FrameElementController => controller !== undefined);
 
         svgImages.forEach((image) => {
@@ -615,16 +855,18 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
 
             CoreIframe.treatFrame(frame, false);
 
-            return new FrameElementController(frame, !this.disabled);
+            return new FrameElementController(frame, !this.disabled());
         }).filter((controller): controller is FrameElementController => controller !== undefined);
 
+        const contextInstanceId = await this.getContextInstanceId();
+
         CoreBootstrap.handleJS(div, {
-            siteId: this.siteId,
-            component: this.component,
-            componentId: this.componentId,
-            contextLevel: this.contextLevel,
-            contextInstanceId: this.contextInstanceId,
-            courseId: this.courseId,
+            siteId: this.getSiteId(),
+            component: this.component(),
+            componentId: this.componentId(),
+            contextLevel: this.contextLevel(),
+            contextInstanceId,
+            courseId: this.courseId(),
         });
 
         if (externalImages.length) {
@@ -660,30 +902,35 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
      */
     protected treatAlternativeContentElements(div: HTMLElement): void {
         const appAltElements = Array.from(div.querySelectorAll<HTMLElement>(
-            '*[data-app-alt-url],*[data-app-alt-msg]',
+            `*[${DATA_APP_ALT_URL}],*[${DATA_APP_ALT_MSG}]`,
         ));
 
         appAltElements.forEach((element) => {
-            const url = element.dataset.appAltUrl;
-            const message = element.dataset.appAltMsg;
+            const url = element.dataset[DATASET_APP_ALT_URL];
+            const message = element.dataset[DATASET_APP_ALT_MSG];
             if (!message && !url) {
                 return;
             }
 
             // Remove the original attributes and also app-url to avoid possible conflicts.
-            element.removeAttribute('data-app-alt-url');
-            element.removeAttribute('data-app-alt-msg');
-            element.removeAttribute('data-app-url');
+            element.removeAttribute(DATA_APP_ALT_URL);
+            element.removeAttribute(DATA_APP_ALT_MSG);
+            element.removeAttribute(DATA_APP_URL);
 
             let newContent = message ? `<p>${message}</p>` : '';
             if (url) {
-                // Create a link using the appUrl format to reuse all the logic of appUrl data attributes.
-                let dataAttributes = `data-app-url="${url}"`;
+                // Create a link or button using the APP_URL format to reuse all the logic of APP_URL data attributes.
+                const label = element.dataset[DATASET_APP_ALT_URL_LABEL] || url;
+                let dataAttributes = `${DATA_APP_URL}="${url}"`;
                 for (const attr in element.dataset) {
                     dataAttributes += ` data-${CoreText.camelCaseToKebabCase(attr)}="${element.dataset[attr]}"`;
                 }
 
-                newContent += `<p><a href="${url}" ${dataAttributes}>${url}</a></p>`;
+                if (element.dataset[DATASET_APP_ALT_URL_TYPE] === DataAppAltUrlType.BUTTON) {
+                    newContent += `<ion-button expand="block" class="ion-text-wrap" ${dataAttributes}>${label}</ion-button>`;
+                } else {
+                    newContent += `<p><a href="${url}" ${dataAttributes}>${label}</a></p>`;
+                }
             }
 
             element.innerHTML = newContent;
@@ -694,13 +941,12 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
      * Treat elements with an app-url data attribute.
      *
      * @param div Div containing the elements.
-     * @param site Site.
      */
-    protected treatAppUrlElements(div: HTMLElement, site?: CoreSite): void {
-        const appUrlElements = Array.from(div.querySelectorAll<HTMLElement>('*[data-app-url]'));
+    protected treatAppUrlElements(div: HTMLElement): void {
+        const appUrlElements = Array.from(div.querySelectorAll<HTMLElement>(`*[${DATA_APP_URL}]`));
 
         appUrlElements.forEach((element) => {
-            let url = element.dataset.appUrl;
+            let url = element.dataset[DATASET_APP_URL];
             if (!url) {
                 return;
             }
@@ -709,16 +955,16 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
                 event.preventDefault();
                 event.stopPropagation();
 
-                site = site || CoreSites.getCurrentSite();
+                const site = await this.getSite();
                 if (!site || !url) {
                     return;
                 }
 
                 // Try to convert the URL to absolute if needed.
                 url = CoreUrl.toAbsoluteURL(site.getURL(), url);
-                const confirmMessage = element.dataset.appUrlConfirm;
-                const openInApp = element.dataset.openIn === 'app';
-                const refreshOnResume = element.dataset.appUrlResumeAction === 'refresh';
+                const confirmMessage = element.dataset[DATASET_APP_URL_CONFIRM];
+                const openIn = element.dataset[DATASET_APP_OPEN_IN] || element.dataset[DATASET_APP_OPEN_IN_LEGACY];
+                const refreshOnResume = element.dataset[DATASET_APP_URL_RESUME_ACTION] === 'refresh';
 
                 if (confirmMessage) {
                     try {
@@ -728,8 +974,11 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
                     }
                 }
 
-                if (openInApp) {
-                    site.openInAppWithAutoLogin(url);
+                if (openIn === CoreLinkOpenMethod.EMBEDDED) {
+                    await CoreViewer.openIframeViewer((element.textContent || element.innerText || '').trim(), url);
+                } else if (openIn === CoreLinkOpenMethod.INAPPBROWSER || openIn === CoreLinkOpenMethod.APP) {
+                    // For backwards compatibility, consider APP as INAPPBROWSER. @deprecated since 5.2.
+                    await site.openInAppWithAutoLogin(url);
 
                     if (refreshOnResume && this.refreshContext) {
                         // Refresh the context when the IAB is closed.
@@ -738,7 +987,7 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
                         });
                     }
                 } else {
-                    site.openInBrowserWithAutoLogin(url, undefined, {
+                    await site.openInBrowserWithAutoLogin(url, undefined, {
                         showBrowserWarning: !confirmMessage,
                     });
 
@@ -803,7 +1052,7 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
      * @param element Video or audio to treat.
      * @param isVideo Whether it's a video.
      */
-    protected treatMedia(element: HTMLElement, isVideo: boolean = false): void {
+    protected treatMedia(element: HTMLElement, isVideo = false): void {
         if (isVideo) {
             this.fixVideoSrcPlaceholder(element);
         }
@@ -869,7 +1118,7 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
      * @param site Site instance.
      */
     protected async treatIframe(iframe: HTMLIFrameElement, site: CoreSite | undefined): Promise<void> {
-        const src = this.getFrameUrl(iframe, site);
+        let src = this.getFrameUrl(iframe, site);
         const currentSite = CoreSites.getCurrentSite();
 
         this.addMediaAdaptClass(iframe);
@@ -896,6 +1145,15 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
             CoreIframe.treatFrame(iframe, false);
 
             return;
+        } else if (site && (iframe.dataset[DATASET_APP_SITE_REFERER] === 'true' || CoreUrl.urlNeedsReferer(src))) {
+            iframe.dataset[DATASET_APP_SITE_REFERER] = 'false'; // Avoid doing this multiple times if treated more than once.
+            src = site.fixRefererForUrl(src);
+
+            if (src !== iframe.src) {
+                // Empty iframe src before any async code to prevent loading the original url due to a race condition.
+                // In iOS 18-, changing the src of the iframe while it's being loaded doesn't seem to properly load the new page.
+                iframe.src = '';
+            }
         }
 
         await CoreIframe.fixIframeCookies(src);
@@ -1014,8 +1272,8 @@ export class CoreFormatTextDirective implements OnChanges, OnDestroy, AsyncDirec
         button.addEventListener('click', () => {
             CoreIframe.frameLaunchExternal(url, {
                 site,
-                component: this.component,
-                componentId: this.componentId,
+                component: this.component(),
+                componentId: this.componentId(),
             });
         });
 
@@ -1078,5 +1336,4 @@ type FormatContentsResult = {
     filters: CoreFilterFilter[];
     elementControllers: ElementController[];
     options: CoreFilterFormatTextOptions;
-    siteId?: string;
 };

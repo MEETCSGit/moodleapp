@@ -15,10 +15,10 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { Params } from '@angular/router';
 import { CoreTag } from '@features/tag/services/tag';
-import { CoreUser } from '@features/user/services/user';
+import { CoreUser, CoreUserProfile } from '@features/user/services/user';
 import { CoreNavigator } from '@services/navigator';
 import { CoreSites } from '@services/sites';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import {
     AddonModDataData,
     AddonModDataEntry,
@@ -64,8 +64,8 @@ export class AddonModDataActionComponent implements OnInit {
     @Input() sortDirection?: string; // Sort direction used to calculate the offset.
 
     siteId: string;
-    userPicture?: string;
     tagsEnabled = false;
+    profile?: CoreUserProfile;
 
     constructor() {
         this.siteId = CoreSites.getCurrentSiteId();
@@ -76,9 +76,8 @@ export class AddonModDataActionComponent implements OnInit {
      * @inheritdoc
      */
     async ngOnInit(): Promise<void> {
-        if (this.action == AddonModDataAction.USERPICTURE) {
-            const profile = await CoreUser.getProfile(this.entry.userid, this.database.course);
-            this.userPicture = profile.profileimageurl;
+        if (this.action === AddonModDataAction.USERPICTURE) {
+            this.profile = await CoreUser.getProfile(this.entry.userid, this.database.course);
         }
     }
 
@@ -155,6 +154,8 @@ export class AddonModDataActionComponent implements OnInit {
 
     /**
      * Open actions menu popover.
+     *
+     * @param event Event.
      */
     async actionsMenu(event: Event): Promise<void> {
         event.stopPropagation();

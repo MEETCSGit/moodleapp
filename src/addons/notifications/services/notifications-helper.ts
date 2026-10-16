@@ -14,7 +14,7 @@
 
 import { Injectable } from '@angular/core';
 
-import { CoreArray } from '@singletons/array';
+import { CoreArray } from '@static/array';
 import { makeSingleton } from '@singletons';
 import { AddonMessageOutputDelegate } from '@addons/messageoutput/services/messageoutput-delegate';
 import {
@@ -26,10 +26,10 @@ import {
     AddonNotificationsPreferencesNotificationProcessor,
     AddonNotificationsPreferencesProcessor,
 } from './notifications';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { AddonNotificationsPushNotification } from './handlers/push-click';
-import { CoreTime } from '@singletons/time';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CoreTime } from '@static/time';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { ADDONS_NOTIFICATIONS_READ_CHANGED_EVENT } from '../constants';
 
 /**
@@ -102,6 +102,7 @@ export class AddonNotificationsHelperProvider {
      * Mark notification as read, trigger event and invalidate data.
      *
      * @param notification Notification object.
+     * @param siteId Site ID. If not defined, current site.
      * @returns Promise resolved when done.
      */
     async markNotificationAsRead(

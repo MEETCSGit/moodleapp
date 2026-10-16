@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { CoreConstants, DownloadStatus } from '@/core/constants';
+import { DownloadStatus } from '@/core/constants';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, inject } from '@angular/core';
 import {
     CORE_COURSE_ALL_COURSES_CLEARED,
     CORE_COURSE_ALL_SECTIONS_ID,
+    CoreCourseDownloadStatusIcon,
     COURSE_STATUS_CHANGED_EVENT,
 } from '@features/course/constants';
 import { CoreCourse, sectionContentIsModule } from '@features/course/services/course';
@@ -24,9 +25,8 @@ import {
     CoreCourseHelper,
     CoreCourseModuleData,
     CoreCourseSection,
-    CoreCourseSectionWithStatus,
-    CorePrefetchStatusInfo,
 } from '@features/course/services/course-helper';
+import { CoreCoursePrefetch, CoreCourseSectionWithStatus, CorePrefetchStatusInfo } from '@features/course/services/course-prefetch';
 import {
     CoreCourseModulePrefetchDelegate,
     CoreCourseModulePrefetchHandler } from '@features/course/services/module-prefetch-delegate';
@@ -36,9 +36,9 @@ import { CoreNavigator } from '@services/navigator';
 import { CoreSites } from '@services/sites';
 import { CoreToasts } from '@services/overlays/toasts';
 import { Translate } from '@singletons';
-import { CoreDom } from '@singletons/dom';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CoreDom } from '@static/dom';
+import { CoreEventObserver, CoreEvents } from '@static/events';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreErrorHelper } from '@services/error-helper';
 import { CoreSharedModule } from '@/core/shared.module';
@@ -70,7 +70,7 @@ export default class AddonStorageManagerCourseStoragePage implements OnInit, OnD
     downloadCourseEnabled = false;
 
     prefetchCourseData: CorePrefetchStatusInfo = {
-        icon: CoreConstants.ICON_LOADING,
+        icon: CoreCourseDownloadStatusIcon.LOADING,
         statusTranslatable: 'core.course.downloadcourse',
         status: DownloadStatus.DOWNLOADABLE_NOT_DOWNLOADED,
         loading: true,
@@ -115,7 +115,7 @@ export default class AddonStorageManagerCourseStoragePage implements OnInit, OnD
         }
 
         this.title = CoreNavigator.getRouteParam<string>('title') || '';
-        if (!this.title && this.courseId == CoreSites.getCurrentSiteHomeId()) {
+        if (!this.title && this.courseId === CoreSites.getCurrentSiteHomeId()) {
             this.title = Translate.instant('core.sitehome.sitehome');
         }
 
@@ -213,12 +213,12 @@ export default class AddonStorageManagerCourseStoragePage implements OnInit, OnD
         // Determine the course prefetch status.
         await this.determineCoursePrefetchIcon();
 
-        if (this.prefetchCourseData.icon !== CoreConstants.ICON_LOADING) {
+        if (this.prefetchCourseData.icon !== CoreCourseDownloadStatusIcon.LOADING) {
             return;
         }
 
         // Course is being downloaded. Get the download promise.
-        const promise = CoreCourseHelper.getCourseDownloadPromise(this.courseId);
+        const promise = CoreCoursePrefetch.getCourseDownloadPromise(this.courseId);
         if (promise) {
             // There is a download promise. Show an error if it fails.
             promise.catch((error) => {
@@ -246,7 +246,7 @@ export default class AddonStorageManagerCourseStoragePage implements OnInit, OnD
         this.sectionStatusObserver = CoreEvents.on(
             CoreEvents.SECTION_STATUS_CHANGED,
             async (data) => {
-                if (!this.downloadEnabled || !this.sections.length || !data.sectionId || data.courseId != this.courseId) {
+                if (!this.downloadEnabled || !this.sections.length || !data.sectionId || data.courseId !== this.courseId) {
                     return;
                 }
 
@@ -260,7 +260,7 @@ export default class AddonStorageManagerCourseStoragePage implements OnInit, OnD
 
                 // Check if the affected section is being downloaded.
                 // If so, we don't update section status because it'll already be updated when the download finishes.
-                const downloadId = CoreCourseHelper.getSectionDownloadId({ id: section.id });
+                const downloadId = CoreCoursePrefetch.getSectionDownloadId({ id: section.id });
                 if (CoreCourseModulePrefetchDelegate.isBeingDownloaded(downloadId)) {
                     return;
                 }
@@ -505,7 +505,7 @@ export default class AddonStorageManagerCourseStoragePage implements OnInit, OnD
         const sections = new Set<AddonStorageManagerCourseSection>();
         const promises = modules.map(async (module) => {
             // Remove the files.
-            await CoreCourseHelper.removeModuleStoredData(module, this.courseId);
+            await CoreCoursePrefetch.removeModuleStoredData(module, this.courseId);
 
             module.totalSize = 0;
 
@@ -559,10 +559,10 @@ export default class AddonStorageManagerCourseStoragePage implements OnInit, OnD
         });
 
         try {
-            await CoreCourseHelper.confirmDownloadSizeSection(this.courseId, [section]);
+            await CoreCoursePrefetch.confirmDownloadSizeSection(this.courseId, [section]);
 
             try {
-                await CoreCourseHelper.prefetchSections([section], this.courseId);
+                await CoreCoursePrefetch.prefetchSections([section], this.courseId);
 
                 CoreToasts.show({
                     cssClass: 'sr-only',
@@ -617,7 +617,7 @@ export default class AddonStorageManagerCourseStoragePage implements OnInit, OnD
             // Get download size to ask for confirm if it's high.
             const size = await module.prefetchHandler.getDownloadSize(module, module.course, true);
 
-            await CoreCourseHelper.prefetchModule(module.prefetchHandler, module, size, module.course, refresh);
+            await CoreCoursePrefetch.prefetchModule(module.prefetchHandler, module, size, module.course, refresh);
 
             CoreToasts.show({
                 cssClass: 'sr-only',
@@ -685,7 +685,7 @@ export default class AddonStorageManagerCourseStoragePage implements OnInit, OnD
      * Determines the prefetch icon of the course.
      */
     protected async determineCoursePrefetchIcon(): Promise<void> {
-        this.prefetchCourseData = await CoreCourseHelper.getCourseStatusIconAndTitle(this.courseId);
+        this.prefetchCourseData = await CoreCoursePrefetch.getCourseStatusIconAndTitle(this.courseId);
     }
 
     /**
@@ -694,7 +694,7 @@ export default class AddonStorageManagerCourseStoragePage implements OnInit, OnD
      * @param status Status to show.
      */
     protected updateCourseStatus(status: DownloadStatus): void {
-        const statusData = CoreCourseHelper.getCoursePrefetchStatusInfo(status);
+        const statusData = CoreCoursePrefetch.getCoursePrefetchStatusInfo(status);
 
         this.prefetchCourseData.status = statusData.status;
         this.prefetchCourseData.icon = statusData.icon;
@@ -727,7 +727,7 @@ export default class AddonStorageManagerCourseStoragePage implements OnInit, OnD
 
         try {
             this.changeDetectorRef.markForCheck();
-            await CoreCourseHelper.confirmAndPrefetchCourse(
+            await CoreCoursePrefetch.confirmAndPrefetchCourse(
                 this.prefetchCourseData,
                 course,
                 {
@@ -823,7 +823,7 @@ export default class AddonStorageManagerCourseStoragePage implements OnInit, OnD
             try {
                 section.isCalculating = true;
                 await this.calculateModulesStatusOnSection(section);
-                await CoreCourseHelper.calculateSectionStatus(section, this.courseId, false, false);
+                await CoreCoursePrefetch.calculateSectionStatus(section, this.courseId, false, false);
             } finally {
                 section.isCalculating = false;
             }

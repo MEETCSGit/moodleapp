@@ -1,4 +1,4 @@
-@core_login @app @javascript
+@app_parallel_run_login @core_login @app @javascript
 Feature: Test different cases of logout and switch account
   I need different logout use cases to work
 
@@ -14,6 +14,7 @@ Feature: Test different cases of logout and switch account
     And I press "Log out" in the app
     And I wait the app to restart
     Then the header should be "Accounts" in the app
+    And the page title should be "Accounts | Moodle Mobile" in the app
 
     When I press "david student" in the app
     Then the header should be "Reconnect" in the app

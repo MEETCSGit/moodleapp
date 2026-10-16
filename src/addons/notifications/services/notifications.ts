@@ -16,10 +16,10 @@ import { Injectable } from '@angular/core';
 
 import { CoreSites, CoreSitesCommonWSOptions } from '@services/sites';
 import { CoreWSExternalWarning } from '@services/ws';
-import { CoreText, CoreTextFormat, DEFAULT_TEXT_FORMAT } from '@singletons/text';
-import { CoreTime } from '@singletons/time';
-import { CoreUser } from '@features/user/services/user';
-import { CoreLogger } from '@singletons/logger';
+import { CoreText, CoreTextFormat, DEFAULT_TEXT_FORMAT } from '@static/text';
+import { CoreTime } from '@static/time';
+import { CoreUser, CoreUserProfile } from '@features/user/services/user';
+import { CoreLogger } from '@static/logger';
 import { Translate, makeSingleton } from '@singletons';
 import { CoreCourseModuleDelegate } from '@features/course/services/module-delegate';
 import { AddonNotificationsPushNotification } from './handlers/push-click';
@@ -33,7 +33,7 @@ import {
 } from '../constants';
 import { CORE_USER_NOREPLY_USER } from '@features/user/constants';
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.
@@ -161,10 +161,7 @@ export class AddonNotificationsProvider {
             if (notification.useridfrom > 0) {
                 // Try to get the profile picture of the user.
                 try {
-                    const user = await CoreUser.getProfile(notification.useridfrom, notification.courseid, true);
-
-                    notification.profileimageurlfrom = user.profileimageurl;
-                    notification.userfromfullname = user.fullname;
+                    notification.userFrom = await CoreUser.getProfile(notification.useridfrom, notification.courseid, true);
                 } catch {
                     // Error getting user. This can happen if device is offline or the user is deleted.
                 }
@@ -275,7 +272,7 @@ export class AddonNotificationsProvider {
      * @param siteId Site ID. If not defined, use current site.
      * @returns Promise resolved with the message notifications count.
      */
-    async getUnreadNotificationsCount(userId?: number, siteId?: string): Promise<{ count: number; hasMore: boolean} > {
+    async getUnreadNotificationsCount(userId?: number, siteId?: string): Promise<{ count: number; hasMore: boolean } > {
         const site = await CoreSites.getSite(siteId);
 
         // @since 4.0
@@ -339,6 +336,7 @@ export class AddonNotificationsProvider {
     /**
      * Mark all message notification as read.
      *
+     * @param siteId Site ID. If not defined, current site.
      * @returns Resolved when done.
      */
     async markAllNotificationsAsRead(siteId?: string): Promise<boolean> {
@@ -540,10 +538,9 @@ export type AddonNotificationsNotificationCalculatedData = {
     notification: number; // Calculated in the app in some cases. Whether it's a notification.
     read: boolean; // Calculated in the app. Whether the notifications is read.
     courseid?: number; // Calculated in the app. Course the notification belongs to.
-    profileimageurlfrom?: string; // Calculated in the app. Avatar of user that sent the notification.
-    userfromfullname?: string; // Calculated in the app in some cases. User from full name.
     customdata?: Record<string, string|number>; // Parsed custom data.
     imgUrl?: string; // Calculated in the app. URL of the image to use if the notification has no real user from.
+    userFrom?: CoreUserProfile; // Calculated in the app. User profile of the user from.
 };
 
 /**

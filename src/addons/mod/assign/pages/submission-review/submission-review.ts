@@ -21,12 +21,13 @@ import { CoreNavigator } from '@services/navigator';
 import { AddonModAssignSubmissionsSource } from '../../classes/submissions-source';
 import { AddonModAssignSubmissionComponent } from '../../components/submission/submission';
 import { AddonModAssign, AddonModAssignAssign } from '../../services/assign';
-import { CoreTime } from '@singletons/time';
+import { CoreTime } from '@static/time';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
 import { Translate } from '@singletons';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreSharedModule } from '@/core/shared.module';
 import { ADDON_MOD_ASSIGN_MODNAME, AddonModAssignListFilterName } from '../../constants';
+import { Subscription } from 'rxjs';
 
 /**
  * Page that displays a submission.
@@ -55,6 +56,7 @@ export default class AddonModAssignSubmissionReviewPage implements OnInit, OnDes
     protected assign?: AddonModAssignAssign; // The assignment the submission belongs to.
     protected blindMarking = false; // Whether it uses blind marking.
     protected forceLeave = false; // To allow leaving the page without checking for changes.
+    protected routeSubscription?: Subscription;
     protected logView: () => void;
     protected route = inject(ActivatedRoute);
 
@@ -84,12 +86,12 @@ export default class AddonModAssignSubmissionReviewPage implements OnInit, OnDes
      * @inheritdoc
      */
     ngOnInit(): void {
-        this.route.queryParams.subscribe((params) => {
+        this.routeSubscription = this.route.queryParams.subscribe(() => {
             try {
                 this.moduleId = CoreNavigator.getRequiredRouteNumberParam('cmId');
                 this.courseId = CoreNavigator.getRequiredRouteNumberParam('courseId');
                 this.submitId = CoreNavigator.getRouteNumberParam('submitId') || 0;
-                this.blindId = CoreNavigator.getRouteNumberParam('blindId', { params });
+                this.blindId = CoreNavigator.getRouteNumberParam('blindId');
                 const groupId = CoreNavigator.getRequiredRouteNumberParam('groupId');
                 const selectedStatus = CoreNavigator.getRouteParam<AddonModAssignListFilterName>('selectedStatus');
                 const submissionsSource = CoreRoutedItemsManagerSourcesTracker.getOrCreateSource(
@@ -122,6 +124,7 @@ export default class AddonModAssignSubmissionReviewPage implements OnInit, OnDes
      */
     ngOnDestroy(): void {
         this.submissions?.destroy();
+        this.routeSubscription?.unsubscribe();
     }
 
     /**
@@ -142,10 +145,10 @@ export default class AddonModAssignSubmissionReviewPage implements OnInit, OnDes
 
         // Grades can be saved if simple grading.
         if (gradeInfo.advancedgrading && gradeInfo.advancedgrading[0] &&
-                gradeInfo.advancedgrading[0].method !== undefined) {
+            gradeInfo.advancedgrading[0].method !== undefined) {
 
             const method = gradeInfo.advancedgrading[0].method || 'simple';
-            this.canSaveGrades = method == 'simple';
+            this.canSaveGrades = method === 'simple';
         } else {
             this.canSaveGrades = true;
         }

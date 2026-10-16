@@ -18,10 +18,10 @@ import { CoreUserAuthenticatedSupportConfig } from '@features/user/classes/suppo
 import { CoreUserNullSupportConfig } from '@features/user/classes/support/null-support-config';
 import { CoreSites } from '@services/sites';
 import { CoreCustomURLSchemes } from '@services/urlschemes';
-import { CoreUrl } from '@singletons/url';
-import { CoreOpener } from '@singletons/opener';
+import { CoreUrl } from '@static/url';
+import { CoreOpener } from '@static/opener';
 import { Translate } from '@singletons';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { CoreAlerts } from '@services/overlays/alerts';
 
 let lastInAppUrl: string | null = null;
@@ -36,7 +36,7 @@ export default function(): void {
         const protocol = CoreUrl.getUrlProtocol(event.url);
         const url = event.url.replace(/^https?:\/\//, '');
         const urlScheme = CoreUrl.getUrlProtocol(url);
-        const isExternalApp = urlScheme && urlScheme !== 'file' && urlScheme !== 'cdvfile';
+        const isExternalApp = urlScheme && !['file', 'cdvfile', 'data', 'about'].includes(urlScheme);
 
         if (CoreCustomURLSchemes.isCustomURL(url)) {
             // Close the browser if it's a valid SSO URL.

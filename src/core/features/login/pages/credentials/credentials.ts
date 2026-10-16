@@ -17,15 +17,15 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 
-import { CoreSSO } from '@singletons/sso';
+import { CoreSSO } from '@static/sso';
 import { CoreNetwork } from '@services/network';
 import { CoreSiteCheckResponse, CoreSites } from '@services/sites';
 import { CoreLoginHelper } from '@features/login/services/login-helper';
 import { Translate } from '@singletons';
 import { CoreSitePublicConfigResponse, CoreUnauthenticatedSite } from '@classes/sites/unauthenticated-site';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { CoreNavigator } from '@services/navigator';
-import { CoreForms } from '@singletons/form';
+import { CoreForms } from '@static/form';
 import { CoreUserSupport } from '@features/user/services/support';
 import { CoreUserSupportConfig } from '@features/user/classes/support/support-config';
 import { CoreUserGuestSupportConfig } from '@features/user/classes/support/guest-support-config';
@@ -39,7 +39,7 @@ import {
 } from '@features/login/constants';
 import { CoreCustomURLSchemes } from '@services/urlschemes';
 import { CoreSiteError } from '@classes/errors/siteerror';
-import { CoreKeyboard } from '@singletons/keyboard';
+import { CoreKeyboard } from '@static/keyboard';
 import { CoreLoadings } from '@services/overlays/loadings';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreLoginMethodsComponent } from '../../components/login-methods/login-methods';
@@ -185,7 +185,7 @@ export default class CoreLoginCredentialsPage implements OnInit, OnDestroy {
         this.pageLoaded = false;
 
         // If the site is configured with http:// protocol we force that one, otherwise we use default mode.
-        const protocol = this.site.siteUrl.indexOf('http://') === 0 ? 'http://' : undefined;
+        const protocol = this.site.siteUrl.startsWith('http://') ? 'http://' : undefined;
 
         try {
             if (!this.siteCheck) {
@@ -226,7 +226,7 @@ export default class CoreLoginCredentialsPage implements OnInit, OnDestroy {
             return;
         }
 
-        this.canSignup = this.siteConfig.registerauth == 'email' && !this.site.isFeatureDisabled(EMAIL_SIGNUP_FEATURE_NAME);
+        this.canSignup = this.siteConfig.registerauth === 'email' && !this.site.isFeatureDisabled(EMAIL_SIGNUP_FEATURE_NAME);
         this.showForgottenPassword = !this.site.isFeatureDisabled(FORGOTTEN_PASSWORD_FEATURE_NAME);
         this.exceededAttemptsHTML = CoreLoginHelper.buildExceededAttemptsHTML(
             !!this.supportConfig?.canContactSupport(),
@@ -259,8 +259,10 @@ export default class CoreLoginCredentialsPage implements OnInit, OnDestroy {
         CoreLoginHelper.openBrowserForSSOLogin(
             this.siteCheck.siteUrl,
             this.siteCheck.code,
-            this.siteCheck.service,
-            this.siteCheck.config?.launchurl,
+            {
+                service: this.siteCheck.service,
+                launchUrl: this.siteCheck.config?.launchurl,
+            },
         );
     }
 
@@ -320,7 +322,7 @@ export default class CoreLoginCredentialsPage implements OnInit, OnDestroy {
 
             if (error.loggedout) {
                 CoreNavigator.navigate('/login/sites', { reset: true });
-            } else if (error.errorcode == 'forcepasswordchangenotice') {
+            } else if (error.errorcode === 'forcepasswordchangenotice') {
                 // Reset password field.
                 this.credForm.controls.password.reset();
             } else if (error.errorcode === 'invalidlogin') {

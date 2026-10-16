@@ -21,18 +21,18 @@ import {
     AddonMessages,
     AddonMessagesGetMessagesWSParams,
 } from './messages';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { CoreWSError } from '@classes/errors/wserror';
 import { makeSingleton, Translate } from '@singletons';
 import { CoreSites } from '@services/sites';
 import { CoreNetwork } from '@services/network';
-import { CoreConstants } from '@/core/constants';
 import { CoreUser } from '@features/user/services/user';
 import { CoreError } from '@classes/errors/error';
 import { CoreErrorHelper, CoreErrorObject } from '@services/error-helper';
 import { ADDON_MESSAGES_AUTO_SYNCED } from '../constants';
+import { CoreWS } from '@services/ws';
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.
@@ -81,7 +81,7 @@ export class AddonMessagesSyncProvider extends CoreSyncBaseProvider<AddonMessage
      *                          false to sync all.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
-    syncAllDiscussions(siteId?: string, onlyDeviceOffline: boolean = false): Promise<void> {
+    syncAllDiscussions(siteId?: string, onlyDeviceOffline = false): Promise<void> {
         const syncFunctionLog = `all discussions${onlyDeviceOffline ? ' (Only offline)' : ''}`;
 
         return this.syncOnSites(syncFunctionLog, (siteId) => this.syncAllDiscussionsFunc(onlyDeviceOffline, siteId), siteId);
@@ -106,10 +106,10 @@ export class AddonMessagesSyncProvider extends CoreSyncBaseProvider<AddonMessage
         // Get all the conversations to be synced.
         messages.forEach((message) => {
             if ('conversationid' in message) {
-                if (conversationIds.indexOf(message.conversationid) == -1) {
+                if (!conversationIds.includes(message.conversationid)) {
                     conversationIds.push(message.conversationid);
                 }
-            } else if (userIds.indexOf(message.touserid) == -1) {
+            } else if (!userIds.includes(message.touserid)) {
                 userIds.push(message.touserid);
             }
         });
@@ -214,7 +214,7 @@ export class AddonMessagesSyncProvider extends CoreSyncBaseProvider<AddonMessage
 
         // Get messages sent by the user after the first offline message was sent.
         // We subtract some time because the message could've been saved in server before it was in the app.
-        const timeFrom = Math.floor((messages[0].timecreated - CoreConstants.WS_TIMEOUT - 1000) / 1000);
+        const timeFrom = Math.floor((messages[0].timecreated - CoreWS.getRequestTimeout() - 1000) / 1000);
 
         const onlineMessages = await this.getMessagesSentAfter(timeFrom, conversationId, userId, siteId);
 
@@ -224,10 +224,10 @@ export class AddonMessagesSyncProvider extends CoreSyncBaseProvider<AddonMessage
 
             const text = ('text' in message ? message.text : message.smallmessage) || '';
             const textFieldName = conversationId ? 'text' : 'smallmessage';
-            const wrappedText = message[textFieldName][0] != '<' ? `<p>${text}</p>` : text;
+            const wrappedText = message[textFieldName][0] !== '<' ? `<p>${text}</p>` : text;
 
             try {
-                if (onlineMessages.indexOf(wrappedText) != -1) {
+                if (onlineMessages.includes(wrappedText)) {
                     // Message already sent, ignore it to prevent duplicates.
                 } else if (conversationId) {
                     await AddonMessages.sendMessageToConversationOnline(conversationId, text, siteId);
@@ -246,7 +246,7 @@ export class AddonMessagesSyncProvider extends CoreSyncBaseProvider<AddonMessage
                 }
 
                 // Error returned by WS. Store the error to show a warning but keep sending messages.
-                if (errors.indexOf(error) == -1) {
+                if (!errors.includes(error)) {
                     errors.push(error);
                 }
             }

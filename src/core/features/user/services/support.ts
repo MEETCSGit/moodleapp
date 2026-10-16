@@ -15,17 +15,17 @@
 import { Injectable } from '@angular/core';
 import { CoreUserSupportConfig } from '@features/user/classes/support/support-config';
 import { CoreUserAuthenticatedSupportConfig } from '@features/user/classes/support/authenticated-support-config';
-import { InAppBrowserObject } from '@awesome-cordova-plugins/in-app-browser';
+import { InAppBrowserObject } from '@awesome-cordova-plugins/in-app-browser/ngx';
 import { CorePlatform } from '@services/platform';
 import { CoreSites } from '@services/sites';
 import { makeSingleton, Translate } from '@singletons';
-import { CoreEvents } from '@singletons/events';
-import { CoreSubscriptions } from '@singletons/subscriptions';
+import { CoreEvents } from '@static/events';
+import { CoreSubscriptions } from '@static/subscriptions';
 import { AlertButton } from '@ionic/angular';
 import { CoreLang } from '@services/lang';
 import { CoreUserNullSupportConfig } from '@features/user/classes/support/null-support-config';
 import { CoreAlerts } from '@services/overlays/alerts';
-import { CoreOpener } from '@singletons/opener';
+import { CoreOpener } from '@static/opener';
 
 /**
  * Handle site support.
@@ -59,6 +59,7 @@ export class CoreUserSupportService {
      *
      * @param message Help message.
      * @param supportSubject Support subject.
+     * @param supportConfig Support configuration. If not provided, it will be obtained from the current site or null if no site.
      */
     showHelp(message: string, supportSubject: string, supportConfig?: CoreUserSupportConfig): void {
         const buttons: (AlertButton | string)[] = [];
@@ -158,8 +159,8 @@ export const CoreUserSupport = makeSingleton(CoreUserSupportService);
 /**
  * Options to configure interaction with support.
  */
-export interface CoreUserSupportContactOptions {
+export type CoreUserSupportContactOptions = {
     supportConfig?: CoreUserSupportConfig | null;
     subject?: string | null;
     message?: string | null;
-}
+};

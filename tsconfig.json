@@ -1,7 +1,6 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
-    "baseUrl": "src",
     "outDir": "./dist/out-tsc",
     "sourceMap": true,
     "declaration": false,
@@ -25,10 +24,10 @@
       "@moodlehq/cordova-plugin-file-transfer",
       "@moodlehq/cordova-plugin-inappbrowser",
       "@moodlehq/phonegap-plugin-push",
+      "cordova-plugin-file",
       "cordova-plugin-moodleapp",
       "cordova",
       "dom-mediacapture-record",
-      "faker",
       "jest",
       "node",
       "resize-observer-browser",
@@ -36,37 +35,40 @@
     ],
     "paths": {
       "@addons/*": [
-        "./addons/*"
+        "./src/addons/*"
       ],
       "@classes/*": [
-        "./core/classes/*"
+        "./src/core/classes/*"
       ],
       "@components/*": [
-        "./core/components/*"
+        "./src/core/components/*"
+      ],
+      "@coretypes/*": [
+        "./src/core/types/*"
       ],
       "@directives/*": [
-        "./core/directives/*"
+        "./src/core/directives/*"
       ],
       "@features/*": [
-        "./core/features/*"
+        "./src/core/features/*"
       ],
       "@guards/*": [
-        "./core/guards/*"
+        "./src/core/guards/*"
       ],
       "@pipes/*": [
-        "./core/pipes/*"
+        "./src/core/pipes/*"
       ],
       "@services/*": [
-        "./core/services/*"
+        "./src/core/services/*"
       ],
       "@singletons": [
-        "./core/singletons/index"
+        "./src/core/singletons/index"
       ],
-      "@singletons/*": [
-        "./core/singletons/*"
+      "@static/*": [
+        "./src/core/static/*"
       ],
       "@/*": [
-        "./*"
+        "./src/*"
       ]
     }
   },

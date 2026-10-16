@@ -1,4 +1,4 @@
-@addon_mod_choice @app @mod @mod_choice @javascript @lms_from5.1
+@app_parallel_run_choice @addon_mod_choice @app @mod @mod_choice @javascript @lms_from5.1
 Feature: Activities overview for choice activity
 
   Background:
@@ -28,6 +28,15 @@ Feature: Activities overview for choice activity
       | choice1 | student1 | Option 1, Option 2 |
       | choice1 | student3 | Option 2           |
       | choice2 | student2 | Option A           |
+
+  Scenario: The choice overview report should generate log events
+    Given I entered the course "Course 1" as "student1" in the app
+    When I press "Activities" in the app
+    And I press "Choices" in the app
+    Then the following events should have been logged for "student1" in the app:
+      | name                                                 | course   |
+      | \core\event\course_overview_viewed                   | Course 1 |
+      | \mod_choice\event\course_module_instance_list_viewed | Course 1 |
 
   Scenario: Students can see relevant columns and content in the choice overview
     Given I entered the course "Course 1" as "student1" in the app

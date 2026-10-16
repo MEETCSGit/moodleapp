@@ -22,7 +22,7 @@ import {
 import { Injectable, Type } from '@angular/core';
 import { CoreGradesHelper } from '@features/grades/services/grades-helper';
 import { makeSingleton, Translate } from '@singletons';
-import { CoreFormFields } from '@singletons/form';
+import { CoreFormFields } from '@static/form';
 import { AddonWorkshopAssessmentStrategyHandler } from '../../../services/assessment-strategy-delegate';
 import { AddonModWorkshopAssessmentStrategyAccumulativeHandlerService } from './handler';
 
@@ -62,7 +62,7 @@ export class AddonModWorkshopAssessmentStrategyAccumulativeHandlerLazyService
 
             originalValues[n] = {};
             originalValues[n].peercomment = form.current[n].peercomment || '';
-            originalValues[n].number = field.number; // eslint-disable-line id-blacklist
+            originalValues[n].number = field.number; // eslint-disable-line id-denylist
 
             form.current[n].grade = form.current[n].grade ? parseInt(String(form.current[n].grade), 10) : -1;
 

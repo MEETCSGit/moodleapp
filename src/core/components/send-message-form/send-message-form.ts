@@ -14,11 +14,11 @@
 
 import { Component, ElementRef, input, output, model, viewChild } from '@angular/core';
 import { CoreConfig } from '@services/config';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { CoreSites } from '@services/sites';
-import { CoreText } from '@singletons/text';
-import { CoreConstants } from '@/core/constants';
-import { CoreForms } from '@singletons/form';
+import { CoreText } from '@static/text';
+import { CoreConfigSettingKey } from '@/core/constants';
+import { CoreForms } from '@static/form';
 import { CorePlatform } from '@services/platform';
 import { toBoolean } from '@/core/transforms/boolean';
 import { CoreBaseModule } from '@/core/base.module';
@@ -26,7 +26,7 @@ import { CoreAutoFocusDirective } from '@directives/auto-focus';
 import { CoreAutoRowsDirective } from '@directives/auto-rows';
 import { CoreFaIconDirective } from '@directives/fa-icon';
 import { CoreOnResizeDirective } from '@directives/on-resize';
-import { CoreSupressEventsDirective } from '@directives/supress-events';
+import { CoreSuppressEventsDirective } from '@directives/supress-events';
 import { CoreUpdateNonReactiveAttributesDirective } from '@directives/update-non-reactive-attributes';
 
 /**
@@ -49,7 +49,7 @@ import { CoreUpdateNonReactiveAttributesDirective } from '@directives/update-non
         CoreAutoFocusDirective,
         CoreOnResizeDirective,
         CoreUpdateNonReactiveAttributesDirective,
-        CoreSupressEventsDirective,
+        CoreSuppressEventsDirective,
         CoreFaIconDirective,
     ],
 })
@@ -67,7 +67,7 @@ export class CoreSendMessageFormComponent {
     protected sendOnEnter = false;
 
     constructor() {
-        CoreConfig.get(CoreConstants.SETTINGS_SEND_ON_ENTER, !CorePlatform.isMobile()).then((sendOnEnter) => {
+        CoreConfig.get(CoreConfigSettingKey.SEND_ON_ENTER, !CorePlatform.isMobile()).then((sendOnEnter) => {
             this.sendOnEnter = !!sendOnEnter;
 
             return;
@@ -115,6 +115,7 @@ export class CoreSendMessageFormComponent {
      * A11y key functionality that prevents keyDown events.
      *
      * @param e Event.
+     * @param other The name of the other key that was clicked, undefined if no other key.
      */
     enterKeyDown(e: KeyboardEvent, other?: string): void {
         if (this.sendDisabled()) {
@@ -125,7 +126,7 @@ export class CoreSendMessageFormComponent {
             // Enter clicked, send the message.
             e.preventDefault();
             e.stopPropagation();
-        } else if (!this.sendOnEnter && !CorePlatform.isMobile() && other == 'control') {
+        } else if (!this.sendOnEnter && !CorePlatform.isMobile() && other === 'control') {
             // Cmd+Enter or Ctrl+Enter, send message.
             e.preventDefault();
             e.stopPropagation();
@@ -146,7 +147,7 @@ export class CoreSendMessageFormComponent {
         if (this.sendOnEnter && !other) {
             // Enter clicked, send the message.
             this.submitForm(e);
-        } else if (!this.sendOnEnter && !CorePlatform.isMobile() && other == 'control') {
+        } else if (!this.sendOnEnter && !CorePlatform.isMobile() && other === 'control') {
             // Cmd+Enter or Ctrl+Enter, send message.
             this.submitForm(e);
         }

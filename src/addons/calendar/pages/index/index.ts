@@ -14,21 +14,20 @@
 
 import { Component, OnInit, OnDestroy, inject, viewChild } from '@angular/core';
 import { CoreNetwork } from '@services/network';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { CoreSites } from '@services/sites';
 import { CoreCoursesHelper } from '@features/courses/services/courses-helper';
 import { AddonCalendar } from '../../services/calendar';
 import { AddonCalendarOffline } from '../../services/calendar-offline';
 import { AddonCalendarSync } from '../../services/calendar-sync';
 import { AddonCalendarFilter, AddonCalendarHelper } from '../../services/calendar-helper';
-import { NgZone, Translate } from '@singletons';
-import { Subscription } from 'rxjs';
+import { Translate } from '@singletons';
 import { CoreEnrolledCourseData } from '@features/courses/services/courses';
 import { ActivatedRoute, Params } from '@angular/router';
 import { AddonCalendarCalendarComponent } from '../../components/calendar/calendar';
 import { AddonCalendarUpcomingEventsComponent } from '../../components/upcoming-events/upcoming-events';
 import { CoreNavigator } from '@services/navigator';
-import { CoreConstants } from '@/core/constants';
+import { CoreSyncIcon } from '@/core/constants';
 import { CoreModals } from '@services/overlays/modals';
 import {
     ADDON_CALENDAR_AUTO_SYNCED,
@@ -43,6 +42,7 @@ import {
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreSharedModule } from '@/core/shared.module';
 import { CoreMainMenuUserButtonComponent } from '@features/mainmenu/components/user-menu-button/user-menu-button';
+import { Subscription } from 'rxjs';
 
 /**
  * Page that displays the calendar events.
@@ -73,9 +73,9 @@ export default class AddonCalendarIndexPage implements OnInit, OnDestroy {
     protected undeleteEventObserver?: CoreEventObserver;
     protected syncObserver?: CoreEventObserver;
     protected manualSyncObserver?: CoreEventObserver;
-    protected onlineObserver?: Subscription;
     protected filterChangedObserver?: CoreEventObserver;
     protected route = inject(ActivatedRoute);
+    protected routeSubscription?: Subscription;
 
     year?: number;
     month?: number;
@@ -83,8 +83,8 @@ export default class AddonCalendarIndexPage implements OnInit, OnDestroy {
     courses: CoreEnrolledCourseData[] = [];
     loaded = false;
     hasOffline = false;
-    isOnline = false;
-    syncIcon = CoreConstants.ICON_LOADING;
+    readonly isOnline = CoreNetwork.onlineSignal;
+    syncIcon = CoreSyncIcon.LOADING;
     showCalendar = true;
     loadUpcoming = false;
     filter: AddonCalendarFilter = {
@@ -139,7 +139,7 @@ export default class AddonCalendarIndexPage implements OnInit, OnDestroy {
 
         // Refresh data if calendar events are synchronized manually but not by this page.
         this.manualSyncObserver = CoreEvents.on(ADDON_CALENDAR_MANUAL_SYNCED, (data) => {
-            if (data && data.source != 'index') {
+            if (data && data.source !== 'index') {
                 this.loaded = false;
                 this.refreshData(false, false, true);
             }
@@ -165,14 +165,6 @@ export default class AddonCalendarIndexPage implements OnInit, OnDestroy {
                 this.canCreate = await AddonCalendarHelper.canEditEvents(this.filter.courseId);
             },
         );
-
-        // Refresh online status when changes.
-        this.onlineObserver = CoreNetwork.onChange().subscribe(() => {
-            // Execute the callback in the Angular zone, so change detection doesn't stop working.
-            NgZone.run(() => {
-                this.isOnline = CoreNetwork.isOnline();
-            });
-        });
     }
 
     /**
@@ -182,7 +174,7 @@ export default class AddonCalendarIndexPage implements OnInit, OnDestroy {
         this.loadUpcoming = !!CoreNavigator.getRouteBooleanParam('upcoming');
         this.showCalendar = !this.loadUpcoming;
 
-        this.route.queryParams.subscribe(async () => {
+        this.routeSubscription = this.route.queryParams.subscribe(() => {
             this.filter.courseId = CoreNavigator.getRouteNumberParam('courseId');
             this.year = CoreNavigator.getRouteNumberParam('year');
             this.month = CoreNavigator.getRouteNumberParam('month');
@@ -208,8 +200,7 @@ export default class AddonCalendarIndexPage implements OnInit, OnDestroy {
      */
     async fetchData(sync?: boolean, showErrors?: boolean): Promise<void> {
 
-        this.syncIcon = CoreConstants.ICON_LOADING;
-        this.isOnline = CoreNetwork.isOnline();
+        this.syncIcon = CoreSyncIcon.LOADING;
 
         let refreshComponent = false;
 
@@ -276,7 +267,7 @@ export default class AddonCalendarIndexPage implements OnInit, OnDestroy {
 
         this.loaded = true;
         this.initialized = true;
-        this.syncIcon = CoreConstants.ICON_SYNC;
+        this.syncIcon = CoreSyncIcon.SYNC;
     }
 
     /**
@@ -307,7 +298,7 @@ export default class AddonCalendarIndexPage implements OnInit, OnDestroy {
      * @returns Promise resolved when done.
      */
     async refreshData(sync = false, showErrors = false, afterChange = false): Promise<void> {
-        this.syncIcon = CoreConstants.ICON_LOADING;
+        this.syncIcon = CoreSyncIcon.LOADING;
 
         const promises: Promise<void>[] = [];
 
@@ -320,6 +311,8 @@ export default class AddonCalendarIndexPage implements OnInit, OnDestroy {
 
     /**
      * Refresh the data of the component if loaded (either calendar or upcoming events).
+     *
+     * @param afterChange Whether the refresh is done after an event has changed or has been synced.
      */
     protected async refreshComponentData(afterChange = false): Promise<void> {
         if (this.showCalendar) {
@@ -342,8 +335,11 @@ export default class AddonCalendarIndexPage implements OnInit, OnDestroy {
      * View a certain day.
      *
      * @param data Data with the year, month and day.
+     * @param data.day Day of the month.
+     * @param data.month Month of the year.
+     * @param data.year Year.
      */
-    gotoDay(data: {day: number; month: number; year: number}): void {
+    gotoDay(data: { day: number; month: number; year: number }): void {
         const params: Params = {
             day: data.day,
             month: data.month,
@@ -418,7 +414,7 @@ export default class AddonCalendarIndexPage implements OnInit, OnDestroy {
         this.syncObserver?.off();
         this.manualSyncObserver?.off();
         this.filterChangedObserver?.off();
-        this.onlineObserver?.unsubscribe();
+        this.routeSubscription?.unsubscribe();
     }
 
 }

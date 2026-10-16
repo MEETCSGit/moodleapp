@@ -16,14 +16,15 @@ import { FileEntry } from '@awesome-cordova-plugins/file/ngx';
 
 import { CoreFile, CoreFileProvider } from '@services/file';
 import { CoreSites } from '@services/sites';
-import { CoreMimetype } from '@singletons/mimetype';
+import { CoreMimetype } from '@static/mimetype';
 import { CoreH5P } from '../services/h5p';
 import { CoreH5PCore, CoreH5PDisplayOptions, CoreH5PLocalization } from './core';
 import { CoreError } from '@classes/errors/error';
-import { CorePath } from '@singletons/path';
+import { CorePath } from '@static/path';
 import { CorePluginFileTreatDownloadedFileOptions } from '@services/plugin-file-delegate';
 import { CoreH5PMissingDependenciesError } from './errors/missing-dependencies-error';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreH5PUnsupportedPackageError } from './errors/unsupported-package-error';
 
 /**
  * Equivalent to Moodle's H5P helper class.
@@ -70,11 +71,12 @@ export class CoreH5PHelper {
     /**
      * Get the core H5P assets, including all core H5P JavaScript and CSS.
      *
+     * @param siteId The site ID. If not defined, current site.
      * @returns Array core H5P assets.
      */
     static async getCoreAssets(
         siteId?: string,
-    ): Promise<{settings: CoreH5PCoreSettings; cssRequires: string[]; jsRequires: string[]}> {
+    ): Promise<{ settings: CoreH5PCoreSettings; cssRequires: string[]; jsRequires: string[] }> {
 
         // Get core settings.
         const settings = await CoreH5PHelper.getCoreSettings(siteId);
@@ -227,6 +229,18 @@ export class CoreH5PHelper {
                 await CorePromiseUtils.ignoreErrors(CoreH5P.h5pFramework.storeMissingDependencies(
                     fileUrl,
                     error.missingDependencies,
+                    {
+                        component: options.component,
+                        componentId: options.componentId,
+                        fileTimemodified: options.timemodified,
+                        siteId: options.siteId,
+                    },
+                ));
+            } else if (error instanceof CoreH5PUnsupportedPackageError) {
+                // Store unsupported package reasons to avoid re-downloading the file every time.
+                await CorePromiseUtils.ignoreErrors(CoreH5P.h5pFramework.storeUnsupportedPackage(
+                    fileUrl,
+                    error.reason,
                     {
                         component: options.component,
                         componentId: options.componentId,

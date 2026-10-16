@@ -12,11 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { CoreConstants } from '@/core/constants';
+import { CoreSyncIcon } from '@/core/constants';
 import { Params } from '@angular/router';
 import { CoreRoutedItemsManagerSource } from '@classes/items-management/routed-items-manager-source';
 import { SHAREDFILES_PAGE_NAME } from '@features/sharedfiles/constants';
 import { CorePlatform } from '@services/platform';
+import {
+    CORE_SETTINGS_ABOUT_PAGE_NAME,
+    CORE_SETTINGS_GENERAL_PAGE_NAME,
+    CORE_SETTINGS_SPACE_USAGE_PAGE_NAME,
+    CORE_SETTINGS_SYNC_PAGE_NAME,
+} from '../constants';
 
 /**
  * Provides a collection of setting sections.
@@ -30,18 +36,18 @@ export class CoreSettingsSectionsSource extends CoreRoutedItemsManagerSource<Cor
         const sections: CoreSettingsSection[] = [
             {
                 name: 'core.settings.general',
-                path: 'general',
+                path: CORE_SETTINGS_GENERAL_PAGE_NAME,
                 icon: 'fas-wrench',
             },
             {
                 name: 'core.settings.spaceusage',
-                path: 'spaceusage',
+                path: CORE_SETTINGS_SPACE_USAGE_PAGE_NAME,
                 icon: 'fas-list-check',
             },
             {
                 name: 'core.settings.synchronization',
-                path: 'sync',
-                icon: CoreConstants.ICON_SYNC,
+                path: CORE_SETTINGS_SYNC_PAGE_NAME,
+                icon: CoreSyncIcon.SYNC,
             },
         ];
 
@@ -56,7 +62,7 @@ export class CoreSettingsSectionsSource extends CoreRoutedItemsManagerSource<Cor
 
         sections.push({
             name: 'core.settings.about',
-            path: 'about',
+            path: CORE_SETTINGS_ABOUT_PAGE_NAME,
             icon: 'fas-id-card',
         });
 

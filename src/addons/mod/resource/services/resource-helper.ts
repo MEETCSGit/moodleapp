@@ -12,27 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { CoreConstants } from '@/core/constants';
+import { CoreTimeConstants } from '@/core/constants';
 import { Injectable } from '@angular/core';
 import { CoreError } from '@classes/errors/error';
 import { CoreCourse, CoreCourseAnyModuleData } from '@features/course/services/course';
-import { CoreCourseHelper, CoreCourseModuleData } from '@features/course/services/course-helper';
+import { CoreCourseModuleData } from '@features/course/services/course-helper';
 import { CoreNetwork } from '@services/network';
 import { CoreFileHelper } from '@services/file-helper';
 import { CoreFilepool } from '@services/filepool';
 import { CoreSites } from '@services/sites';
-import { CoreMimetype } from '@singletons/mimetype';
+import { CoreMimetype } from '@static/mimetype';
 import { makeSingleton, Translate } from '@singletons';
-import { CorePath } from '@singletons/path';
+import { CorePath } from '@static/path';
 import { AddonModResource, AddonModResourceCustomData } from './resource';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
-import { CoreText } from '@singletons/text';
-import { CoreTime } from '@singletons/time';
+import { CoreText } from '@static/text';
+import { CoreTime } from '@static/time';
 import { ADDON_MOD_RESOURCE_COMPONENT_LEGACY } from '../constants';
 import { CoreLoadings } from '@services/overlays/loadings';
-import { CoreOpenerOpenFileOptions } from '@singletons/opener';
+import { CoreOpenerOpenFileOptions } from '@static/opener';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { ModResourceDisplay } from '@addons/mod/constants';
+import { CoreCoursePrefetch } from '@features/course/services/course-prefetch';
 
 /**
  * Service that provides helper functions for resources.
@@ -49,7 +50,7 @@ export class AddonModResourceHelperProvider {
     async getEmbeddedHtml(module: CoreCourseModuleData): Promise<string> {
         const contents = await CoreCourse.getModuleContents(module);
 
-        const result = await CoreCourseHelper.downloadModuleWithMainFileIfNeeded(
+        const result = await CoreCoursePrefetch.downloadModuleWithMainFileIfNeeded(
             module,
             module.course,
             ADDON_MOD_RESOURCE_COMPONENT_LEGACY,
@@ -171,10 +172,10 @@ export class AddonModResourceHelperProvider {
      */
     isNextcloudFile(module: CoreCourseAnyModuleData): boolean {
         if ('contentsinfo' in module && module.contentsinfo) {
-            return module.contentsinfo.repositorytype == 'nextcloud';
+            return module.contentsinfo.repositorytype === 'nextcloud';
         }
 
-        return !!(module.contents && module.contents[0] && module.contents[0].repositorytype == 'nextcloud');
+        return !!(module.contents && module.contents[0] && module.contents[0].repositorytype === 'nextcloud');
     }
 
     /**
@@ -183,14 +184,13 @@ export class AddonModResourceHelperProvider {
      * @param module Module where to get the contents.
      * @param courseId Course Id, used for completion purposes.
      * @param options Options to open the file.
-     * @returns Resolved when done.
      */
     async openModuleFile(module: CoreCourseModuleData, courseId: number, options: CoreOpenerOpenFileOptions = {}): Promise<void> {
         const modal = await CoreLoadings.show();
 
         try {
             // Download and open the file from the resource contents.
-            await CoreCourseHelper.downloadModuleAndOpenFile(
+            await CoreCoursePrefetch.downloadModuleAndOpenFile(
                 module,
                 courseId,
                 ADDON_MOD_RESOURCE_COMPONENT_LEGACY,
@@ -264,7 +264,7 @@ export class AddonModResourceHelperProvider {
         if (options.showdate) {
             const timecreated = 'timecreated' in mainFile ? mainFile.timecreated : 0;
 
-            if ((mainFile.timemodified || 0) > timecreated + CoreConstants.SECONDS_MINUTE * 5) {
+            if ((mainFile.timemodified || 0) > timecreated + CoreTimeConstants.SECONDS_MINUTE * 5) {
                 /* Modified date may be up to several minutes later than uploaded date just because
                     teacher did not submit the form promptly. Give teacher up to 5 minutes to do it. */
                 options.filedetails.modifieddate = mainFile.timemodified || 0;

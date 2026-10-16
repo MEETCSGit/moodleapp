@@ -16,8 +16,8 @@ import { Injectable } from '@angular/core';
 import { Params } from '@angular/router';
 
 import { CoreNetwork } from '@services/network';
-import { CoreEvents } from '@singletons/events';
-import { CoreLogger } from '@singletons/logger';
+import { CoreEvents } from '@static/events';
+import { CoreLogger } from '@static/logger';
 import { CoreSitesCommonWSOptions, CoreSites, CoreSitesReadingStrategy, CoreSitesWSOptionsWithFilter } from '@services/sites';
 import { CoreSite } from '@classes/sites/site';
 import { CoreCacheUpdateFrequency, DownloadStatus } from '@/core/constants';
@@ -46,12 +46,11 @@ import { firstValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { CoreSiteWSPreSets, WSObservable } from '@classes/sites/authenticated-site';
 import { CoreLoadings } from '@services/overlays/loadings';
-import { CoreArray } from '@singletons/array';
-import { CoreText, CoreTextFormat } from '@singletons/text';
+import { CoreArray } from '@static/array';
+import { CoreText, CoreTextFormat } from '@static/text';
 import { ArrayElement } from '@/core/utils/types';
 import { CORE_COURSES_MY_COURSES_UPDATED_EVENT, CoreCoursesMyCoursesUpdatedEventAction } from '@features/courses/constants';
 import {
-    CoreCourseAccessDataType,
     CoreCourseModuleCompletionStatus,
     CoreCourseModuleCompletionTracking,
     CORE_COURSE_ALL_COURSES_CLEARED,
@@ -60,21 +59,22 @@ import {
     CORE_COURSE_CORE_MODULES,
     CORE_COURSE_PROGRESS_UPDATED_EVENT,
     CORE_COURSE_STEALTH_MODULES_SECTION_ID,
+    CORE_COURSE_SELECT_TAB,
 } from '../constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
-import { CoreObject } from '@singletons/object';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreObject } from '@static/object';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreCourseModuleHelper, CoreCourseStoreModuleViewedOptions } from './course-module-helper';
 import { CoreCourseDownloadStatusHelper } from './course-download-status-helper';
 import { MAIN_MENU_HOME_PAGE_NAME } from '@features/mainmenu/constants';
 import { CORE_SITEHOME_PAGE_NAME } from '@features/sitehome/constants';
-import { CoreDom } from '@singletons/dom';
+import { CoreDom } from '@static/dom';
 import { CoreCourseModuleDelegate } from './module-delegate';
-import { ModFeature } from '@addons/mod/constants';
+import { ModFeature, ModPurpose } from '@addons/mod/constants';
 
 export type CoreCourseProgressUpdated = { progress: number; courseId: number };
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.
@@ -83,6 +83,7 @@ declare module '@singletons/events' {
      */
     export interface CoreEventsData {
         [CORE_COURSE_PROGRESS_UPDATED_EVENT]: CoreCourseProgressUpdated;
+        [CORE_COURSE_SELECT_TAB]: CoreEventSelectCourseTabData;
     }
 
 }
@@ -92,15 +93,6 @@ declare module '@singletons/events' {
  */
 @Injectable({ providedIn: 'root' })
 export class CoreCourseProvider {
-
-    /**
-     * @deprecated since 4.4 Not used anymore. Use CoreCourseAccessDataType instead.
-     */
-    static readonly ACCESS_GUEST = CoreCourseAccessDataType.ACCESS_GUEST;
-    /**
-     * @deprecated since 4.4 Not used anymore. Use CoreCourseAccessDataType instead.
-     */
-    static readonly ACCESS_DEFAULT = CoreCourseAccessDataType.ACCESS_DEFAULT;
 
     /**
      * @deprecated since 5.0 Not used anymore. Use COURSE_ALL_SECTIONS_ID instead.
@@ -223,7 +215,7 @@ export class CoreCourseProvider {
             return false;
         }
 
-        const course = await CoreCourses.getCourseByField('id', courseId, site.id);
+        const course = await CoreCourses.getCourseByField('id', courseId, { siteId: site.id });
         const formatOptions = CoreObject.toKeyValueMap(
             course.courseformatoptions ?? [],
             'name',
@@ -275,10 +267,10 @@ export class CoreCourseProvider {
         courseId: number,
         siteId?: string,
         userId?: number,
-        forceCache: boolean = false,
-        ignoreCache: boolean = false,
-        includeOffline: boolean = true,
-    ): Promise<Record<string, CoreCourseCompletionActivityStatus>> {
+        forceCache = false,
+        ignoreCache = false,
+        includeOffline = true,
+    ): Promise<Record<number, CoreCourseCompletionActivityStatus>> {
 
         const site = await CoreSites.getSite(siteId);
         userId = userId || site.getUserId();
@@ -476,8 +468,8 @@ export class CoreCourseProvider {
         moduleId: number,
         courseId?: number,
         sectionId?: number,
-        preferCache: boolean = false,
-        ignoreCache: boolean = false,
+        preferCache = false,
+        ignoreCache = false,
         siteId?: string,
         modName?: string,
     ): Promise<CoreCourseModuleData> {
@@ -622,7 +614,9 @@ export class CoreCourseProvider {
             };
         }
 
-        const canDisplay = CoreCourseModuleDelegate.supportsFeature(module.modname, ModFeature.CAN_DISPLAY, true);
+        const canDisplay = 'candisplay' in module ?
+            !!module.candisplay :
+            CoreCourseModuleDelegate.supportsFeature(module.modname, ModFeature.CAN_DISPLAY, true);
 
         return  {
             ...module,
@@ -764,6 +758,7 @@ export class CoreCourseProvider {
      *
      * @param moduleName The module name.
      * @param modicon The mod icon string to use in case we are not using a core activity.
+     * @param mimetypeIcon The mimetype icon to use in case is already provided (e.g., for file resources).
      * @returns The IMG src.
      * @deprecated since 5.0. Use CoreCourseModuleHelper.getModuleIconSrc instead.
      */
@@ -804,7 +799,7 @@ export class CoreCourseProvider {
         }
 
         const sections = await this.getSections(courseId, excludeModules, excludeContents, undefined, siteId);
-        const section = sections.find((section) => section.id == sectionId);
+        const section = sections.find((section) => section.id === sectionId);
 
         if (section) {
             return section;
@@ -826,11 +821,11 @@ export class CoreCourseProvider {
      */
     async getSections(
         courseId: number,
-        excludeModules: boolean = false,
-        excludeContents: boolean = false,
+        excludeModules = false,
+        excludeContents = false,
         preSets?: CoreSiteWSPreSets,
         siteId?: string,
-        includeStealthModules: boolean = true,
+        includeStealthModules = true,
     ): Promise<CoreCourseWSSection[]> {
         return await firstValueFrom(this.getSectionsObservable(courseId, {
             excludeModules,
@@ -873,8 +868,7 @@ export class CoreCourseProvider {
                     const formattedSections: CoreCourseWSSection[] = sections.map((section) => ({
                         ...section,
                         availabilityinfo: this.treatAvailablityInfo(section.availabilityinfo),
-                        modules: section.modules.map((module) => this.addAdditionalModuleData(module, courseId, section.id)),
-                        contents: [],
+                        contents: section.modules.map((module) => this.addAdditionalModuleData(module, courseId, section.id)),
                     }));
 
                     // Only return the root sections, subsections are included in section contents.
@@ -939,8 +933,11 @@ export class CoreCourseProvider {
         const subsectionsComponents = CoreArray.unique(subsections.map(section => (section.component ?? '').replace('mod_', '')));
 
         sections.forEach(section => {
-            // eslint-disable-next-line @typescript-eslint/no-deprecated
-            section.contents = section.modules.map(module => {
+
+            section.contents = section.contents.map(module => {
+                if (!('modname' in module)) {
+                    return;
+                }
                 if (!subsectionsComponents.includes(module.modname)) {
                     return module;
                 }
@@ -975,7 +972,7 @@ export class CoreCourseProvider {
      */
     getSectionsModules<
         Section extends CoreCourseWSSection,
-        Module = Extract<ArrayElement<Section['contents']>, CoreCourseModuleData>
+        Module = Extract<ArrayElement<Section['contents']>, CoreCourseModuleData>,
     >(
         sections: Section[],
         options: CoreCourseGetSectionsModulesOptions<Section, Module> = {},
@@ -1183,6 +1180,33 @@ export class CoreCourseProvider {
     }
 
     /**
+     * Report a course and section as being viewed.
+     *
+     * @param courseId Course ID.
+     * @param modName The module name, or "resource" if viewing resources list
+     * @param siteId Site ID. If not defined, current site.
+     * @returns Promise resolved when the WS call is successful.
+     */
+    async logViewModuleInstanceList(courseId: number, modName: string, siteId?: string): Promise<void> {
+        const site = await CoreSites.getSite(siteId);
+
+        const params: CoreCourseViewModuleInstanceListWSParams = {
+            courseid: courseId,
+            modname: modName,
+        };
+        const response = await site.write<CoreStatusWithWarningsWSResponse>('core_course_view_module_instance_list', params);
+
+        if (!response.status) {
+            const warning = response.warnings?.[0] || {
+                warningcode: 'errorlog',
+                message: 'Error logging data.',
+            };
+
+            throw new CoreWSError(warning);
+        }
+    }
+
+    /**
      * Offline version for manually marking a module as completed.
      *
      * @param cmId The module ID.
@@ -1375,13 +1399,21 @@ export class CoreCourseProvider {
     /**
      * Select a certain tab in the course. Please use currentViewIsCourse() first to verify user is viewing the course.
      *
-     * @param name Name of the tab. If not provided, course contents.
-     * @param params Other params.
+     * @param selectedTab Name of the tab. If not provided, course contents.
+     * @param params Other page params.
      */
-    selectCourseTab(name?: string, params?: Params): void {
-        params = params || {};
-        params.name = name || '';
+    selectCourseTab(selectedTab: string, params: Params = {}): void {
+        const tabParams: CoreEventSelectCourseTabData = {
+            selectedTab,
+            pageParams: { ...params },
+        };
 
+        CoreEvents.trigger(CORE_COURSE_SELECT_TAB, tabParams);
+
+        // Deprecated event since 5.1.0. Will be removed in future versions.
+        params = params || {};
+        params.name = selectedTab || '';
+        // eslint-disable-next-line @typescript-eslint/no-deprecated
         CoreEvents.trigger(CoreEvents.SELECT_COURSE_TAB, params);
     }
 
@@ -1391,7 +1423,7 @@ export class CoreCourseProvider {
      * @param courseId Course ID.
      * @param siteId Site ID. If not defined, current site.
      * @returns Promise resolved when the status is changed. Resolve param: new status.
-     * @deprecated since 5.0. Use CoreCourseStatusHelper.setCoursePreviousStatus.
+     * @deprecated since 5.0. Use CoreCourseDownloadStatusHelper.setCoursePreviousStatus.
      */
     async setCoursePreviousStatus(courseId: number, siteId?: string): Promise<DownloadStatus> {
         return CoreCourseDownloadStatusHelper.setCoursePreviousStatus(courseId, siteId);
@@ -1510,10 +1542,10 @@ export type CoreCourseCompletionActivityStatus = {
     cmid: number; // Course module ID.
     modname: string; // Activity module name.
     instance: number; // Instance ID.
-    state: number; // Completion state value: 0 means incomplete, 1 complete, 2 complete pass, 3 complete fail.
+    state: CoreCourseModuleCompletionStatus; // Completion state value.
     timecompleted: number; // Timestamp for completed activity.
     tracking: CoreCourseModuleCompletionTracking; // Type of tracking: 0 means none, 1 manual, 2 automatic.
-    overrideby?: number | null; // The user id who has overriden the status, or null.
+    overrideby: number | null; // The user id who has overridden the status, or null.
     valueused?: boolean; // Whether the completion status affects the availability of another activity.
     hascompletion?: boolean; // @since 3.11. Whether this activity module has completion enabled.
     isautomatic?: boolean; // @since 3.11. Whether this activity module instance tracks completion automatically.
@@ -1641,7 +1673,7 @@ export type CoreCourseGetContentsWSModule = {
     visibleoncoursepage: number; // Is the module visible on course page. Cannot be undefined.
     modicon: string; // Activity icon url.
     modname: string; // Activity module type.
-    purpose?: string; // @since 4.4 The module purpose.
+    purpose?: ModPurpose; // @since 4.4 The module purpose.
     branded?: boolean; // @since 4.4 Whether the module is branded or not.
     modplural: string; // Activity module plural name.
     availability?: string; // Module availability settings.
@@ -1660,17 +1692,13 @@ export type CoreCourseGetContentsWSModule = {
     };
     customdata?: string; // Custom data (JSON encoded).
     noviewlink?: boolean; // Whether the module has no view page.
+    candisplay?: boolean; // @since 5.2 (& backport to 5.0.4 & 5.1.1). Whether the module should be displayed on the course page.
     completion?: CoreCourseModuleCompletionTracking; // Type of completion tracking: 0 means none, 1 manual, 2 automatic.
     completiondata?: CoreCourseModuleWSCompletionData; // Module completion data.
     contents?: CoreCourseModuleContentFile[];
     groupmode?: number; // @since 4.3. Group mode value
     downloadcontent?: number; // @since 4.0 The download content value.
-    dates?: { // @since 3.11. Course dates.
-        label: string; // Date label.
-        timestamp: number; // Date timestamp.
-        relativeto?: number; // @since 4.1. Relative date timestamp.
-        dataid?: string; // @since 4.1. Cm data id.
-    }[];
+    dates?: CoreCourseModuleDate[]; // @since 3.11. Course module dates.
     contentsinfo?: { // @since v3.7.6 Contents summary information.
         filescount: number; // Total number of files.
         filessize: number; // Total files size.
@@ -1685,13 +1713,6 @@ export type CoreCourseGetContentsWSModule = {
  */
 export type CoreCourseWSSection = Omit<CoreCourseGetContentsWSSection, 'modules'> & {
     contents: CoreCourseModuleOrSection[]; // List of modules and subsections.
-
-    /**
-     * List of modules
-     *
-     * @deprecated since 4.5. Use contents instead.
-     */
-    modules: CoreCourseModuleData[];
 };
 
 /**
@@ -1728,7 +1749,7 @@ type CoreCourseGetCourseModuleWSResponse = {
 export type CoreCourseModuleWSCompletionData = {
     state: CoreCourseModuleCompletionStatus; // Completion state value.
     timecompleted: number; // Timestamp for completion status.
-    overrideby: number | null; // The user id who has overriden the status.
+    overrideby: number | null; // The user id who has overridden the status.
     valueused?: boolean; // Whether the completion status affects the availability of another activity.
     hascompletion?: boolean; // @since 3.11. Whether this activity module has completion enabled.
     isautomatic?: boolean; // @since 3.11. Whether this activity module instance tracks completion automatically.
@@ -1748,6 +1769,18 @@ export type CoreCourseModuleWSRuleDetails = {
         status: number; // Completion status.
         description: string; // Completion description.
     };
+};
+
+/**
+ * Course module date.
+ *
+ * @since 3.11
+ */
+export type CoreCourseModuleDate = {
+    label: string; // Date label.
+    timestamp: number; // Date timestamp.
+    relativeto?: number; // @since 4.1. Relative date timestamp.
+    dataid?: string; // @since 4.1. Cm data id.
 };
 
 export type CoreCourseModuleContentFile = {
@@ -1788,7 +1821,7 @@ export type CoreCourseModuleGradeInfo = {
  */
 export type CoreCourseModuleAdvancedGradingSetting = {
     area: string; // Gradable area name.
-    method: string; // Grading method.
+    method: string | null; // Grading method.
 };
 
 /**
@@ -1840,6 +1873,14 @@ type CoreCourseViewCourseWSParams = {
 };
 
 /**
+ * Params of core_course_view_module_instance_list WS.
+ */
+type CoreCourseViewModuleInstanceListWSParams = {
+    courseid: number; // Course ID.
+    modname: string; // The module name, or "resource" if viewing resources list.
+};
+
+/**
  * Params of core_completion_update_activity_completion_status_manually WS.
  */
 type CoreCompletionUpdateActivityCompletionStatusManuallyWSParams = {
@@ -1870,4 +1911,12 @@ export type CoreCourseGetSectionsOptions = CoreSitesCommonWSOptions & {
 export type CoreCourseGetSectionsModulesOptions<Section, Module> = {
     ignoreSection?: (section: Section) => boolean; // Function to filter sections. Return true to ignore it, false to use it.
     ignoreModule?: (module: Module) => boolean; // Function to filter module. Return true to ignore it, false to use it.
+};
+
+/**
+ * Data passed to SELECT_COURSE_TAB event.
+ */
+type CoreEventSelectCourseTabData = {
+    selectedTab: string; // Name of the tab's handler. If not set, load course contents.
+    pageParams: Params;
 };

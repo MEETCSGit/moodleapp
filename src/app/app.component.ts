@@ -17,17 +17,17 @@ import { IonRouterOutlet, IonicModule } from '@ionic/angular';
 import { BackButtonEvent } from '@ionic/core';
 
 import { CoreLoginHelper } from '@features/login/services/login-helper';
-import { SplashScreen } from '@singletons';
 import { CoreApp } from '@services/app';
 import { CoreNavigator } from '@services/navigator';
-import { CoreSubscriptions } from '@singletons/subscriptions';
-import { CoreWindow } from '@singletons/window';
+import { CorePageTitle } from '@services/page-title';
+import { CoreSubscriptions } from '@static/subscriptions';
+import { CoreWindow } from '@static/window';
 import { CorePlatform } from '@services/platform';
-import { CoreLogger } from '@singletons/logger';
+import { CoreLogger } from '@static/logger';
 import { CorePromisedValue } from '@classes/promised-value';
 import { register } from 'swiper/element/bundle';
-import { CoreWait } from '@singletons/wait';
-import { CoreOpener } from '@singletons/opener';
+import { CoreWait } from '@static/wait';
+import { CoreOpener } from '@static/opener';
 import { BackButtonPriority } from '@/core/constants';
 
 register();
@@ -47,6 +47,9 @@ export class AppComponent implements OnInit, AfterViewInit {
      * @inheritdoc
      */
     ngOnInit(): void {
+        // Keep document.title in sync with the current page for accessibility (WCAG 2.4.2).
+        CorePageTitle.initialize();
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const win = <any> window;
 
@@ -135,7 +138,7 @@ export class AppComponent implements OnInit, AfterViewInit {
             await CorePlatform.ready();
 
             this.logger.debug('Hide splash screen');
-            SplashScreen.hide();
+            navigator.splashscreen?.hide();
             this.setSystemUIColorsAfterSplash();
         });
     }

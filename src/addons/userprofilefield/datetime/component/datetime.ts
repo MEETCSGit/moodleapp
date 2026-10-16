@@ -15,9 +15,9 @@
 import { FormControl, Validators } from '@angular/forms';
 import { Component } from '@angular/core';
 
-import { CoreTime } from '@singletons/time';
-import { CoreUtils } from '@singletons/utils';
-import { AuthEmailSignupProfileField } from '@features/login/services/login-helper';
+import { CoreTime } from '@static/time';
+import { CoreUtils } from '@static/utils';
+import { AuthEmailSignupProfileField } from '@features/login/services/signup';
 import { CoreUserProfileField } from '@features/user/services/user';
 import { CoreUserProfileFieldBaseComponent } from '@features/user/classes/base-profilefield-component';
 import { CoreSharedModule } from '@/core/shared.module';
@@ -41,9 +41,7 @@ export class AddonUserProfileFieldDatetimeComponent extends CoreUserProfileField
     displayValue?: string;
 
     /**
-     * Init the data when the field is meant to be displayed without editing.
-     *
-     * @param field Field to render.
+     * @inheritdoc
      */
     protected initForNonEdit(field: CoreUserProfileField): void {
         if (field.displayvalue) {
@@ -56,9 +54,7 @@ export class AddonUserProfileFieldDatetimeComponent extends CoreUserProfileField
     }
 
     /**
-     * Init the data when the field is meant to be displayed for editing.
-     *
-     * @param field Field to render.
+     * @inheritdoc
      */
     protected initForEdit(field: AuthEmailSignupProfileField): void {
         super.initForEdit(field);
@@ -84,9 +80,7 @@ export class AddonUserProfileFieldDatetimeComponent extends CoreUserProfileField
     }
 
     /**
-     * Create the Form control.
-     *
-     * @returns Form control.
+     * @inheritdoc
      */
     protected createFormControl(field: AuthEmailSignupProfileField): FormControl<string | undefined> {
         const formData = {

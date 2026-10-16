@@ -16,7 +16,7 @@ import { Injectable } from '@angular/core';
 
 import { CoreSites } from '@services/sites';
 import { CoreWSExternalWarning, CoreWSExternalFile, CoreWSFile } from '@services/ws';
-import { CoreUrl, CoreUrlPartNames } from '@singletons/url';
+import { CoreUrl, CoreUrlPartNames } from '@static/url';
 import { CoreQueueRunner } from '@classes/queue-runner';
 import { CoreSite } from '@classes/sites/site';
 
@@ -28,11 +28,12 @@ import { CoreH5PValidator } from '../classes/validator';
 
 import { makeSingleton } from '@singletons';
 import { CoreError } from '@classes/errors/error';
-import { CorePath } from '@singletons/path';
+import { CorePath } from '@static/path';
 import { CoreSiteWSPreSets } from '@classes/sites/authenticated-site';
 import { CoreFilepool } from '@services/filepool';
 import { CoreCacheUpdateFrequency, DownloadStatus } from '@/core/constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreH5PUnsupportedPackageDBRecord } from './database/h5p';
 
 /**
  * Service to provide H5P functionalities.
@@ -253,11 +254,38 @@ export class CoreH5PProvider {
      * @returns Treated url.
      */
     treatH5PUrl(url: string, siteUrl: string): string {
-        if (url.indexOf(CorePath.concatenatePaths(siteUrl, '/webservice/pluginfile.php')) === 0) {
+        if (url.startsWith(CorePath.concatenatePaths(siteUrl, '/webservice/pluginfile.php'))) {
             url = url.replace('/webservice/pluginfile', '/pluginfile');
         }
 
         return CoreUrl.removeUrlParts(url, [CoreUrlPartNames.Query, CoreUrlPartNames.Fragment]);
+    }
+
+    /**
+     * Get unsupported package record for a certain file and drop stale records if package timemodified changed.
+     *
+     * @param fileUrl File URL.
+     * @param timemodified File timemodified.
+     * @returns Unsupported package record that still applies to the file.
+     */
+    async getUnsupportedPackageForFile(
+        fileUrl: string,
+        timemodified?: number,
+    ): Promise<CoreH5PUnsupportedPackageDBRecord | undefined> {
+        const unsupportedPackage = await CoreH5P.h5pFramework.getUnsupportedPackagesForFile(fileUrl);
+        if (!unsupportedPackage) {
+            return undefined;
+        }
+
+        if (timemodified) {
+            if (unsupportedPackage.filetimemodified !== timemodified) {
+                await CorePromiseUtils.ignoreErrors(CoreH5P.h5pFramework.deleteUnsupportedPackagesForFile(fileUrl));
+
+                return undefined;
+            }
+        }
+
+        return unsupportedPackage;
     }
 
 }

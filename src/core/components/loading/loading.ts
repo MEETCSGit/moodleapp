@@ -20,14 +20,13 @@ import {
     input,
     effect,
 } from '@angular/core';
-import { CoreUtils } from '@singletons/utils';
-import { CoreAnimations } from '@components/animations';
+import { CoreUtils } from '@static/utils';
 import { Translate } from '@singletons';
-import { CoreDirectivesRegistry } from '@singletons/directives-registry';
+import { CoreDirectivesRegistry } from '@static/directives-registry';
 import { CorePromisedValue } from '@classes/promised-value';
-import { AsyncDirective } from '@classes/async-directive';
+import type { AsyncDirective } from '@coretypes/async-directive';
 import { CorePlatform } from '@services/platform';
-import { CoreWait } from '@singletons/wait';
+import { CoreWait } from '@static/wait';
 import { toBoolean } from '@/core/transforms/boolean';
 import { CoreBaseModule } from '@/core/base.module';
 import { CoreTimesPipe } from '@pipes/times';
@@ -56,7 +55,6 @@ import { CoreTimesPipe } from '@pipes/times';
     selector: 'core-loading',
     templateUrl: 'core-loading.html',
     styleUrl: 'loading.scss',
-    animations: [CoreAnimations.SHOW_HIDE],
     imports: [
         CoreBaseModule,
         CoreTimesPipe,
@@ -81,7 +79,6 @@ export class CoreLoadingComponent implements AsyncDirective, OnDestroy {
     readonly placeholderLimit = input(20);
 
     protected element: HTMLElement = inject(ElementRef).nativeElement;
-    protected lastScrollPosition = Promise.resolve<number | undefined>(undefined);
     protected onReadyPromise = new CorePromisedValue<void>();
     protected mutationObserver: MutationObserver;
 
@@ -117,12 +114,22 @@ export class CoreLoadingComponent implements AsyncDirective, OnDestroy {
         effect(() => {
             if (this.hideUntil()) {
                 this.onReadyPromise.resolve();
-                this.restoreScrollPosition();
                 if (CorePlatform.isIOS()) {
                     this.mutationObserver.observe(this.element, { childList: true });
                 }
+
+                // Emulate leave animation by adding a class and removing the element after the animation is done.
+                // This is needed to solve animation.leave problem introduced in Angular 20.3.6.
+                // @TODO: Remove this workaround when updating to Angular v21, as the problem should be fixed by then.
+                const container = this.element.querySelector('.core-loading-container');
+                if (container && !container.classList.contains('hide-animation')) {
+                    container.classList.add('hide-animation');
+
+                    setTimeout(() => {
+                        container.remove();
+                    }, 500);
+                }
             } else {
-                this.lastScrollPosition = this.getScrollPosition();
                 this.mutationObserver.disconnect();
             }
         });
@@ -133,32 +140,6 @@ export class CoreLoadingComponent implements AsyncDirective, OnDestroy {
      */
     ngOnDestroy(): void {
         this.mutationObserver.disconnect();
-    }
-
-    /**
-     * Gets current scroll position.
-     *
-     * @returns the scroll position or undefined if scroll not found.
-     */
-    protected async getScrollPosition(): Promise<number | undefined> {
-        const scrollElement = await this.getScrollElement();
-
-        return scrollElement?.scrollTop;
-    }
-
-    /**
-     * Restores last known scroll position.
-     */
-    protected async restoreScrollPosition(): Promise<void> {
-        const scrollPosition = await this.lastScrollPosition;
-
-        if (scrollPosition === undefined) {
-            return;
-        }
-
-        const scrollElement = await this.getScrollElement();
-
-        scrollElement?.scrollTo({ top: scrollPosition });
     }
 
     /**

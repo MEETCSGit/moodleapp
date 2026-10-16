@@ -19,10 +19,10 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CoreCourseModuleMainActivityComponent } from '@features/course/classes/main-activity-component';
 import { CoreQuestionBehaviourDelegate } from '@features/question/services/behaviour-delegate';
 import { CoreNavigator } from '@services/navigator';
-import { CoreText } from '@singletons/text';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CoreText } from '@static/text';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { Translate } from '@singletons';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { AddonModQuizPrefetchHandler } from '../../services/handlers/prefetch';
 import {
     AddonModQuiz,
@@ -54,6 +54,7 @@ import { AddonModQuizAttemptStateComponent } from '../attempt-state/attempt-stat
 import { CoreCourseModuleNavigationComponent } from '@features/course/components/module-navigation/module-navigation';
 import { CoreCourseModuleInfoComponent } from '@features/course/components/module-info/module-info';
 import { CoreSharedModule } from '@/core/shared.module';
+import { CoreTime } from '@static/time';
 
 /**
  * Component that displays a quiz entry page.
@@ -75,7 +76,7 @@ export class AddonModQuizIndexComponent extends CoreCourseModuleMainActivityComp
     component = ADDON_MOD_QUIZ_COMPONENT_LEGACY;
     pluginName = 'quiz';
     quiz?: AddonModQuizQuizData; // The quiz.
-    now?: number; // Current time.
+    now = CoreTime.timestamp(); // Current time.
     syncTime?: string; // Last synchronization time.
     hasOffline = false; // Whether the quiz has offline data.
     hasSupportedQuestions = false; // Whether the quiz has at least 1 supported question.
@@ -83,20 +84,21 @@ export class AddonModQuizIndexComponent extends CoreCourseModuleMainActivityComp
     unsupportedRules: string[] = []; // List of unsupported access rules of the quiz.
     unsupportedQuestions: string[] = []; // List of unsupported question types of the quiz.
     behaviourSupported = false; // Whether the quiz behaviour is supported.
-    showResults = false; // Whether to show the result of the quiz (grade, etc.).
     gradeOverridden = false; // Whether grade has been overridden.
     gradebookFeedback?: string; // The feedback in the gradebook.
     gradeResult?: string; // Message with the grade.
     overallFeedback?: string; // The feedback for the grade.
     buttonText?: string; // Text to display in the start/continue button.
     preventMessages: string[] = []; // List of messages explaining why the quiz cannot be attempted.
-    preventMessagesColor = 'danger'; // Color for the prevent messages.
+    preventMessagesAlertType = 'danger'; // Alert type for the prevent messages.
     showStatusSpinner = true; // Whether to show a spinner due to quiz status.
-    gradeMethodReadable?: string; // Grade method in a readable format.
+    gradeMethodTranslatable?: string; // Translation key for the grade method, to be used with the translate pipe.
     showReviewColumn = false; // Whether to show the review column.
     attempts: QuizAttempt[] = []; // List of attempts the user has made.
     bestGrade?: AddonModQuizGetUserBestGradeWSResponse; // Best grade data.
+    gradeToPass?: string; // Grade to pass.
     hasQuestions = false; // Whether the quiz has questions.
+    firstAttempt?: QuizAttempt; // The first attempt of the user, if any.
 
     protected fetchContentDefaultError = 'addon.mod_quiz.errorgetquiz'; // Default error to show when loading contents.
     protected syncEventName = ADDON_MOD_QUIZ_AUTO_SYNCED;
@@ -123,7 +125,7 @@ export class AddonModQuizIndexComponent extends CoreCourseModuleMainActivityComp
             ADDON_MOD_QUIZ_ATTEMPT_FINISHED_EVENT,
             (data) => {
                 // Go to review attempt if an attempt in this quiz was finished and synced.
-                if (this.quiz && data.quizId == this.quiz.id) {
+                if (this.quiz && data.quizId === this.quiz.id) {
                     this.autoReview = data;
                 }
             },
@@ -188,8 +190,8 @@ export class AddonModQuizIndexComponent extends CoreCourseModuleMainActivityComp
         // First get the quiz instance.
         const quiz = await AddonModQuiz.getQuiz(this.courseId, this.module.id);
 
-        this.gradeMethodReadable = AddonModQuiz.getQuizGradeMethod(quiz.grademethod);
-        this.now = Date.now();
+        this.gradeMethodTranslatable = AddonModQuiz.getQuizGradeMethod(quiz.grademethod);
+        this.now = CoreTime.timestamp();
         this.dataRetrieved.emit(quiz);
         this.description = quiz.intro || this.description;
         this.candidateQuiz = quiz;
@@ -239,7 +241,7 @@ export class AddonModQuizIndexComponent extends CoreCourseModuleMainActivityComp
         // For closed quizzes we don't receive the hasquestions value (to be fixed in MDL-84360), so we need to check the types.
         this.hasQuestions = quiz.hasquestions !== undefined ? quiz.hasquestions !== 0 : types.length > 0;
         this.unsupportedQuestions = AddonModQuiz.getUnsupportedQuestions(types);
-        this.hasSupportedQuestions = !!types.find((type) => type != 'random' && this.unsupportedQuestions.indexOf(type) == -1);
+        this.hasSupportedQuestions = !!types.find((type) => type !== 'random' && !this.unsupportedQuestions.includes(type));
 
         await this.getAttempts(quiz, this.quizAccessInfo);
 
@@ -251,6 +253,7 @@ export class AddonModQuizIndexComponent extends CoreCourseModuleMainActivityComp
      * Get the user attempts in the quiz and the result info.
      *
      * @param quiz Quiz instance.
+     * @param accessInfo Quiz access information.
      */
     protected async getAttempts(
         quiz: AddonModQuizQuizData,
@@ -258,6 +261,10 @@ export class AddonModQuizIndexComponent extends CoreCourseModuleMainActivityComp
     ): Promise<void> {
         // Always get the best grade because it includes the grade to pass.
         this.bestGrade = await AddonModQuiz.getUserBestGrade(quiz.id, { cmId: this.module.id });
+
+        if (typeof this.bestGrade.gradetopass === 'number') {
+            this.gradeToPass = AddonModQuiz.formatGrade(this.bestGrade.gradetopass, quiz.decimalpoints);
+        }
 
         // Get access information of last attempt (it also works if no attempts made).
         this.attemptAccessInfo = await AddonModQuiz.getAttemptAccessInformation(quiz.id, 0, { cmId: this.module.id });
@@ -286,7 +293,7 @@ export class AddonModQuizIndexComponent extends CoreCourseModuleMainActivityComp
     protected getButtonText(): void {
         const canOnlyPreview = !!this.quizAccessInfo?.canpreview && !this.quizAccessInfo?.canattempt;
         this.buttonText = '';
-        this.preventMessagesColor = canOnlyPreview ? 'warning' : 'danger';
+        this.preventMessagesAlertType = canOnlyPreview ? 'warning' : 'danger';
 
         if (this.hasQuestions) {
             if (this.attempts.length && !AddonModQuiz.isAttemptCompleted(this.attempts[0].state)) {
@@ -336,9 +343,21 @@ export class AddonModQuizIndexComponent extends CoreCourseModuleMainActivityComp
      * @param quiz Quiz.
      */
     protected async getResultInfo(quiz: AddonModQuizQuizData): Promise<void> {
-        if (!this.attempts.length || !quiz.showAttemptsGrades || !this.bestGrade?.hasgrade ||
-            this.gradebookData?.grade === undefined) {
-            this.showResults = false;
+        this.overallFeedback = this.bestGrade?.feedback?.feedbacktext;
+
+        if (!this.attempts.length || !quiz.showAttemptsGrades) {
+            this.gradeResult = undefined;
+
+            return;
+        }
+
+        if (!this.bestGrade?.hasgrade || this.gradebookData?.grade === undefined) {
+            this.gradeResult = Translate.instant('core.grades.gradelong', {
+                $a: {
+                    grade: Translate.instant('addon.mod_quiz.notyetgraded'),
+                    max: quiz.gradeFormatted,
+                },
+            });
 
             return;
         }
@@ -346,26 +365,24 @@ export class AddonModQuizIndexComponent extends CoreCourseModuleMainActivityComp
         const bestGrade = this.bestGrade.grade;
         const formattedGradebookGrade = AddonModQuiz.formatGrade(this.gradebookData.grade, quiz.decimalpoints);
         const formattedBestGrade = AddonModQuiz.formatGrade(bestGrade, quiz.decimalpoints);
-        let gradeToShow = formattedGradebookGrade; // By default we show the grade in the gradebook.
 
-        this.showResults = true;
-        this.gradeOverridden = formattedGradebookGrade != formattedBestGrade;
+        this.gradeOverridden = formattedGradebookGrade !== formattedBestGrade;
         this.gradebookFeedback = this.gradebookData.feedback;
 
-        if (bestGrade && bestGrade > this.gradebookData.grade && this.gradebookData.grade == quiz.grade) {
-            // The best grade is higher than the max grade for the quiz.
-            // We'll do like Moodle web and show the best grade instead of the gradebook grade.
+        if (bestGrade && bestGrade > this.gradebookData.grade && this.gradebookData.grade === quiz.grade) {
+            // The best grade is higher than the max grade for the quiz. So it's not been overriden.
             this.gradeOverridden = false;
-            gradeToShow = formattedBestGrade;
         }
 
-        this.gradeResult = Translate.instant('core.grades.gradelong', { $a: {
-            grade: gradeToShow,
-            max: quiz.gradeFormatted,
-        } });
+        this.gradeResult = Translate.instant('core.grades.gradelong', {
+            $a: {
+                grade: formattedGradebookGrade,
+                max: quiz.gradeFormatted,
+            },
+        });
 
-        if (quiz.showFeedback) {
-            // Get the quiz overall feedback.
+        if (quiz.showFeedback && !('feedback' in this.bestGrade)) {
+            // Get the quiz overall feedback in Moodle 5.1 or older.
             const response = await AddonModQuiz.getFeedbackForGrade(quiz.id, this.gradebookData.grade, {
                 cmId: this.module.id,
             });
@@ -389,6 +406,8 @@ export class AddonModQuizIndexComponent extends CoreCourseModuleMainActivityComp
 
     /**
      * Go to review an attempt that has just been finished.
+     *
+     * @param attempts List of attempts of the quiz.
      */
     protected async goToAutoReview(attempts: AddonModQuizAttemptWSData[]): Promise<void> {
         if (!this.autoReview) {
@@ -498,7 +517,7 @@ export class AddonModQuizIndexComponent extends CoreCourseModuleMainActivityComp
             this.checkCompletion();
         }
 
-        if (this.quiz && syncEventData.quizId == this.quiz.id) {
+        if (this.quiz && syncEventData.quizId === this.quiz.id) {
             this.content?.scrollToTop();
 
             return true;
@@ -566,6 +585,10 @@ export class AddonModQuizIndexComponent extends CoreCourseModuleMainActivityComp
         accessInfo: AddonModQuizGetQuizAccessInformationWSResponse,
         attempts: AddonModQuizAttemptWSData[],
     ): Promise<QuizAttempt[]> {
+        // Don't display not started attempts.
+        attempts = attempts.filter(attempt => attempt.state !== AddonModQuizAttemptStates.NOT_STARTED);
+        this.firstAttempt = attempts[0];
+
         if (!attempts || !attempts.length) {
             // There are no attempts to treat.
             quiz.gradeFormatted = AddonModQuiz.formatGrade(quiz.grade, quiz.decimalpoints);
@@ -608,10 +631,20 @@ export class AddonModQuizIndexComponent extends CoreCourseModuleMainActivityComp
                 formattedAttempt.cannotReviewMessage = AddonModQuizHelper.getCannotReviewMessage(quiz, attempt, true);
             }
 
-            if (quiz.showFeedback && attempt.state === AddonModQuizAttemptStates.FINISHED &&
+            if ('feedback' in formattedAttempt) {
+                if (formattedAttempt.feedback?.feedbacktext) {
+                    formattedAttempt.additionalData = [
+                        {
+                            id: 'feedback',
+                            title: Translate.instant('addon.mod_quiz.feedback'),
+                            content: formattedAttempt.feedback.feedbacktext,
+                        },
+                    ];
+                }
+            } else if (quiz.showFeedback && attempt.state === AddonModQuizAttemptStates.FINISHED &&
                     options.someoptions.overallfeedback && isSafeNumber(formattedAttempt.rescaledGrade)) {
 
-                // Feedback should be displayed, get the feedback for the grade.
+                // Get the feedback for the grade in Moodle 5.1 or older.
                 const response = await AddonModQuiz.getFeedbackForGrade(quiz.id, formattedAttempt.rescaledGrade, {
                     cmId: quiz.coursemodule,
                 });
@@ -659,6 +692,8 @@ export class AddonModQuizIndexComponent extends CoreCourseModuleMainActivityComp
 
     /**
      * Go to page to review the attempt.
+     *
+     * @param attemptId The ID of the attempt to review.
      */
     async reviewAttempt(attemptId: number): Promise<void> {
         await CoreNavigator.navigateToSitePath(

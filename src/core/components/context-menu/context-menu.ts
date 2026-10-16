@@ -14,10 +14,10 @@
 
 import { Component, OnDestroy, ElementRef, input, signal, computed, inject } from '@angular/core';
 import { CorePopovers } from '@services/overlays/popovers';
-import { CoreUtils } from '@singletons/utils';
+import { CoreUtils } from '@static/utils';
 import { Translate } from '@singletons';
 import { CoreContextMenuItemComponent } from './context-menu-item';
-import { CoreDirectivesRegistry } from '@singletons/directives-registry';
+import { CoreDirectivesRegistry } from '@static/directives-registry';
 import { CoreBaseModule } from '@/core/base.module';
 import { CoreFaIconDirective } from '@directives/fa-icon';
 import { CoreUpdateNonReactiveAttributesDirective } from '@directives/update-non-reactive-attributes';
@@ -40,13 +40,6 @@ export class CoreContextMenuComponent implements OnDestroy {
     readonly ariaLabel = input(Translate.instant('core.displayoptions'), { // Aria label to be shown on the top of the popover.
         alias: 'aria-label',
     });
-
-    /**
-     * Title to be shown on the top of the popover.
-     *
-     * @deprecated since 4.4. Use aria-label instead.
-     */
-    readonly title = input<string>(); // Text to be shown on the top of the popover.
 
     readonly hideMenu = computed(() => !this.items().some((item) => !item.hidden())); // Hide menu if all items are hidden.
     readonly uniqueId = `core-context-menu-${CoreUtils.getUniqueId('CoreContextMenuComponent')}`;
@@ -71,10 +64,10 @@ export class CoreContextMenuComponent implements OnDestroy {
             // All items were moved to the "parent" menu. Add the item in there.
             this.parentContextMenu.addItem(item);
 
-            if (this.itemsMovedToParent.indexOf(item) === -1) {
+            if (!this.itemsMovedToParent.includes(item)) {
                 this.itemsMovedToParent.push(item);
             }
-        } else if (this.items().indexOf(item) == -1) {
+        } else if (!this.items().includes(item)) {
             this.items.update(items => items.concat(item).sort((a, b) => (a.priority || 0) <= (b.priority || 0) ? 1 : -1));
         }
     }
@@ -175,7 +168,7 @@ export class CoreContextMenuComponent implements OnDestroy {
 
             this.expanded = false;
 
-            itemClicked?.onClosed?.emit();
+            itemClicked?.onClosedEmitter.next();
         }
     }
 

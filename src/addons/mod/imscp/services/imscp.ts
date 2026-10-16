@@ -19,11 +19,11 @@ import { CoreCourseLogHelper } from '@features/course/services/log-helper';
 import { CoreNetwork } from '@services/network';
 import { CoreFilepool } from '@services/filepool';
 import { CoreSitesCommonWSOptions, CoreSites } from '@services/sites';
-import { CoreText } from '@singletons/text';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CoreText } from '@static/text';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreWSExternalWarning } from '@services/ws';
 import { makeSingleton } from '@singletons';
-import { CorePath } from '@singletons/path';
+import { CorePath } from '@static/path';
 import { CoreSiteWSPreSets } from '@classes/sites/authenticated-site';
 import { ADDON_MOD_IMSCP_COMPONENT_LEGACY } from '../constants';
 import { CoreCacheUpdateFrequency } from '@/core/constants';
@@ -32,7 +32,7 @@ import { CoreCourseModuleHelper, CoreCourseModuleStandardElements } from '@featu
 /**
  * Service that provides some features for IMSCP.
  */
-@Injectable( { providedIn: 'root' })
+@Injectable({ providedIn: 'root' })
 export class AddonModImscpProvider {
 
     protected static readonly ROOT_CACHE_KEY = 'mmaModImscp:';
@@ -78,7 +78,7 @@ export class AddonModImscpProvider {
      * @returns True if we should ommit the file.
      */
     protected checkSpecialFiles(fileName: string): boolean {
-        return fileName == 'imsmanifest.xml';
+        return fileName === 'imsmanifest.xml';
     }
 
     /**
@@ -128,7 +128,7 @@ export class AddonModImscpProvider {
      */
     protected getFileUrlFromContents(items: CoreCourseModuleContentFile[], targetFilePath: string): string | undefined {
         const item = items.find((item) => {
-            if (item.type != 'file') {
+            if (item.type !== 'file') {
                 return false;
             }
 

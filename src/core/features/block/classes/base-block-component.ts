@@ -13,14 +13,15 @@
 // limitations under the License.
 
 import { OnInit, Input, Component, OnChanges, SimpleChanges } from '@angular/core';
-import { CoreLogger } from '@singletons/logger';
-import { CoreArray } from '@singletons/array';
-import { CoreText } from '@singletons/text';
+import { CoreLogger } from '@static/logger';
+import { CoreArray } from '@static/array';
+import { CoreText } from '@static/text';
 import { CoreCourseBlock } from '../../course/services/course';
 import { Params } from '@angular/router';
 import { ContextLevel } from '@/core/constants';
 import { CoreNavigationOptions } from '@services/navigator';
-import { AsyncDirective } from '@classes/async-directive';
+import type { AsyncDirective } from '@coretypes/async-directive';
+import type { ReloadableComponent } from '@coretypes/reloadable-component';
 import { CorePromisedValue } from '@classes/promised-value';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { Translate } from '@singletons';
@@ -31,7 +32,7 @@ import { Translate } from '@singletons';
 @Component({
     template: '',
 })
-export abstract class CoreBlockBaseComponent implements OnInit, OnChanges, ICoreBlockComponent, AsyncDirective {
+export abstract class CoreBlockBaseComponent implements OnInit, OnChanges, ReloadableComponent, AsyncDirective {
 
     @Input({ required: true }) title!: string; // The block title.
     @Input({ required: true }) block!: CoreCourseBlock; // The block to render.
@@ -57,6 +58,10 @@ export abstract class CoreBlockBaseComponent implements OnInit, OnChanges, ICore
      * @inheritdoc
      */
     async ngOnInit(): Promise<void> {
+        if (!this.fetchContentDefaultError) {
+            this.fetchContentDefaultError = `Error getting block data: ${this.title}`;
+        }
+
         await this.loadContent();
     }
 
@@ -98,7 +103,7 @@ export abstract class CoreBlockBaseComponent implements OnInit, OnChanges, ICore
         try {
             await this.invalidateContent();
         } catch (ex) {
-            // An error ocurred in the function, log the error and just resolve the promise so the workflow continues.
+            // An error occurred in the function, log the error and just resolve the promise so the workflow continues.
             this.logger.error(ex);
         }
 
@@ -120,7 +125,7 @@ export abstract class CoreBlockBaseComponent implements OnInit, OnChanges, ICore
         try {
             await this.fetchContent();
         } catch (error) {
-            // An error ocurred in the function, log the error and just resolve the promise so the workflow continues.
+            // An error occurred in the function, log the error and just resolve the promise so the workflow continues.
             this.logger.error(error);
 
             // Error getting data, fail.
@@ -157,22 +162,5 @@ export abstract class CoreBlockBaseComponent implements OnInit, OnChanges, ICore
     async ready(): Promise<void> {
         return await this.onReadyPromise;
     }
-
-}
-
-/**
- * Interface for block components.
- */
-export interface ICoreBlockComponent {
-
-    /**
-     * Perform the invalidate content function.
-     */
-    invalidateContent(): Promise<void>;
-
-    /**
-     * Perform the reload content function.
-     */
-    reloadContent(): Promise<void>;
 
 }

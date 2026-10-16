@@ -13,8 +13,8 @@
 // limitations under the License.
 
 import { Component, OnInit } from '@angular/core';
-import { CoreText } from '@singletons/text';
-import { CoreErrorLogs, CoreSettingsErrorLog } from '@singletons/error-logs';
+import { CoreText } from '@static/text';
+import { CoreErrorLogs, CoreSettingsErrorLog } from '@static/error-logs';
 import { CoreSharedModule } from '@/core/shared.module';
 
 /**
@@ -40,6 +40,8 @@ export default class CoreSettingsErrorLogPage implements OnInit {
 
     /**
      * Copy Info of all the errors.
+     *
+     * @param error Error to copy. If not defined, copy all the errors.
      */
     async copyError(error?: CoreSettingsErrorLog): Promise<void> {
         if (error) {

@@ -22,11 +22,11 @@ import { CoreNetwork } from '@services/network';
 import { CoreSites } from '@services/sites';
 import { CoreWSError } from '@classes/errors/wserror';
 import { makeSingleton } from '@singletons';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { AddonModSurvey } from './survey';
 import { AddonModSurveyAnswersDBRecordFormatted, AddonModSurveyOffline } from './survey-offline';
 import { ADDON_MOD_SURVEY_AUTO_SYNCED, ADDON_MOD_SURVEY_COMPONENT_LEGACY, ADDON_MOD_SURVEY_MODNAME } from '../constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 
 /**
  * Service to sync surveys.
@@ -56,7 +56,7 @@ export class AddonModSurveySyncProvider extends CoreCourseActivitySyncBaseProvid
      * Try to synchronize all the surveys in a certain site or in all sites.
      *
      * @param siteId Site ID to sync. If not defined, sync all sites.
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
     syncAllSurveys(siteId?: string, force?: boolean): Promise<void> {
@@ -66,7 +66,7 @@ export class AddonModSurveySyncProvider extends CoreCourseActivitySyncBaseProvid
     /**
      * Sync all pending surveys on a site.
      *
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @param siteId Site ID to sync.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
@@ -220,7 +220,7 @@ export class AddonModSurveySyncProvider extends CoreCourseActivitySyncBaseProvid
 }
 export const AddonModSurveySync = makeSingleton(AddonModSurveySyncProvider);
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { MAIN_MENU_FEATURE_PREFIX } from '@features/mainmenu/constants';
+
 export const CORE_COURSES_ENROL_INVALID_KEY = 'CoreCoursesEnrolInvalidKey';
 
 export const CORE_COURSES_MY_COURSES_CHANGED_EVENT = 'courses_my_courses_changed'; // User course list changed while app is running.
@@ -28,8 +30,15 @@ export const CORE_COURSES_DASHBOARD_DOWNLOAD_ENABLED_CHANGED_EVENT = 'dashboard_
 // Features.
 export const CORE_COURSE_DOWNLOAD_FEATURE_NAME = 'NoDelegate_CoreCourseDownload';
 export const CORE_COURSES_DOWNLOAD_FEATURE_NAME = 'NoDelegate_CoreCoursesDownload';
-export const CORE_COURSES_MYCOURSES_MENU_FEATURE_NAME = 'CoreMainMenuDelegate_CoreCourses';
 export const CORE_COURSES_SEARCH_FEATURE_NAME = 'CoreCourseOptionsDelegate_search';
+
+export const CORE_COURSES_COMPONENT_NAME = 'CoreCourses';
+export const CORE_COURSES_MENU_FEATURE_NAME = `${MAIN_MENU_FEATURE_PREFIX}${CORE_COURSES_COMPONENT_NAME}`;
+
+export const CORE_COURSES_MY_COURSES_COMPONENT_NAME = 'CoreCoursesMyCourses';
+
+export const CORE_COURSES_DASHBOARD_COMPONENT_NAME = 'CoreCoursesDashboard';
+export const CORE_COURSES_DASHBOARD_MENU_FEATURE_NAME = `${MAIN_MENU_FEATURE_PREFIX}${CORE_COURSES_DASHBOARD_COMPONENT_NAME}`;
 
 // Actions for event CORE_COURSES_MY_COURSES_UPDATED_EVENT.
 export const CoreCoursesMyCoursesUpdatedEventAction = {
@@ -39,7 +48,7 @@ export const CoreCoursesMyCoursesUpdatedEventAction = {
     VIEW: 'view', // Course viewed.
 /* eslint-enable @typescript-eslint/naming-convention*/
 } as const;
-// eslint-disable-next-line @typescript-eslint/no-redeclare
+
 export type CoreCoursesMyCoursesUpdatedEventAction =
     typeof CoreCoursesMyCoursesUpdatedEventAction[keyof typeof CoreCoursesMyCoursesUpdatedEventAction];
 
@@ -49,5 +58,5 @@ export const CORE_COURSES_STATE_FAVOURITE = 'favourite';
 
 export const enum CoreCoursesMyPageName {
     DEFAULT = '__default',
-    COURSES = '__courses'
+    COURSES = '__courses',
 }

@@ -24,9 +24,9 @@ import { CoreQuestionDelegate } from '@features/question/services/question-deleg
 import { CoreNetwork } from '@services/network';
 import { CoreSites, CoreSitesReadingStrategy } from '@services/sites';
 import { CoreSync, CoreSyncResult } from '@services/sync';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { makeSingleton, Translate } from '@singletons';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { AddonModQuizAttemptDBRecord } from './database/quiz';
 import { type AddonModQuizPrefetchHandlerService } from './handlers/prefetch';
 import { AddonModQuiz, AddonModQuizAttemptWSData, AddonModQuizQuizWSData } from './quiz';
@@ -113,7 +113,7 @@ export class AddonModQuizSyncProvider extends CoreCourseActivitySyncBaseProvider
             // Attempt wasn't finished at start. Check if it's finished now.
             const attempts = await AddonModQuiz.getUserAttempts(quiz.id, { cmId: quiz.coursemodule, siteId });
 
-            const attempt = attempts.find(attempt => attempt.id == options?.onlineAttempt?.id);
+            const attempt = attempts.find(attempt => attempt.id === options?.onlineAttempt?.id);
 
             attemptFinished = attempt ? AddonModQuiz.isAttemptCompleted(attempt.state) : false;
         }
@@ -185,7 +185,7 @@ export class AddonModQuizSyncProvider extends CoreCourseActivitySyncBaseProvider
      * Try to synchronize all the quizzes in a certain site or in all sites.
      *
      * @param siteId Site ID to sync. If not defined, sync all sites.
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
     syncAllQuizzes(siteId?: string, force?: boolean): Promise<void> {
@@ -195,7 +195,7 @@ export class AddonModQuizSyncProvider extends CoreCourseActivitySyncBaseProvider
     /**
      * Sync all quizzes on a site.
      *
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @param siteId Site ID to sync.
      */
     protected async syncAllQuizzesFunc(force: boolean, siteId: string): Promise<void> {
@@ -329,7 +329,7 @@ export class AddonModQuizSyncProvider extends CoreCourseActivitySyncBaseProvider
         const onlineAttempts = await AddonModQuiz.getUserAttempts(quiz.id, modOptions);
 
         const lastAttemptId = onlineAttempts.length ? onlineAttempts[onlineAttempts.length - 1].id : undefined;
-        const onlineAttempt = onlineAttempts.find((attempt) => attempt.id == offlineAttempt.id);
+        const onlineAttempt = onlineAttempts.find((attempt) => attempt.id === offlineAttempt.id);
 
         if (!onlineAttempt || AddonModQuiz.isAttemptCompleted(onlineAttempt.state)) {
             // Attempt not found or it's finished in online. Discard it.
@@ -513,7 +513,7 @@ export type AddonModQuizAutoSyncData = {
     warnings: string[];
 };
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.

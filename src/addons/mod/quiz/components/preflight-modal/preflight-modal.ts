@@ -15,11 +15,11 @@
 import { Component, OnInit, ElementRef, Input, Type, inject, viewChild } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { CoreSites } from '@services/sites';
-import { CoreForms } from '@singletons/form';
+import { CoreForms } from '@static/form';
 import { ModalController, Translate } from '@singletons';
 import { AddonModQuizAccessRuleDelegate } from '../../services/access-rules-delegate';
 import { AddonModQuizAttemptWSData, AddonModQuizQuizWSData } from '../../services/quiz';
-import { CoreDom } from '@singletons/dom';
+import { CoreDom } from '@static/dom';
 import { CoreSharedModule } from '@/core/shared.module';
 import { toBoolean } from '@/core/transforms/boolean';
 import { CoreAlerts } from '@services/overlays/alerts';
@@ -46,7 +46,7 @@ export class AddonModQuizPreflightModalComponent implements OnInit {
     @Input({ required: true }) rules!: string[];
 
     preflightForm: FormGroup;
-    accessRulesData: { component: Type<unknown>; data: Record<string, unknown>}[] = []; // Component and data for each access rule.
+    accessRulesData: { component: Type<unknown>; data: Record<string, unknown> }[] = []; // Component and data for each access rule.
     loaded = false;
 
     protected element: HTMLElement = inject(ElementRef).nativeElement;

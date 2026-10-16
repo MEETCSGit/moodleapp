@@ -15,14 +15,14 @@
 import { AfterViewInit, Directive, ElementRef, OnDestroy, inject } from '@angular/core';
 
 import { Translate } from '@singletons';
-import { CoreIcons } from '@singletons/icons';
-import { CoreDom } from '@singletons/dom';
-import { CoreWait } from '@singletons/wait';
+import { CoreIcons } from '@static/icons';
+import { CoreDom } from '@static/dom';
+import { CoreWait } from '@static/wait';
 import { CoreModals } from '@services/overlays/modals';
 import { CoreViewer } from '@features/viewer/services/viewer';
-import { CoreDirectivesRegistry } from '@singletons/directives-registry';
+import { CoreDirectivesRegistry } from '@static/directives-registry';
 import { CoreCollapsibleHeaderDirective } from './collapsible-header';
-import { CoreLogger } from '@singletons/logger';
+import { CoreLogger } from '@static/logger';
 
 /**
  * Directive to add the reading mode to the selected html tag.
@@ -137,14 +137,11 @@ export class CoreReadingModeDirective implements AfterViewInit, OnDestroy {
             this.disabledStyles = this.disabledStyles.concat(disabledStyles);
 
             // Rename style attributes on DOM elements.
-            const renamedStyles: HTMLElement[] = Array.from(element.querySelectorAll('*[style]'));
-            renamedStyles.forEach((element: HTMLElement) => {
-                this.renamedStyles.push(element);
+            this.renamedStyles = Array.from(element.querySelectorAll('*[style]'));
+            this.renamedStyles.forEach((element: HTMLElement) => {
                 element.setAttribute('data-original-style', element.getAttribute('style') || '');
                 element.removeAttribute('style');
             });
-
-            this.renamedStyles = this.renamedStyles.concat(renamedStyles);
 
             // Navigate to parent hidding all other elements.
             let currentChild = element;

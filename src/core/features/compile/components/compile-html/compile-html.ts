@@ -43,10 +43,10 @@ import {
 import { CorePromisedValue } from '@classes/promised-value';
 
 import { CoreCompile } from '@features/compile/services/compile';
-import { CoreAngular } from '@singletons/angular';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CoreAngular } from '@static/angular';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreWS } from '@services/ws';
-import { CoreDom } from '@singletons/dom';
+import { CoreDom } from '@static/dom';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreSharedModule } from '@/core/shared.module';
 
@@ -282,7 +282,7 @@ export class CoreCompileHtmlComponent implements OnChanges, OnDestroy, DoCheck {
 
                     if (typeof this[name] === 'function') {
                         // Call the function.
-                        Promise.resolve(this[name].apply(this, pendingCall.params)).then(pendingCall.defer.resolve)
+                        Promise.resolve(this[name](...pendingCall.params)).then(pendingCall.defer.resolve)
                             .catch(pendingCall.defer.reject);
                     } else {
                         // Function not defined, resolve the promise.
@@ -318,12 +318,12 @@ export class CoreCompileHtmlComponent implements OnChanges, OnDestroy, DoCheck {
             }
 
             /**
-             * Call a lifecycle method that can be overriden in plugins.
+             * Call a lifecycle method that can be overridden in plugins.
              *
              * This is necessary because overriding lifecycle hooks at runtime does not work in Angular. This may be happening
              * because lifecycle hooks are special methods treated by the Angular compiler, so it is possible that it's storing
              * a reference to the method defined during compilation. In order to work around that, this will call the actual method
-             * from the plugin without causing infinite loops in case it wasn't overriden.
+             * from the plugin without causing infinite loops in case it wasn't overridden.
              *
              * @param method Lifecycle hook method name.
              */
@@ -365,7 +365,7 @@ export class CoreCompileHtmlComponent implements OnChanges, OnDestroy, DoCheck {
     callComponentFunction(name: string, params?: unknown[], callWhenCreated = true): unknown {
         if (this.componentInstance) {
             if (typeof this.componentInstance[name] === 'function') {
-                return this.componentInstance[name].apply(this.componentInstance, params);
+                return this.componentInstance[name](...(params || []));
             }
         } else if (callWhenCreated) {
             // Call it when the component is created.

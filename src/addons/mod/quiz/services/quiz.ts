@@ -29,11 +29,11 @@ import {
 import { CoreQuestionDelegate } from '@features/question/services/question-delegate';
 import { CoreSites, CoreSitesCommonWSOptions, CoreSitesReadingStrategy } from '@services/sites';
 import { convertTextToHTMLElement } from '@/core/utils/create-html-element';
-import { CoreTime } from '@singletons/time';
-import { CoreUtils } from '@singletons/utils';
+import { CoreTime } from '@static/time';
+import { CoreUtils } from '@static/utils';
 import { CoreStatusWithWarningsWSResponse, CoreWSExternalFile, CoreWSExternalWarning } from '@services/ws';
 import { makeSingleton, Translate } from '@singletons';
-import { CoreLogger } from '@singletons/logger';
+import { CoreLogger } from '@static/logger';
 import { AddonModQuizAccessRuleDelegate } from './access-rules-delegate';
 import { AddonModQuizOffline, AddonModQuizQuestionsWithAnswers } from './quiz-offline';
 import { CoreSiteWSPreSets } from '@classes/sites/authenticated-site';
@@ -52,14 +52,14 @@ import {
     ADDON_MOD_QUIZ_IMMEDIATELY_AFTER_PERIOD,
     AddonModQuizNavMethods,
 } from '../constants';
-import { CoreIonicColorNames } from '@singletons/colors';
+import { CoreIonicColorNames } from '@static/colors';
 import { CoreCacheUpdateFrequency } from '@/core/constants';
-import { CoreObject } from '@singletons/object';
-import { CoreArray } from '@singletons/array';
-import { CoreTextFormat } from '@singletons/text';
+import { CoreObject } from '@static/object';
+import { CoreArray } from '@static/array';
+import { CoreTextFormat } from '@static/text';
 import { CoreCourseModuleHelper, CoreCourseModuleStandardElements } from '@features/course/services/course-module-helper';
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.
@@ -420,17 +420,23 @@ export class AddonModQuizProvider {
      * @param finishedOffline Whether the attempt was finished offline.
      * @returns Readable state name.
      */
-    getAttemptReadableStateName(state: string, finishedOffline = false): string {
+    getAttemptReadableStateName(state?: AddonModQuizAttemptStates, finishedOffline = false): string {
         if (finishedOffline) {
             return Translate.instant('core.submittedoffline');
         }
 
         switch (state) {
+            case AddonModQuizAttemptStates.NOT_STARTED:
+                return Translate.instant('addon.mod_quiz.statenotstarted');
+
             case AddonModQuizAttemptStates.IN_PROGRESS:
                 return Translate.instant('addon.mod_quiz.stateinprogress');
 
             case AddonModQuizAttemptStates.OVERDUE:
                 return Translate.instant('addon.mod_quiz.stateoverdue');
+
+            case AddonModQuizAttemptStates.SUBMITTED:
+                return Translate.instant('addon.mod_quiz.statesubmitted');
 
             case AddonModQuizAttemptStates.FINISHED:
                 return Translate.instant('addon.mod_quiz.statefinished');
@@ -450,17 +456,23 @@ export class AddonModQuizProvider {
      * @param finishedOffline Whether the attempt was finished offline.
      * @returns State color.
      */
-    getAttemptStateColor(state: string, finishedOffline = false): string {
+    getAttemptStateColor(state?: AddonModQuizAttemptStates, finishedOffline = false): string {
         if (finishedOffline) {
             return CoreIonicColorNames.MEDIUM;
         }
 
         switch (state) {
+            case AddonModQuizAttemptStates.NOT_STARTED:
+                return CoreIonicColorNames.INFO;
+
             case AddonModQuizAttemptStates.IN_PROGRESS:
                 return CoreIonicColorNames.WARNING;
 
             case AddonModQuizAttemptStates.OVERDUE:
                 return CoreIonicColorNames.INFO;
+
+            case AddonModQuizAttemptStates.SUBMITTED:
+                return CoreIonicColorNames.SUCCESS;
 
             case AddonModQuizAttemptStates.FINISHED:
                 return CoreIonicColorNames.SUCCESS;
@@ -704,7 +716,7 @@ export class AddonModQuizProvider {
             quiz.questiondecimalpoints = -1;
         }
 
-        if (quiz.questiondecimalpoints == -1) {
+        if (quiz.questiondecimalpoints === -1) {
             return quiz.decimalpoints ?? 1;
         }
 
@@ -772,7 +784,7 @@ export class AddonModQuizProvider {
         const messages: string[] = [];
 
         questions.forEach((question) => {
-            if (question.type != 'random' && !CoreQuestionDelegate.isQuestionSupported(question.type)) {
+            if (question.type !== 'random' && !CoreQuestionDelegate.isQuestionSupported(question.type)) {
                 // The question isn't supported.
                 messages.push(Translate.instant('core.question.questionmessage', {
                     $a: question.slot,
@@ -899,29 +911,29 @@ export class AddonModQuizProvider {
     }
 
     /**
-     * Get a readable Quiz grade method.
+     * Get a translatable Quiz grade method.
      *
      * @param method Grading method.
-     * @returns Readable grading method.
+     * @returns Translatable grading method.
      */
     getQuizGradeMethod(method?: number | string): string {
         if (method === undefined) {
             return '';
         }
 
-        if (typeof method == 'string') {
+        if (typeof method === 'string') {
             method = parseInt(method, 10);
         }
 
         switch (method) {
             case AddonModQuizGradeMethods.HIGHEST_GRADE:
-                return Translate.instant('addon.mod_quiz.gradehighest');
+                return 'addon.mod_quiz.gradehighest';
             case AddonModQuizGradeMethods.AVERAGE_GRADE:
-                return Translate.instant('addon.mod_quiz.gradeaverage');
+                return 'addon.mod_quiz.gradeaverage';
             case AddonModQuizGradeMethods.FIRST_ATTEMPT:
-                return Translate.instant('addon.mod_quiz.attemptfirst');
+                return 'addon.mod_quiz.attemptfirst';
             case AddonModQuizGradeMethods.LAST_ATTEMPT:
-                return Translate.instant('addon.mod_quiz.attemptlast');
+                return 'addon.mod_quiz.attemptlast';
             default:
                 return '';
         }
@@ -989,7 +1001,7 @@ export class AddonModQuizProvider {
         let page = 0;
 
         for (let i = 0; i < split.length; i++) {
-            if (split[i] == '0') {
+            if (split[i] === '0') {
                 pages.push(page);
                 page++;
             }
@@ -1021,7 +1033,7 @@ export class AddonModQuizProvider {
         for (let i = 0; i < split.length; i++) {
             const value = Number(split[i]);
 
-            if (value == 0) {
+            if (value === 0) {
                 page++;
                 pageAdded = false;
             } else if (!pageAdded && questions[value]) {
@@ -1043,7 +1055,7 @@ export class AddonModQuizProvider {
         const notSupported: string[] = [];
 
         questionTypes.forEach((type) => {
-            if (type != 'random' && !CoreQuestionDelegate.isQuestionSupported(type)) {
+            if (type !== 'random' && !CoreQuestionDelegate.isQuestionSupported(type)) {
                 notSupported.push(type);
             }
         });
@@ -1108,12 +1120,6 @@ export class AddonModQuizProvider {
         const site = await CoreSites.getSite(options.siteId);
 
         const userId = options.userId || site.getUserId();
-        const params: AddonModQuizGetUserAttemptsWSParams = {
-            quizid: quizId,
-            userid: userId,
-            status: status,
-            includepreviews: !!includePreviews,
-        };
         const preSets: CoreSiteWSPreSets = {
             cacheKey: this.getUserAttemptsCacheKey(quizId, userId),
             updateFrequency: CoreCacheUpdateFrequency.SOMETIMES,
@@ -1122,9 +1128,35 @@ export class AddonModQuizProvider {
             ...CoreSites.getReadingStrategyPreSets(options.readingStrategy), // Include reading strategy preSets.
         };
 
-        const response = await site.read<AddonModQuizGetUserAttemptsWSResponse>('mod_quiz_get_user_attempts', params, preSets);
+        if (site.wsAvailable('mod_quiz_get_user_quiz_attempts')) {
+            // @since Moodle 5.0.
+            const params: AddonModQuizGetUserQuizAttemptsWSParams = {
+                quizid: quizId,
+                userid: userId,
+                status: status,
+                includepreviews: !!includePreviews,
+            };
 
-        return response.attempts;
+            const response = await site.read<AddonModQuizGetUserQuizAttemptsWSResponse>(
+                'mod_quiz_get_user_quiz_attempts',
+                params,
+                preSets,
+            );
+
+            return response.attempts;
+        } else {
+            // @deprecatedonmoodle 5.0.
+            const params: AddonModQuizGetUserAttemptsWSParams = {
+                quizid: quizId,
+                userid: userId,
+                status: status,
+                includepreviews: !!includePreviews,
+            };
+
+            const response = await site.read<AddonModQuizGetUserAttemptsWSResponse>('mod_quiz_get_user_attempts', params, preSets);
+
+            return response.attempts;
+        }
     }
 
     /**
@@ -1480,7 +1512,7 @@ export class AddonModQuizProvider {
      * @param state Attempt's state.
      * @returns Whether it's finished.
      */
-    isAttemptCompleted(state?: string): boolean {
+    isAttemptCompleted(state?: AddonModQuizAttemptStates): boolean {
         return state === AddonModQuizAttemptStates.FINISHED || state === AddonModQuizAttemptStates.ABANDONED;
     }
 
@@ -1609,7 +1641,7 @@ export class AddonModQuizProvider {
      */
     async logViewAttempt(
         attemptId: number,
-        page: number = 0,
+        page = 0,
         preflightData: Record<string, string> = {},
         offline?: boolean,
         siteId?: string,
@@ -1992,6 +2024,16 @@ export class AddonModQuizProvider {
         return response.attempt;
     }
 
+    /**
+     * Check if a new attempt can be started based on the last attempt state.
+     *
+     * @param state Last attempt state. If not defined, it will be considered that there is no previous attempt.
+     * @returns Whether a new attempt can be started.
+     */
+    canStartAttemptBasedOnLastState(state?: AddonModQuizAttemptStates): boolean {
+        return !state || state === AddonModQuizAttemptStates.NOT_STARTED || this.isAttemptCompleted(state);
+    }
+
 }
 
 export const AddonModQuiz = makeSingleton(AddonModQuizProvider);
@@ -2092,7 +2134,7 @@ export type AddonModQuizAttemptWSData = {
     layout?: string; // Attempt layout.
     currentpage?: number; // Attempt current page.
     preview?: number; // Whether is a preview attempt or not.
-    state?: string; // The current state of the attempts. 'inprogress', 'overdue', 'finished' or 'abandoned'.
+    state?: AddonModQuizAttemptStates; // The current state of the attempts.
     timestart?: number; // Time when the attempt was started.
     timefinish?: number; // Time when the attempt was submitted. 0 if the attempt has not been submitted yet.
     timemodified?: number; // Last modified time.
@@ -2104,6 +2146,12 @@ export type AddonModQuizAttemptWSData = {
         grade: number; // The grade this attempt earned for this item.
         maxgrade: number; // The total this grade is out of.
     }[];
+    gradednotificationsenttime?: number; // Time when the student was notified that manual grading of their attempt was complete.
+    feedback?: { // @since 5.2.
+        feedbacktext: string; // Feedback text to display (only if set).
+        feedbacktextformat?: CoreTextFormat; // Feedback format (only if set).
+        feedbackinlinefiles?: CoreWSExternalFile[]; // Feedback inline files (only if set).
+    };
 };
 
 /**
@@ -2275,6 +2323,7 @@ export type AddonModQuizQuizWSData = CoreCourseModuleStandardElements & {
     autosaveperiod?: number; // Auto-save delay.
     hasfeedback?: number; // Whether the quiz has any non-blank feedback text.
     hasquestions?: number; // Whether the quiz has questions.
+    duedate?: number; // @since 5.3. The due date for the quiz. (0 = no due date.)
 };
 
 /**
@@ -2315,7 +2364,9 @@ export type AddonModQuizGetQuizRequiredQtypesWSResponse = {
 };
 
 /**
- * Params of mod_quiz_get_user_attempts WS.
+ * Params of mod_quiz_get_user_attempts WS. (Deprecated in favour of mod_quiz_get_user_quiz_attempts).
+ *
+ * @deprecatedonmoodle 5.0.
  */
 export type AddonModQuizGetUserAttemptsWSParams = {
     quizid: number; // Quiz instance id.
@@ -2325,9 +2376,29 @@ export type AddonModQuizGetUserAttemptsWSParams = {
 };
 
 /**
- * Data returned by mod_quiz_get_user_attempts WS.
+ * Data returned by mod_quiz_get_user_attempts WS. (Deprecated in favour of mod_quiz_get_user_quiz_attempts).
+ *
+ * @deprecatedonmoodle 5.0.
  */
 export type AddonModQuizGetUserAttemptsWSResponse = {
+    attempts: AddonModQuizAttemptWSData[];
+    warnings?: CoreWSExternalWarning[];
+};
+
+/**
+ * Params of mod_quiz_get_user_quiz_attempts WS.
+ */
+export type AddonModQuizGetUserQuizAttemptsWSParams = {
+    quizid: number; // Quiz instance id.
+    userid?: number; // User id, empty for current user.
+    status?: string; // Quiz status: all, finished or unfinished.
+    includepreviews?: boolean; // Whether to include previews or not.
+};
+
+/**
+ * Data returned by mod_quiz_get_user_quiz_attempts WS.
+ */
+export type AddonModQuizGetUserQuizAttemptsWSResponse = {
     attempts: AddonModQuizAttemptWSData[];
     warnings?: CoreWSExternalWarning[];
 };
@@ -2347,6 +2418,11 @@ export type AddonModQuizGetUserBestGradeWSResponse = {
     hasgrade: boolean; // Whether the user has a grade on the given quiz.
     grade?: SafeNumber; // The grade (only if the user has a grade).
     gradetopass?: number; // @since 3.11. The grade to pass the quiz (only if set).
+    feedback?: { // @since 5.2.
+        feedbacktext: string; // Feedback text to display (only if set).
+        feedbacktextformat?: CoreTextFormat; // Feedback format (only if set).
+        feedbackinlinefiles?: CoreWSExternalFile[]; // Feedback inline files (only if set).
+    };
     warnings?: CoreWSExternalWarning[];
 };
 
@@ -2377,7 +2453,7 @@ export type AddonModQuizProcessAttemptWSParams = {
  * Data returned by mod_quiz_process_attempt WS.
  */
 export type AddonModQuizProcessAttemptWSResponse = {
-    state: string; // The new attempt state: inprogress, finished, overdue, abandoned.
+    state: Exclude<AddonModQuizAttemptStates, AddonModQuizAttemptStates.NOT_STARTED>; // The new attempt state.
     warnings?: CoreWSExternalWarning[];
 };
 

@@ -20,7 +20,7 @@ import { CoreGroupInfo } from '@services/groups';
 import { CoreNavigator } from '@services/navigator';
 import { CoreSites } from '@services/sites';
 import { Translate } from '@singletons';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import {
     AddonModAssignSubmissionForList,
     AddonModAssignSubmissionsSource,
@@ -85,7 +85,7 @@ export default class AddonModAssignSubmissionListPage implements AfterViewInit, 
         this.syncObserver = CoreEvents.onMultiple<AddonModAssignAutoSyncData | AddonModAssignManualSyncData>(
             events,
             (data) => {
-                if (!this.submissions.loaded || ('context' in data && data.context == 'submission-list')) {
+                if (!this.submissions.loaded || ('context' in data && data.context === 'submission-list')) {
                     return;
                 }
 

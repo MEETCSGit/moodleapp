@@ -18,7 +18,7 @@ import { AddonModQuizQuestionBasicData, CoreQuestionBaseComponent } from '@featu
 import { CoreQuestionHelper } from '@features/question/services/question-helper';
 import { AddonQtypeDdImageOrTextQuestion } from '../classes/ddimageortext';
 import { CoreSharedModule } from '@/core/shared.module';
-import { CoreText } from '@singletons/text';
+import { CoreText } from '@static/text';
 
 /**
  * Component to render a drag-and-drop onto image question.
@@ -124,6 +124,10 @@ export class AddonQtypeDdImageOrTextComponent
      */
     protected questionRendered(): void {
         if (!this.destroyed && this.question) {
+
+            // Should not happen, but just in case we avoid creating duplicated instances.
+            this.questionInstance?.destroy();
+
             // Create the instance.
             this.questionInstance = new AddonQtypeDdImageOrTextQuestion(
                 this.hostElement,

@@ -77,13 +77,13 @@ export class CoreTagProvider {
      * @since 3.7
      */
     async getTagCloud(
-        collectionId: number = 0,
-        isStandard: boolean = false,
-        sort: string = 'name',
-        search: string = '',
-        fromContextId: number = 0,
-        contextId: number = 0,
-        recursive: boolean = true,
+        collectionId = 0,
+        isStandard = false,
+        sort = 'name',
+        search = '',
+        fromContextId = 0,
+        contextId = 0,
+        recursive = true,
         limit?: number,
         siteId?: string,
     ): Promise<CoreTagCloud> {
@@ -149,13 +149,13 @@ export class CoreTagProvider {
      */
     async getTagIndexPerArea(
         id: number,
-        name: string = '',
-        collectionId: number = 0,
-        areaId: number = 0,
-        fromContextId: number = 0,
-        contextId: number = 0,
-        recursive: boolean = true,
-        page: number = 0,
+        name = '',
+        collectionId = 0,
+        areaId = 0,
+        fromContextId = 0,
+        contextId = 0,
+        recursive = true,
+        page = 0,
         siteId?: string,
     ): Promise<CoreTagIndex[]> {
         const site = await CoreSites.getSite(siteId);
@@ -182,7 +182,7 @@ export class CoreTagProvider {
             response = await site.read('core_tag_get_tagindex_per_area', params, preSets);
         } catch (error) {
             // Workaround for WS not passing parameter to error string.
-            if (error && error.errorcode == 'notagsfound') {
+            if (error && error.errorcode === 'notagsfound') {
                 error.message = Translate.instant('core.tag.notagsfound', { $a: name || id || '' });
             }
 
@@ -206,15 +206,16 @@ export class CoreTagProvider {
      * @param fromContextId Context ID where this tag cloud is displayed.
      * @param contextId Only retrieve tag instances in this context.
      * @param recursive Retrieve tag instances in the context and its children.
+     * @param siteId Site ID. If not defined, current site.
      */
     async invalidateTagCloud(
-        collectionId: number = 0,
-        isStandard: boolean = false,
-        sort: string = 'name',
-        search: string = '',
-        fromContextId: number = 0,
-        contextId: number = 0,
-        recursive: boolean = true,
+        collectionId = 0,
+        isStandard = false,
+        sort = 'name',
+        search = '',
+        fromContextId = 0,
+        contextId = 0,
+        recursive = true,
         siteId?: string,
     ): Promise<void> {
         const site = await CoreSites.getSite(siteId);
@@ -226,6 +227,7 @@ export class CoreTagProvider {
     /**
      * Invalidate tag collections.
      *
+     * @param siteId Site ID. If not defined, current site.
      */
     async invalidateTagCollections(siteId?: string): Promise<void> {
         const site = await CoreSites.getSite(siteId);
@@ -244,15 +246,16 @@ export class CoreTagProvider {
      * @param fromContextId Context ID where the link was displayed.
      * @param contextId Context ID where to search for items.
      * @param recursive Search in the context and its children.
+     * @param siteId Site ID. If not defined, current site.
      */
     async invalidateTagIndexPerArea(
         id: number,
-        name: string = '',
-        collectionId: number = 0,
-        areaId: number = 0,
-        fromContextId: number = 0,
-        contextId: number = 0,
-        recursive: boolean = true,
+        name = '',
+        collectionId = 0,
+        areaId = 0,
+        fromContextId = 0,
+        contextId = 0,
+        recursive = true,
         siteId?: string,
     ): Promise<void> {
         const site = await CoreSites.getSite(siteId);

@@ -14,18 +14,17 @@
 
 import { Injectable } from '@angular/core';
 import { FileEntry, DirectoryEntry } from '@awesome-cordova-plugins/file/ngx';
-import { Md5 } from 'ts-md5/dist/md5';
-
-import { CoreLogger } from '@singletons/logger';
+import { Md5 } from 'ts-md5';
+import { CoreLogger } from '@static/logger';
 import { CoreAppDB } from '@services/app-db';
 import { CoreFile } from '@services/file';
-import { CorePromiseUtils } from '@singletons/promise-utils';
-import { CoreMimetype } from '@singletons/mimetype';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreMimetype } from '@static/mimetype';
 import { CoreSites } from '@services/sites';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { makeSingleton } from '@singletons';
 import { APP_SCHEMA, CoreSharedFilesDBRecord, SHARED_FILES_TABLE_NAME } from './database/sharedfiles';
-import { CorePath } from '@singletons/path';
+import { CorePath } from '@static/path';
 import { asyncInstance } from '@/core/utils/async-instance';
 import { CoreDatabaseTable } from '@classes/database/database-table';
 import { CoreDatabaseCachingStrategy, CoreDatabaseTableProxy } from '@classes/database/database-table-proxy';
@@ -54,7 +53,7 @@ export class CoreSharedFilesProvider {
         await CoreAppDB.createTablesFromSchema(APP_SCHEMA);
 
         const database = CoreAppDB.getDB();
-        const sharedFilesTable = new CoreDatabaseTableProxy<CoreSharedFilesDBRecord>(
+        const sharedFilesTable = CoreDatabaseTableProxy.createInstance<CoreSharedFilesDBRecord>(
             { cachingStrategy: CoreDatabaseCachingStrategy.None },
             database,
             SHARED_FILES_TABLE_NAME,
@@ -173,7 +172,7 @@ export class CoreSharedFilesProvider {
                     const extension = CoreMimetype.getFileExtension(entry.name);
                     const mimetype = CoreMimetype.getMimeType(extension);
 
-                    return !mimetype || mimetypes.indexOf(mimetype) > -1;
+                    return !mimetype || mimetypes.includes(mimetype);
                 });
             }
 

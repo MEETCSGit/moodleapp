@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { effect, Injectable, Signal, signal } from '@angular/core';
+import { computed, effect, Injectable, Signal, signal } from '@angular/core';
 import { CorePlatform } from '@services/platform';
 import { Network } from '@awesome-cordova-plugins/network/ngx';
 import { makeSingleton } from '@singletons';
 import { Observable, Subject, merge } from 'rxjs';
-import { CoreHTMLClasses } from '@singletons/html-classes';
+import { CoreHTMLClasses } from '@static/html-classes';
 
 enum CoreNetworkConnection {
     UNKNOWN = 'unknown',
@@ -26,6 +26,7 @@ enum CoreNetworkConnection {
     CELL_2G = '2g',
     CELL_3G = '3g',
     CELL_4G = '4g',
+    CELL_5G = '5g',
     CELL = 'cellular',
     NONE = 'none',
 }
@@ -52,6 +53,8 @@ export class CoreNetworkService extends Network {
     protected connectStableTimeout?: number;
     protected readonly online = signal(false);
     private readonly _connectionType = signal(CoreNetworkConnectionType.UNKNOWN);
+    protected readonly cellularSignal = computed<boolean>(() => this.connectionTypeSignal() === CoreNetworkConnectionType.CELL);
+    protected readonly wifiSignal = computed<boolean>(() => this.connectionTypeSignal() === CoreNetworkConnectionType.WIFI);
 
     constructor() {
         super();
@@ -89,7 +92,7 @@ export class CoreNetworkService extends Network {
 
         if (CorePlatform.isMobile()) {
             // We cannot directly listen to onChange because it depends on
-            // onConnect and onDisconnect that have been already overriden.
+            // onConnect and onDisconnect that have been already overridden.
             super.onConnect().subscribe(() => {
                 this.fireObservable();
             });
@@ -204,6 +207,7 @@ export class CoreNetworkService extends Network {
                 case CoreNetworkConnection.CELL_2G:
                 case CoreNetworkConnection.CELL_3G:
                 case CoreNetworkConnection.CELL_4G:
+                case CoreNetworkConnection.CELL_5G:
                     this._connectionType.set(CoreNetworkConnectionType.CELL);
 
                     return;
@@ -236,7 +240,7 @@ export class CoreNetworkService extends Network {
      *
      * @returns Signal.
      */
-    onlineSignal(): Signal<boolean> {
+    get onlineSignal(): Signal<boolean> {
         return this.online.asReadonly();
     }
 
@@ -245,7 +249,7 @@ export class CoreNetworkService extends Network {
      *
      * @returns Signal.
      */
-    connectionTypeSignal(): Signal<CoreNetworkConnectionType> {
+    get connectionTypeSignal(): Signal<CoreNetworkConnectionType> {
         return this._connectionType.asReadonly();
     }
 
@@ -314,7 +318,7 @@ export class CoreNetworkService extends Network {
      * @returns Whether the device uses a wifi connection.
      */
     isWifi(): boolean {
-        return this.connectionType === CoreNetworkConnectionType.WIFI;
+        return this.wifiSignal();
     }
 
     /**
@@ -323,7 +327,25 @@ export class CoreNetworkService extends Network {
      * @returns Whether the device uses a limited connection.
      */
     isCellular(): boolean {
-        return this.connectionType === CoreNetworkConnectionType.CELL;
+        return this.cellularSignal();
+    }
+
+    /**
+     * Returns a signal to watch if the device uses a cellular connection.
+     *
+     * @returns Signal.
+     */
+    get isCellularSignal(): Signal<boolean> {
+        return this.cellularSignal;
+    }
+
+    /**
+     * Returns a signal to watch if the device uses a wifi connection.
+     *
+     * @returns Signal.
+     */
+    get isWifiSignal(): Signal<boolean> {
+        return this.wifiSignal;
     }
 
 }

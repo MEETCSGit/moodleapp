@@ -19,13 +19,13 @@ import { CoreBlockBaseComponent } from '@features/block/classes/base-block-compo
 import { CoreSites } from '@services/sites';
 import { ContextLevel } from '@/core/constants';
 import { Translate } from '@singletons';
-import { CoreObject } from '@singletons/object';
-import { CoreNavigator } from '@services/navigator';
+import { CoreObject } from '@static/object';
 import { CoreCourseHelper } from '@features/course/services/course-helper';
-import { CoreUrl } from '@singletons/url';
+import { CoreUrl } from '@static/url';
 import { CoreSharedModule } from '@/core/shared.module';
-import { ModFeature, ModArchetype } from '@addons/mod/constants';
+import { ModFeature, ModArchetype, RESOURCE_ARCHETYPE_NAME } from '@addons/mod/constants';
 import { CoreCourseModuleHelper } from '@features/course/services/course-module-helper';
+import { CoreCourseOverview } from '@features/course/services/course-overview';
 
 /**
  * Component to render an "activity modules" block.
@@ -87,8 +87,8 @@ export class AddonBlockActivityModulesComponent extends CoreBlockBaseComponent i
             // Get the full name of the module type.
             if (archetypes[mod.modname] === ModArchetype.RESOURCE) {
                 // All resources are gathered in a single "Resources" option.
-                if (!modFullNames['resources']) {
-                    modFullNames['resources'] = Translate.instant('core.resources');
+                if (!modFullNames[RESOURCE_ARCHETYPE_NAME]) {
+                    modFullNames[RESOURCE_ARCHETYPE_NAME] = Translate.instant('core.resources');
                 }
             } else {
                 modFullNames[mod.modname] = mod.modplural;
@@ -105,7 +105,7 @@ export class AddonBlockActivityModulesComponent extends CoreBlockBaseComponent i
         // Sort the modnames alphabetically.
         modFullNames = CoreObject.sortValues(modFullNames);
         for (const modName in modFullNames) {
-            const iconModName = modName === 'resources' ? 'page' : modName;
+            const iconModName = modName === RESOURCE_ARCHETYPE_NAME ? 'page' : modName;
 
             const icon = await CoreCourseModuleDelegate.getModuleIconSrc(iconModName, modIcons[iconModName]);
 
@@ -125,7 +125,7 @@ export class AddonBlockActivityModulesComponent extends CoreBlockBaseComponent i
      * @returns Course id.
      */
     protected getCourseId(): number {
-        if (this.contextLevel == ContextLevel.COURSE) {
+        if (this.contextLevel === ContextLevel.COURSE) {
             return this.instanceId;
         }
 
@@ -138,12 +138,7 @@ export class AddonBlockActivityModulesComponent extends CoreBlockBaseComponent i
      * @param entry Selected entry.
      */
     gotoCoureListModType(entry: AddonBlockActivityModuleEntry): void {
-        CoreNavigator.navigateToSitePath('course/' + this.getCourseId() + '/list-mod-type', {
-            params: {
-                modName: entry.modName,
-                title: entry.name,
-            },
-        });
+        CoreCourseOverview.navigateToCourseOverview(this.getCourseId(), entry.modName, entry.name);
     }
 
 }

@@ -19,9 +19,9 @@ import { CoreCourse } from '@features/course/services/course';
 import { CoreCourseLogHelper } from '@features/course/services/log-helper';
 import { CoreSites, CoreSitesReadingStrategy } from '@services/sites';
 import { CoreSync, CoreSyncResult } from '@services/sync';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { makeSingleton, Translate } from '@singletons';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import {
     AddonModScorm,
     AddonModScormAttemptCountResult,
@@ -97,7 +97,7 @@ export class AddonModScormSyncProvider extends CoreCourseActivitySyncBaseProvide
 
             await CorePromiseUtils.ignoreErrors(AddonModScormOffline.deleteAttempt(scormId, attempt, siteId));
 
-            // eslint-disable-next-line id-blacklist
+            // eslint-disable-next-line id-denylist
             warnings.push(Translate.instant('addon.mod_scorm.warningofflinedatadeleted', { number: attempt }));
         } else {
             // Add the attempt at the end.
@@ -248,7 +248,7 @@ export class AddonModScormSyncProvider extends CoreCourseActivitySyncBaseProvide
         attempt: number,
         cmId: number,
         siteId: string,
-    ): Promise<{incomplete: boolean; timecreated?: number}> {
+    ): Promise<{ incomplete: boolean; timecreated?: number }> {
 
         // Check if last offline attempt is incomplete.
         const incomplete = await AddonModScorm.isAttemptIncomplete(scormId, attempt, {
@@ -342,7 +342,7 @@ export class AddonModScormSyncProvider extends CoreCourseActivitySyncBaseProvide
                 throw error;
             }
 
-            for (let attempt = lastSuccessful; offlineAttempts.indexOf(attempt) != -1; attempt++) {
+            for (let attempt = lastSuccessful; offlineAttempts.includes(attempt); attempt++) {
                 // Move it back.
                 await AddonModScormOffline.changeAttemptNumber(scormId, attempt + newAttempts.length, attempt, siteId);
             }
@@ -375,7 +375,7 @@ export class AddonModScormSyncProvider extends CoreCourseActivitySyncBaseProvide
             // Let's try to get cached data about the attempt.
             userData = await CorePromiseUtils.ignoreErrors(
                 AddonModScorm.getScormUserData(scormId, attempt, { cmId, siteId }),
-                <AddonModScormUserDataMap> {},
+                <AddonModScormUserDataMap>{},
             );
 
             // We need to add the synced data to the snapshot.
@@ -414,7 +414,7 @@ export class AddonModScormSyncProvider extends CoreCourseActivitySyncBaseProvide
             const snapshotSco = snapshot[scoId];
 
             for (const element in siteSco.userdata) {
-                if (element.indexOf('.') > -1) {
+                if (element.includes('.')) {
                     if (!snapshotSco || siteSco.userdata[element] !== snapshotSco.userdata[element]) {
                         return false;
                     }
@@ -428,7 +428,7 @@ export class AddonModScormSyncProvider extends CoreCourseActivitySyncBaseProvide
             const snapshotSco = snapshot[scoId];
 
             for (const element in snapshotSco.userdata) {
-                if (element.indexOf('.') > -1) {
+                if (element.includes('.')) {
                     if (!siteSco || siteSco.userdata[element] !== snapshotSco.userdata[element]) {
                         return false;
                     }
@@ -443,7 +443,7 @@ export class AddonModScormSyncProvider extends CoreCourseActivitySyncBaseProvide
      * Try to synchronize all the SCORMs in a certain site or in all sites.
      *
      * @param siteId Site ID to sync. If not defined, sync all sites.
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
     syncAllScorms(siteId?: string, force?: boolean): Promise<void> {
@@ -453,7 +453,7 @@ export class AddonModScormSyncProvider extends CoreCourseActivitySyncBaseProvide
     /**
      * Sync all SCORMs on a site.
      *
-     * @param force Wether to force sync or not.
+     * @param force Whether to force sync or not.
      * @param siteId Site ID to sync.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
@@ -512,7 +512,7 @@ export class AddonModScormSyncProvider extends CoreCourseActivitySyncBaseProvide
 
         // Get data to send (only elements with dots like cmi.core.exit, in Mobile we store more data to make offline work).
         tracks.forEach((track) => {
-            if (track.element.indexOf('.') > -1) {
+            if (track.element.includes('.')) {
                 if (!scos[track.scoid]) {
                     scos[track.scoid] = [];
                 }
@@ -634,7 +634,7 @@ export class AddonModScormSyncProvider extends CoreCourseActivitySyncBaseProvide
         // Check if there are collisions between offline and online attempts (same number).
         attemptsData.online.forEach((attempt) => {
             lastOnline = Math.max(lastOnline, attempt);
-            if (attemptsData.offline.indexOf(attempt) > -1) {
+            if (attemptsData.offline.includes(attempt)) {
                 collisions.push(attempt);
             }
         });
@@ -680,7 +680,7 @@ export class AddonModScormSyncProvider extends CoreCourseActivitySyncBaseProvide
         // Get only the attempt number.
         const attempts = entries.map((entry) => entry.attempt);
 
-        if (incomplete && attempts.indexOf(lastOnline) > -1) {
+        if (incomplete && attempts.includes(lastOnline)) {
             // Last online was incomplete, but it was continued in offline.
             incomplete = false;
         }
@@ -745,8 +745,8 @@ export class AddonModScormSyncProvider extends CoreCourseActivitySyncBaseProvide
         const warnings: string[] = [];
         const newAttemptsSameOrder: number[] = []; // Attempts that will be created as new attempts but keeping the current order.
         const newAttemptsAtEnd: Record<number, number> = {}; // Attempts that'll be created at the end of list (should be max 1).
-        const lastCollision = Math.max.apply(Math, collisions);
-        let lastOffline = Math.max.apply(Math, offlineAttempts);
+        const lastCollision = Math.max(...collisions);
+        let lastOffline = Math.max(...offlineAttempts);
 
         // Get needed data from the last offline attempt.
         const lastOfflineData = await this.getOfflineAttemptData(scormId, lastOffline, cmId, siteId);
@@ -761,8 +761,7 @@ export class AddonModScormSyncProvider extends CoreCourseActivitySyncBaseProvide
                 const tracks = await AddonModScormOffline.getScormStoredData(scormId, attempt, true, false, siteId);
 
                 // Check if there are elements to sync.
-                const hasDataToSend = tracks.find(track => track.element.indexOf('.') > -1);
-
+                const hasDataToSend = tracks.some(track => track.element.includes('.'));
                 if (!hasDataToSend) {
                     // Nothing to sync, delete the attempt.
                     return CorePromiseUtils.ignoreErrors(AddonModScormOffline.deleteAttempt(scormId, attempt, siteId));
@@ -855,7 +854,7 @@ export type AddonModScormAutoSyncEventData = CoreSyncResult & {
     attemptFinished: boolean;
 };
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.

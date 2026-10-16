@@ -1,4 +1,4 @@
-@addon_mod_feedback @app @mod @mod_feedback @javascript @lms_from5.1
+@app_parallel_run_feedback @addon_mod_feedback @app @mod @mod_feedback @javascript @lms_from5.1
 Feature: Activities overview for feedback activity
 
   Background:
@@ -51,6 +51,15 @@ Feature: Activities overview for feedback activity
       | feedback3 | student2 | I don't know             |
       | feedback3 | student3 | Not at all               |
 
+  Scenario: The feedback overview report should generate log events
+    Given I entered the course "Course 1" as "student1" in the app
+    When I press "Activities" in the app
+    And I press "Feedback" in the app
+    Then the following events should have been logged for "student1" in the app:
+      | name                                                   | course   |
+      | \core\event\course_overview_viewed                     | Course 1 |
+      | \mod_feedback\event\course_module_instance_list_viewed | Course 1 |
+
   Scenario: Teacher can see the feedback relevant information in the feedback overview
     Given I entered the course "Course 1" as "teacher1" in the app
     When I press "Activities" in the app
@@ -74,20 +83,19 @@ Feature: Activities overview for feedback activity
     Then I should find "-" within "Due date" "ion-item" in the app
     And I should be able to press "View" within "Actions" "ion-item" in the app
 
-  # TODO: Support pix icon output. See MDL-86208.
   Scenario: Students can see the feedback relevant information in the feedback overview
     Given I entered the course "Course 1" as "student1" in the app
     When I press "Activities" in the app
     And I press "Feedback" in the app
     And I press "Date feedback" "ion-item" in the app
     Then I should find "1 January 2040" within "Due date" "ion-item" in the app
-    # And I should find "You have already submitted this feedback" "ion-icon" within "Responded" "ion-item" in the app
+    And I should find "You have already submitted this feedback" "ion-icon" within "Responded" "ion-item" in the app
     And I should not find "Responses" in the app
 
     When I press "Not responded feedback" "ion-item" in the app
     Then I should find "Tomorrow" within "Due date" "ion-item" in the app
-    # And I should find "-" within "Responded" "ion-item" in the app
+    And I should find "-" within "Responded" "ion-item" in the app
 
     When I press "No date feedback" "ion-item" in the app
     Then I should find "-" within "Due date" "ion-item" in the app
-    # And I should find "You have already submitted this feedback" "ion-icon" within "Responded" "ion-item" in the app
+    And I should find "You have already submitted this feedback" "ion-icon" within "Responded" "ion-item" in the app

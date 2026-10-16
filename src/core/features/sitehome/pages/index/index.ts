@@ -20,14 +20,14 @@ import { CoreCourse, CoreCourseWSSection, sectionContentIsModule } from '@featur
 import { CoreSites } from '@services/sites';
 import { CoreSiteHome } from '@features/sitehome/services/sitehome';
 import { CoreCourses } from '@features//courses/services/courses';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { CoreCourseHelper, CoreCourseModuleData } from '@features/course/services/course-helper';
 import { CoreCourseModuleDelegate } from '@features/course/services/module-delegate';
 import { CoreCourseModulePrefetchDelegate } from '@features/course/services/module-prefetch-delegate';
 import { CoreNavigationOptions, CoreNavigator } from '@services/navigator';
 import { CoreBlockHelper } from '@features/block/services/block-helper';
-import { CorePromiseUtils } from '@singletons/promise-utils';
-import { CoreTime } from '@singletons/time';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreTime } from '@static/time';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
 import { ContextLevel } from '@/core/constants';
 import { CoreModals } from '@services/overlays/modals';
@@ -36,6 +36,9 @@ import { Translate } from '@singletons';
 import { CoreSharedModule } from '@/core/shared.module';
 import { CoreCourseModuleComponent } from '../../../course/components/module/module';
 import { CoreBlockSideBlocksButtonComponent } from '../../../block/components/side-blocks-button/side-blocks-button';
+import { Subscription } from 'rxjs';
+import { CoreBlockDelegate } from '@features/block/services/block-delegate';
+import { CorePageTitle } from '@services/page-title';
 
 /**
  * Page that displays site home index.
@@ -67,6 +70,8 @@ export default class CoreSiteHomeIndexPage implements OnInit, OnDestroy {
     isModule = sectionContentIsModule;
 
     protected updateSiteObserver: CoreEventObserver;
+    protected blockSubscription: Subscription;
+    protected routeSubscription?: Subscription;
     protected logView: () => void;
     protected route = inject(ActivatedRoute);
 
@@ -87,6 +92,13 @@ export default class CoreSiteHomeIndexPage implements OnInit, OnDestroy {
                 url: '/?redirect=0',
             });
         });
+
+        // Re-evaluate if blocks are supported if the list of handlers changed (e.g. site plugins added).
+        this.blockSubscription = CoreBlockDelegate.blocksUpdateObservable.subscribe(async (): Promise<void> => {
+            this.hasBlocks = await CoreBlockHelper.hasCourseBlocks(this.siteHomeId);
+        });
+
+        CorePageTitle.setTitle(this.route, Translate.instant('core.sitehome.sitehome'));
     }
 
     /**
@@ -110,7 +122,9 @@ export default class CoreSiteHomeIndexPage implements OnInit, OnDestroy {
 
         this.openFocusedInstance();
 
-        this.route.queryParams.subscribe(() => this.openFocusedInstance());
+        this.routeSubscription = this.route.queryParams.subscribe(() => {
+            CorePromiseUtils.ignoreErrors(this.openFocusedInstance());
+        });
     }
 
     /**
@@ -240,6 +254,8 @@ export default class CoreSiteHomeIndexPage implements OnInit, OnDestroy {
      */
     ngOnDestroy(): void {
         this.updateSiteObserver.off();
+        this.blockSubscription.unsubscribe();
+        this.routeSubscription?.unsubscribe();
     }
 
     /**

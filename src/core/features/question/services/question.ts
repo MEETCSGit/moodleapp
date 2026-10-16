@@ -16,12 +16,12 @@ import { Injectable } from '@angular/core';
 
 import { CoreFile } from '@services/file';
 import { CoreSites } from '@services/sites';
-import { CoreText } from '@singletons/text';
-import { CoreTime } from '@singletons/time';
-import { CoreArray } from '@singletons/array';
+import { CoreText } from '@static/text';
+import { CoreTime } from '@static/time';
+import { CoreArray } from '@static/array';
 import { CoreWSExternalFile } from '@services/ws';
 import { makeSingleton } from '@singletons';
-import { CorePath } from '@singletons/path';
+import { CorePath } from '@static/path';
 import {
     CoreQuestionAnswerDBRecord,
     CoreQuestionDBRecord,
@@ -37,7 +37,7 @@ import {
     QUESTION_NEEDS_GRADING_STATE_CLASSES,
     QUESTION_TODO_STATE_CLASSES,
 } from '@features/question/constants';
-import { CoreObject } from '@singletons/object';
+import { CoreObject } from '@static/object';
 
 const QUESTION_PREFIX_REGEX = /q\d+:(\d+)_/;
 const STATES: Record<string, CoreQuestionState> = {
@@ -382,7 +382,7 @@ export class CoreQuestionProvider {
         // Maybe the name still has the prefix.
         name = this.removeQuestionPrefix(name);
 
-        return name[0] == '-' || name[0] == ':';
+        return name[0] === '-' || name[0] === ':';
     }
 
     /**
@@ -631,7 +631,7 @@ export type CoreQuestionQuestionWSData = {
     settings?: string; // Question settings (JSON encoded).
 
     /** @deprecatedonmoodle since 4.2. Use questionnumber instead. */
-    number?: number; // eslint-disable-line id-blacklist
+    number?: number; // eslint-disable-line id-denylist
 };
 /**
  * Question data with parsed data.

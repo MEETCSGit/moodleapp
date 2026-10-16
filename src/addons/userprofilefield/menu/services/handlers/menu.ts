@@ -14,10 +14,10 @@
 
 import { Injectable, Type } from '@angular/core';
 
-import { AuthEmailSignupProfileField } from '@features/login/services/login-helper';
+import { AuthEmailSignupProfileField } from '@features/login/services/signup';
 import { CoreUserProfileField } from '@features/user/services/user';
 import { CoreUserProfileFieldHandler, CoreUserProfileFieldHandlerData } from '@features/user/services/user-profile-field-delegate';
-import { CoreFormFields } from '@singletons/form';
+import { CoreFormFields } from '@static/form';
 import { makeSingleton } from '@singletons';
 
 /**
@@ -30,22 +30,14 @@ export class AddonUserProfileFieldMenuHandlerService implements CoreUserProfileF
     type = 'menu';
 
     /**
-     * Whether or not the handler is enabled on a site level.
-     *
-     * @returns Promise resolved with true if enabled.
+     * @inheritdoc
      */
     async isEnabled(): Promise<boolean> {
         return true;
     }
 
     /**
-     * Get the data to send for the field based on the input data.
-     *
-     * @param field User field to get the data for.
-     * @param signup True if user is in signup page.
-     * @param registerAuth Register auth method. E.g. 'email'.
-     * @param formValues Form Values.
-     * @returns Data to send for the field.
+     * @inheritdoc
      */
     async getData(
         field: AuthEmailSignupProfileField | CoreUserProfileField,

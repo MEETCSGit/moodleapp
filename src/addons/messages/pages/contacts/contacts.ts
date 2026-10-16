@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { Component, OnDestroy, OnInit, viewChild } from '@angular/core';
-import { CoreEventObserver, CoreEvents } from '@singletons/events';
+import { CoreEventObserver, CoreEvents } from '@static/events';
 import { CoreSites } from '@services/sites';
 import {
     AddonMessages,
@@ -26,6 +26,9 @@ import { ADDON_MESSAGES_CONTACT_REQUESTS_COUNT_EVENT, ADDON_MESSAGES_MEMBER_INFO
 import { CoreAlerts } from '@services/overlays/alerts';
 import { Translate } from '@singletons';
 import { CoreSharedModule } from '@/core/shared.module';
+import { Subscription } from 'rxjs';
+import { CorePushNotificationsDelegate } from '@features/pushnotifications/services/push-delegate';
+import { CorePushNotificationsNotificationBasicData } from '@features/pushnotifications/services/pushnotifications';
 
 /**
  * Page that displays contacts and contact requests.
@@ -42,6 +45,7 @@ export default class AddonMessagesContactsPage implements OnInit, OnDestroy {
 
     readonly splitView = viewChild.required(CoreSplitViewComponent);
 
+    protected pushObserver: Subscription;
     selected: 'confirmed' | 'requests' = 'confirmed';
     requestsBadge = '';
     selectedUserId?: number; // User id of the conversation opened in the split view.
@@ -80,12 +84,12 @@ export default class AddonMessagesContactsPage implements OnInit, OnDestroy {
             ADDON_MESSAGES_MEMBER_INFO_CHANGED_EVENT,
             (data) => {
                 if (data.userBlocked || data.userUnblocked) {
-                    const user = this.confirmedContacts.find((user) => user.id == data.userId);
+                    const user = this.confirmedContacts.find((user) => user.id === data.userId);
                     if (user) {
                         user.isblocked = !!data.userBlocked;
                     }
                 } else if (data.contactRemoved) {
-                    const index = this.confirmedContacts.findIndex((contact) => contact.id == data.userId);
+                    const index = this.confirmedContacts.findIndex((contact) => contact.id === data.userId);
                     if (index >= 0) {
                         this.confirmedContacts.splice(index, 1);
                     }
@@ -94,7 +98,7 @@ export default class AddonMessagesContactsPage implements OnInit, OnDestroy {
                 }
 
                 if (data.contactRequestConfirmed || data.contactRequestDeclined) {
-                    const index = this.requests.findIndex((request) => request.id == data.userId);
+                    const index = this.requests.findIndex((request) => request.id === data.userId);
                     if (index >= 0) {
                         this.requests.splice(index, 1);
                     }
@@ -103,6 +107,19 @@ export default class AddonMessagesContactsPage implements OnInit, OnDestroy {
             CoreSites.getCurrentSiteId(),
         );
 
+        this.pushObserver = CorePushNotificationsDelegate.on<CorePushNotificationsNotificationBasicData>('receive')
+            .subscribe((notification) => {
+                if (notification.name === 'messagecontactrequests') {
+                    AddonMessages.refreshContactRequestsCount();
+
+                    if (this.requestsLoaded) {
+                        // Contact requests notification, refresh contact requests list.
+                        this.requestsFetchData(true);
+                    } else {
+                        AddonMessages.invalidateContactRequestsCache();
+                    }
+                }
+        });
     }
 
     /**
@@ -111,9 +128,11 @@ export default class AddonMessagesContactsPage implements OnInit, OnDestroy {
     async ngOnInit(): Promise<void> {
         AddonMessages.getContactRequestsCount(this.siteId); // Badge already updated by the observer.
 
-        this.selected === 'confirmed'
-            ? await this.initConfirmed()
-            : await this.initRequests();
+        if (this.selected === 'confirmed') {
+            await this.initConfirmed();
+        } else {
+            await this.initRequests();
+        }
     }
 
     /**
@@ -166,7 +185,7 @@ export default class AddonMessagesContactsPage implements OnInit, OnDestroy {
      * @param refresh True if we are refreshing contacts, false if we are loading more.
      * @returns Promise resolved when done.
      */
-    async confirmedFetchData(refresh: boolean = false): Promise<void> {
+    async confirmedFetchData(refresh = false): Promise<void> {
         this.confirmedLoadMoreError = false;
 
         const limitFrom = refresh ? 0 : this.confirmedContacts.length;
@@ -192,7 +211,7 @@ export default class AddonMessagesContactsPage implements OnInit, OnDestroy {
      * @param refresh True if we are refreshing contact requests, false if we are loading more.
      * @returns Promise resolved when done.
      */
-    async requestsFetchData(refresh: boolean = false): Promise<void> {
+    async requestsFetchData(refresh = false): Promise<void> {
         this.requestsLoadMoreError = false;
 
         const limitFrom = refresh ? 0 : this.requests.length;
@@ -220,7 +239,7 @@ export default class AddonMessagesContactsPage implements OnInit, OnDestroy {
      */
     async refreshData(refresher?: HTMLIonRefresherElement): Promise<void> {
         try {
-            if (this.selected == 'confirmed') {
+            if (this.selected === 'confirmed') {
                 // No need to invalidate contacts, we always try to get the latest.
                 await this.confirmedFetchData(true);
             } else {
@@ -243,7 +262,7 @@ export default class AddonMessagesContactsPage implements OnInit, OnDestroy {
      */
     async loadMore(infiniteComplete?: () => void): Promise<void> {
         try {
-            if (this.selected == 'confirmed') {
+            if (this.selected === 'confirmed') {
                 // No need to invalidate contacts, we always try to get the latest.
                 await this.confirmedFetchData();
             } else {
@@ -268,11 +287,11 @@ export default class AddonMessagesContactsPage implements OnInit, OnDestroy {
 
         this.selected = selected;
 
-        if (this.selected == 'confirmed' && !this.confirmedLoaded) {
+        if (this.selected === 'confirmed' && !this.confirmedLoaded) {
             this.initConfirmed();
         }
 
-        if (this.selected == 'requests' && !this.requestsLoaded) {
+        if (this.selected === 'requests' && !this.requestsLoaded) {
             this.initRequests();
         }
     }
@@ -308,6 +327,7 @@ export default class AddonMessagesContactsPage implements OnInit, OnDestroy {
      */
     ngOnDestroy(): void {
         this.contactRequestsCountObserver?.off();
+        this.pushObserver?.unsubscribe();
     }
 
 }

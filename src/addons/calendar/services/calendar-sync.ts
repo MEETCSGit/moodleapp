@@ -15,9 +15,9 @@
 import { Injectable } from '@angular/core';
 import { CoreSyncBaseProvider, CoreSyncBlockedError } from '@classes/base-sync';
 import { CoreNetwork } from '@services/network';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { CoreSites } from '@services/sites';
-import { CoreUtils } from '@singletons/utils';
+import { CoreUtils } from '@static/utils';
 import {
     AddonCalendar,
     AddonCalendarEvent,
@@ -35,9 +35,9 @@ import {
     ADDON_CALENDAR_MANUAL_SYNCED,
     ADDON_CALENDAR_SYNC_ID,
 } from '../constants';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreWSError } from '@classes/errors/wserror';
-import { DEFAULT_TEXT_FORMAT } from '@singletons/text';
+import { DEFAULT_TEXT_FORMAT } from '@static/text';
 
 /**
  * Service to sync calendar.
@@ -55,7 +55,7 @@ export class AddonCalendarSyncProvider extends CoreSyncBaseProvider<AddonCalenda
      * Try to synchronize all events in a certain site or in all sites.
      *
      * @param siteId Site ID to sync. If not defined, sync all sites.
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
     async syncAllEvents(siteId?: string, force = false): Promise<void> {
@@ -65,7 +65,7 @@ export class AddonCalendarSyncProvider extends CoreSyncBaseProvider<AddonCalenda
     /**
      * Sync all events on a site.
      *
-     * @param force Wether to force sync not depending on last execution.
+     * @param force Whether to force sync not depending on last execution.
      * @param siteId Site ID to sync.
      * @returns Promise resolved if sync is successful, rejected if sync fails.
      */
@@ -152,6 +152,7 @@ export class AddonCalendarSyncProvider extends CoreSyncBaseProvider<AddonCalenda
                 // Data has been sent to server. Now invalidate the WS calls.
                 const promises = [
                     AddonCalendar.invalidateEventsList(siteId),
+                    AddonCalendar.invalidateAllDayEvents(siteId),
                     AddonCalendarHelper.refreshAfterChangeEvents(result.toinvalidate, siteId),
                 ];
 
@@ -320,7 +321,7 @@ export type AddonCalendarSyncInvalidateEvent = {
     repeated: number;
 };
 
-declare module '@singletons/events' {
+declare module '@static/events' {
 
     /**
      * Augment CoreEventsData interface with events specific to this service.

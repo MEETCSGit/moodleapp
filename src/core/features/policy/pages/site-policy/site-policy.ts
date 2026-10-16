@@ -15,23 +15,23 @@
 import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, inject, viewChild } from '@angular/core';
 
 import { CoreSites, CoreSitesReadingStrategy } from '@services/sites';
-import { CoreMimetype } from '@singletons/mimetype';
+import { CoreMimetype } from '@static/mimetype';
 import { CoreSite } from '@classes/sites/site';
 import { CoreNavigator } from '@services/navigator';
-import { CoreEvents } from '@singletons/events';
+import { CoreEvents } from '@static/events';
 import { CoreAnalytics, CoreAnalyticsEventType } from '@services/analytics';
 import { Translate } from '@singletons';
 import { CorePolicy, CorePolicyAgreementStyle, CorePolicySitePolicy } from '@features/policy/services/policy';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
-import { CoreUrl } from '@singletons/url';
+import { CoreUrl } from '@static/url';
 import { IonContent } from '@ionic/angular';
 import { CoreScreen } from '@services/screen';
 import { Subscription } from 'rxjs';
-import { CoreDom } from '@singletons/dom';
-import { CoreWait } from '@singletons/wait';
+import { CoreDom } from '@static/dom';
+import { CoreWait } from '@static/wait';
 import { CoreModals } from '@services/overlays/modals';
 import { CoreLoadings } from '@services/overlays/loadings';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreSharedModule } from '@/core/shared.module';
 
@@ -48,7 +48,7 @@ import { CoreSharedModule } from '@/core/shared.module';
 })
 export default class CorePolicySitePolicyPage implements OnInit, OnDestroy {
 
-    readonly content = viewChild(IonContent);
+    readonly content = viewChild.required(IonContent);
 
     siteName?: string;
     isManageAcceptancesAvailable = false;
@@ -70,7 +70,7 @@ export default class CorePolicySitePolicyPage implements OnInit, OnDestroy {
     agreeInOwnPage = false;
     numPolicy = 1;
     showConsentForm = false;
-    stepData?: {numpolicy: number; totalpolicies: number};
+    stepData?: { numpolicy: number; totalpolicies: number };
     policiesErrors = { required: Translate.instant('core.policy.mustagreetocontinue') };
 
     protected siteId?: string;
@@ -147,7 +147,7 @@ export default class CorePolicySitePolicyPage implements OnInit, OnDestroy {
             const mimeType = await CoreMimetype.getMimeTypeFromUrl(this.sitePoliciesURL);
 
             const extension = CoreMimetype.getExtension(mimeType, this.sitePoliciesURL);
-            this.showInline = extension == 'html' || extension == 'htm';
+            this.showInline = extension === 'html' || extension === 'htm';
         } catch {
             // Unable to get mime type, assume it's not supported.
             this.showInline = false;
@@ -321,6 +321,8 @@ export default class CorePolicySitePolicyPage implements OnInit, OnDestroy {
 
     /**
      * Set current policy.
+     *
+     * @param policy Policy to set.
      */
     protected setCurrentPolicy(policy?: CorePolicySitePolicy): void {
         if (!policy) {
@@ -344,7 +346,7 @@ export default class CorePolicySitePolicyPage implements OnInit, OnDestroy {
     protected async checkScroll(): Promise<void> {
         await CoreWait.wait(400);
 
-        const scrollElement = await this.content()?.getScrollElement();
+        const scrollElement = await this.content().getScrollElement();
 
         this.hasScroll = !!scrollElement && scrollElement.scrollHeight > scrollElement.clientHeight + 2; // Add 2px of error margin.
     }
@@ -460,7 +462,7 @@ export default class CorePolicySitePolicyPage implements OnInit, OnDestroy {
         event?.preventDefault();
         event?.stopPropagation();
 
-        this.content()?.scrollToTop(400);
+        this.content().scrollToTop(400);
     }
 
     /**

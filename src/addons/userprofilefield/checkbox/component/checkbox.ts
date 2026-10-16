@@ -15,9 +15,9 @@
 import { Component } from '@angular/core';
 import { Validators, FormControl } from '@angular/forms';
 
-import { AuthEmailSignupProfileField } from '@features/login/services/login-helper';
+import { AuthEmailSignupProfileField } from '@features/login/services/signup';
 import { CoreUserProfileFieldBaseComponent } from '@features/user/classes/base-profilefield-component';
-import { CoreUtils } from '@singletons/utils';
+import { CoreUtils } from '@static/utils';
 import { CoreSharedModule } from '@/core/shared.module';
 
 /**
@@ -34,9 +34,7 @@ import { CoreSharedModule } from '@/core/shared.module';
 export class AddonUserProfileFieldCheckboxComponent extends CoreUserProfileFieldBaseComponent<boolean> {
 
     /**
-     * Create the Form control.
-     *
-     * @returns Form control.
+     * @inheritdoc
      */
     protected createFormControl(field: AuthEmailSignupProfileField): FormControl<boolean> {
         const formData = {

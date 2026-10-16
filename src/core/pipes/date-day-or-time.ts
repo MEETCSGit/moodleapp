@@ -12,12 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Pipe, PipeTransform } from '@angular/core';
+import { Pipe, PipeTransform, OnDestroy } from '@angular/core';
 import { dayjs } from '@/core/utils/dayjs';
 
-import { CoreTime } from '@singletons/time';
+import { CoreTime } from '@static/time';
 import { Translate } from '@singletons';
-import { CoreLogger } from '@singletons/logger';
+import { CoreLogger } from '@static/logger';
+import { Subscription } from 'rxjs';
+import { CoreResultMemoiser } from '@classes/result-memoiser';
 
 /**
  * Filter to display a date using the day, or the time.
@@ -34,13 +36,33 @@ import { CoreLogger } from '@singletons/logger';
  */
 @Pipe({
     name: 'coreDateDayOrTime',
+    pure: false,
 })
-export class CoreDateDayOrTimePipe implements PipeTransform {
+export class CoreDateDayOrTimePipe implements PipeTransform, OnDestroy {
 
     protected logger: CoreLogger;
+    protected memoiser = new CoreResultMemoiser<string>();
+    protected subscription: Subscription;
 
     constructor() {
         this.logger = CoreLogger.getInstance('CoreDateDayOrTimePipe');
+
+        this.subscription = Translate.onLangChange.subscribe(() => {
+            this.memoiser.invalidate();
+        });
+    }
+
+    /**
+     * Pipes a timestamp into a formatted time or date.
+     *
+     * @param timestamp The UNIX timestamp (without milliseconds).
+     * @returns Formatted time.
+     */
+    transform(timestamp: string | number): string {
+        return this.memoiser.memoise(
+            () => this.formatTimestamp(timestamp),
+            timestamp,
+        );
     }
 
     /**
@@ -49,7 +71,7 @@ export class CoreDateDayOrTimePipe implements PipeTransform {
      * @param timestamp The UNIX timestamp (without milliseconds).
      * @returns Formatted time.
      */
-    transform(timestamp: string | number): string {
+    protected formatTimestamp(timestamp: string | number): string {
         if (typeof timestamp === 'string') {
             // Convert the value to a number.
             const numberTimestamp = parseInt(timestamp, 10);
@@ -67,6 +89,13 @@ export class CoreDateDayOrTimePipe implements PipeTransform {
             lastWeek: Translate.instant('core.dflastweekdate'),
             sameElse: CoreTime.convertPHPToJSDateFormat(Translate.instant('core.strftimedatefullshort')),
         });
+    }
+
+    /**
+     * @inheritdoc
+     */
+    ngOnDestroy(): void {
+        this.subscription.unsubscribe();
     }
 
 }

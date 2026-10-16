@@ -20,7 +20,7 @@ import {
 } from '@addons/mod/data/services/data';
 import { AddonModDataFieldHandler } from '@addons/mod/data/services/data-fields-delegate';
 import { Injectable, Type } from '@angular/core';
-import { CoreFormFields } from '@singletons/form';
+import { CoreFormFields } from '@static/form';
 import { makeSingleton, Translate } from '@singletons';
 import type { AddonModDataFieldPluginBaseComponent } from '@addons/mod/data/classes/base-field-plugin-component';
 
@@ -112,9 +112,9 @@ export class AddonModDataFieldLatlongHandlerService implements AddonModDataField
         });
 
         // If we get here then only one field has been filled in.
-        if (valueCount == 1) {
+        if (valueCount === 1) {
             return Translate.instant('addon.mod_data.latlongboth');
-        } else if (field.required && valueCount == 0) {
+        } else if (field.required && valueCount === 0) {
             return Translate.instant('addon.mod_data.errormustsupplyvalue');
         }
     }

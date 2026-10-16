@@ -18,11 +18,11 @@ import { CoreNetwork } from '@services/network';
 import { CoreSites, CoreSitesCommonWSOptions, CoreSitesReadingStrategy } from '@services/sites';
 import { CoreSite } from '@classes/sites/site';
 import { CoreWSExternalWarning } from '@services/ws';
-import { CoreText } from '@singletons/text';
+import { CoreText } from '@static/text';
 import { CoreFilterDelegate } from './filter-delegate';
 import { DomSanitizer, makeSingleton } from '@singletons';
-import { CoreEvents, CoreEventSiteData } from '@singletons/events';
-import { CoreLogger } from '@singletons/logger';
+import { CoreEvents, CoreEventSiteData } from '@static/events';
+import { CoreLogger } from '@static/logger';
 import { CoreSiteWSPreSets } from '@classes/sites/authenticated-site';
 import { ContextLevel, CoreCacheUpdateFrequency } from '@/core/constants';
 
@@ -159,7 +159,7 @@ export class CoreFilterProvider {
             classified[context.contextlevel][context.instanceid] = [];
         });
 
-        if (contexts.length == 1 && !hadSystemContext) {
+        if (contexts.length === 1 && !hadSystemContext) {
             // Only 1 context, no need to iterate over the filters.
             classified[contexts[0].contextlevel][contexts[0].instanceid] = filters;
 
@@ -195,13 +195,14 @@ export class CoreFilterProvider {
      * @param contextLevel The context level.
      * @param instanceId Instance ID related to the context.
      * @param options Options.
+     * @param options.courseId Course ID related to the context, if any.
      * @returns Context to use.
      */
     getEffectiveContext(
         contextLevel: ContextLevel,
         instanceId: number,
-        options: {courseId?: number} = {},
-    ): {contextLevel: ContextLevel; instanceId: number} {
+        options: { courseId?: number } = {},
+    ): { contextLevel: ContextLevel; instanceId: number } {
         if (contextLevel === ContextLevel.BLOCK || contextLevel === ContextLevel.USER) {
             // Blocks and users cannot have specific filters, use the parent context instead.
             return options.courseId ?
@@ -455,12 +456,14 @@ export class CoreFilterProvider {
      * @param contextLevel Context level.
      * @param instanceId Instance ID.
      * @param options Options
+     * @param options.courseId Course ID related to the context, if any.
+     * @param options.categoryId Category ID related to the context, if any.
      * @returns List of contexts.
      */
     getContextsTreeList(
         contextLevel: ContextLevel,
         instanceId: number,
-        options: {courseId?: number; categoryId?: number} = {},
+        options: { courseId?: number; categoryId?: number } = {},
     ): { contextLevel: ContextLevel; instanceId: number }[] {
         // Make sure context has been converted.
         const newContext = CoreFilter.getEffectiveContext(contextLevel, instanceId, options);

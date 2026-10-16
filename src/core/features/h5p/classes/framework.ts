@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { CoreSites } from '@services/sites';
-import { CoreText } from '@singletons/text';
+import { CoreText } from '@static/text';
 import { CoreH5P } from '@features/h5p/services/h5p';
 import {
     CoreH5PCore,
@@ -41,6 +41,10 @@ import {
     MISSING_DEPENDENCIES_TABLE_NAME,
     MISSING_DEPENDENCIES_PRIMARY_KEYS,
     CoreH5PMissingDependencyDBPrimaryKeys,
+    CoreH5PUnsupportedPackageDBPrimaryKeys,
+    CoreH5PUnsupportedPackageDBRecord,
+    UNSUPPORTED_PACKAGES_TABLE_NAME,
+    UNSUPPORTED_PACKAGES_PRIMARY_KEY,
 } from '../services/database/h5p';
 import { CoreError } from '@classes/errors/error';
 import { CoreH5PSemantics } from './content-validator';
@@ -56,8 +60,10 @@ import { SubPartial } from '@/core/utils/types';
 import { CoreH5PMissingDependenciesError } from './errors/missing-dependencies-error';
 import { CoreFilepool } from '@services/filepool';
 import { CoreFileHelper } from '@services/file-helper';
-import { CoreUrl, CoreUrlPartNames } from '@singletons/url';
-import { CorePromiseUtils } from '@singletons/promise-utils';
+import { CoreUrl, CoreUrlPartNames } from '@static/url';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreArray } from '@static/array';
+import { CoreH5PUnsupportedPackageReason } from '../constants';
 
 /**
  * Equivalent to Moodle's implementation of H5PFrameworkInterface.
@@ -71,6 +77,10 @@ export class CoreH5PFramework {
     protected librariesCachedAssetsTables: LazyMap<AsyncInstance<CoreDatabaseTable<CoreH5PLibraryCachedAssetsDBRecord>>>;
     protected missingDependenciesTables: LazyMap<
         AsyncInstance<CoreDatabaseTable<CoreH5PMissingDependencyDBRecord, CoreH5PMissingDependencyDBPrimaryKeys>>
+    >;
+
+    protected unsupportedPackagesTables: LazyMap<
+        AsyncInstance<CoreDatabaseTable<CoreH5PUnsupportedPackageDBRecord, CoreH5PUnsupportedPackageDBPrimaryKeys>>
     >;
 
     constructor() {
@@ -147,6 +157,19 @@ export class CoreH5PFramework {
                 ),
             ),
         );
+        this.unsupportedPackagesTables = lazyMap(
+            siteId => asyncInstance(
+                () => CoreSites.getSiteTable(
+                    UNSUPPORTED_PACKAGES_TABLE_NAME,
+                    {
+                        siteId,
+                        config: { cachingStrategy: CoreDatabaseCachingStrategy.None },
+                        onDestroy: () => delete this.unsupportedPackagesTables[siteId],
+                        primaryKeyColumns: [UNSUPPORTED_PACKAGES_PRIMARY_KEY],
+                    },
+                ),
+            ),
+        );
     }
 
     /**
@@ -188,12 +211,14 @@ export class CoreH5PFramework {
 
         siteId ??= CoreSites.getCurrentSiteId();
 
+        const dependencySql = `SELECT h5pid FROM ${CONTENTS_LIBRARIES_TABLE_NAME} WHERE libraryid IN ` +
+            `(${libraryIds.map(() => '?').join(', ')})`;
+
         await this.contentTables[siteId].updateWhere(
             { filtered: null },
             {
-                sql: `mainlibraryid IN (${libraryIds.map(() => '?').join(', ')})`,
-                sqlParams: libraryIds,
-                js: record => libraryIds.includes(record.mainlibraryid),
+                sql: `mainlibraryid IN (${libraryIds.map(() => '?').join(', ')}) OR id IN (${dependencySql})`,
+                sqlParams: [...libraryIds, ...libraryIds],
             },
         );
     }
@@ -217,7 +242,6 @@ export class CoreH5PFramework {
             await this.librariesCachedAssetsTables[siteId].deleteWhere({
                 sql: hashes.length === 1 ? 'hash = ?' : `hash IN (${hashes.map(() => '?').join(', ')})`,
                 sqlParams: hashes,
-                js: (record) => hashes.includes(record.hash),
             });
         }
 
@@ -300,6 +324,33 @@ export class CoreH5PFramework {
     }
 
     /**
+     * Delete unsupported packages stored for a certain component and componentId.
+     *
+     * @param component Component.
+     * @param componentId Component ID.
+     * @param siteId Site ID.
+     */
+    async deleteUnsupportedPackagesForComponent(component: string, componentId: string | number, siteId?: string): Promise<void> {
+        siteId ??= CoreSites.getCurrentSiteId();
+
+        await this.unsupportedPackagesTables[siteId].delete({ component, componentId });
+    }
+
+    /**
+     * Delete unsupported package records stored for a certain file.
+     *
+     * @param fileUrl File URL.
+     * @param siteId Site ID.
+     */
+    async deleteUnsupportedPackagesForFile(fileUrl: string, siteId?: string): Promise<void> {
+        siteId ??= CoreSites.getCurrentSiteId();
+
+        const fileId = await this.getIdentifierFromUrl(fileUrl, siteId);
+
+        await this.unsupportedPackagesTables[siteId].deleteByPrimaryKey({ fileid: fileId });
+    }
+
+    /**
      * Delete all the missing dependencies related to a certain library version.
      *
      * @param libraryData Library.
@@ -360,13 +411,13 @@ export class CoreH5PFramework {
     }
 
     /**
-     * Get an identifier for a file URL, used to store missing dependencies.
+     * Get an identifier for a file URL, removing parameters that could change over time and removing endpoint if possible.
      *
      * @param fileUrl File URL.
      * @param siteId Site ID. If not defined, current site.
      * @returns An identifier for the file.
      */
-    async getFileIdForMissingDependencies(fileUrl: string, siteId?: string): Promise<string> {
+    async getIdentifierFromUrl(fileUrl: string, siteId?: string): Promise<string> {
         siteId ??= CoreSites.getCurrentSiteId();
 
         const isTrusted = await CoreH5P.isTrustedUrl(fileUrl, siteId);
@@ -395,6 +446,7 @@ export class CoreH5PFramework {
      * Get the latest library version.
      *
      * @param machineName The library's machine name.
+     * @param siteId The site ID. If not defined, current site.
      * @returns Promise resolved with the latest library version data.
      */
     async getLatestLibraryVersion(machineName: string, siteId?: string): Promise<CoreH5PLibraryParsedDBRecord> {
@@ -547,11 +599,52 @@ export class CoreH5PFramework {
         siteId ??= CoreSites.getCurrentSiteId();
 
         try {
-            const fileId = await this.getFileIdForMissingDependencies(fileUrl, siteId);
+            const fileId = await this.getIdentifierFromUrl(fileUrl, siteId);
 
             return await this.missingDependenciesTables[siteId].getMany({ fileid: fileId });
         } catch {
             return [];
+        }
+    }
+
+    /**
+     * Get unsupported packages stored for a certain component and componentId.
+     *
+     * @param component Component.
+     * @param componentId Component ID.
+     * @param siteId Site ID.
+     * @returns List of unsupported packages. Empty list if no unsupported package is stored for the file.
+     */
+    async getUnsupportedPackagesForComponent(
+        component: string,
+        componentId: string | number,
+        siteId?: string,
+    ): Promise<CoreH5PUnsupportedPackageDBRecord[]> {
+        siteId ??= CoreSites.getCurrentSiteId();
+
+        try {
+            return await this.unsupportedPackagesTables[siteId].getMany({ component, componentId });
+        } catch {
+            return [];
+        }
+    }
+
+    /**
+     * Get unsupported package record stored for a certain file.
+     *
+     * @param fileUrl File URL.
+     * @param siteId Site ID.
+     * @returns Unsupported package record, undefined if no unsupported package is stored for the file.
+     */
+    async getUnsupportedPackagesForFile(fileUrl: string, siteId?: string): Promise<CoreH5PUnsupportedPackageDBRecord | undefined> {
+        siteId ??= CoreSites.getCurrentSiteId();
+
+        try {
+            const fileId = await this.getIdentifierFromUrl(fileUrl, siteId);
+
+            return await this.unsupportedPackagesTables[siteId].getOneByPrimaryKey({ fileid: fileId });
+        } catch {
+            return undefined;
         }
     }
 
@@ -616,7 +709,7 @@ export class CoreH5PFramework {
      * @param searchParam The library parameter (Default: 'path').
      * @returns Library parameter values separated by ', '
      */
-    libraryParameterValuesToCsv(libraryData: CoreH5PLibraryBeingSaved, key: string, searchParam: string = 'path'): string {
+    libraryParameterValuesToCsv(libraryData: CoreH5PLibraryBeingSaved, key: string, searchParam = 'path'): string {
         if (libraryData[key] !== undefined) {
             const parameterValues: string[] = [];
 
@@ -654,15 +747,9 @@ export class CoreH5PFramework {
                         'l1.minorversion < l2.minorversion)) ' +
                     'WHERE l1.addto IS NOT NULL AND l2.machinename IS NULL';
 
-        const result = await db.execute(query);
+        const addons = await db.getRecordsSql<LibraryAddonDBData>(query);
 
-        const addons: CoreH5PLibraryAddonData[] = [];
-
-        for (let i = 0; i < result.rows.length; i++) {
-            addons.push(this.parseLibAddonData(result.rows.item(i)));
-        }
-
-        return addons;
+        return addons.map((addon) => this.parseLibAddonData(addon));
     }
 
     /**
@@ -728,13 +815,14 @@ export class CoreH5PFramework {
      *
      * @param id Content ID.
      * @param type The dependency type.
+     * @param siteId Site ID. If not defined, current site.
      * @returns Content dependencies, indexed by machine name.
      */
     async loadContentDependencies(
         id: number,
         type?: string,
         siteId?: string,
-    ): Promise<{[machineName: string]: CoreH5PContentDependencyData}> {
+    ): Promise<{ [machineName: string]: CoreH5PContentDependencyData }> {
 
         const db = await CoreSites.getSiteDb(siteId);
 
@@ -762,17 +850,9 @@ export class CoreH5PFramework {
 
         query += ' ORDER BY hcl.weight';
 
-        const result = await db.execute(query, queryArgs);
+        const dependencies = await db.getRecordsSql<CoreH5PContentDependencyData>(query, queryArgs);
 
-        const dependencies: {[machineName: string]: CoreH5PContentDependencyData} = {};
-
-        for (let i = 0; i < result.rows.length; i++) {
-            const dependency = result.rows.item(i);
-
-            dependencies[dependency.machineName] = dependency;
-        }
-
-        return dependencies;
+        return CoreArray.toObject(dependencies, 'machineName');
     }
 
     /**
@@ -831,10 +911,9 @@ export class CoreH5PFramework {
 
         const db = await CoreSites.getSiteDb(siteId);
 
-        const result = await db.execute(sql, sqlParams);
+        const dependencies = await db.getRecordsSql<LibraryDependency>(sql, sqlParams);
 
-        for (let i = 0; i < result.rows.length; i++) {
-            const dependency: LibraryDependency = result.rows.item(i);
+        dependencies.forEach((dependency) => {
             const key = `${dependency.dependencytype}Dependencies`;
 
             libraryData[key].push({
@@ -842,7 +921,7 @@ export class CoreH5PFramework {
                 majorVersion: dependency.majorversion,
                 minorVersion: dependency.minorversion,
             });
-        }
+        });
 
         return libraryData;
     }
@@ -899,7 +978,7 @@ export class CoreH5PFramework {
      */
     async saveCachedAssets(
         hash: string,
-        dependencies: {[machineName: string]: CoreH5PContentDependencyData},
+        dependencies: { [machineName: string]: CoreH5PContentDependencyData },
         folderName: string,
         siteId?: string,
     ): Promise<void> {
@@ -1030,7 +1109,7 @@ export class CoreH5PFramework {
      */
     async saveLibraryUsage(
         id: number,
-        librariesInUse: {[key: string]: CoreH5PContentDepsTreeDependency},
+        librariesInUse: { [key: string]: CoreH5PContentDepsTreeDependency },
         siteId?: string,
     ): Promise<void> {
         const targetSiteId = siteId ?? CoreSites.getCurrentSiteId();
@@ -1078,7 +1157,7 @@ export class CoreH5PFramework {
     ): Promise<void> {
         const targetSiteId = options.siteId ?? CoreSites.getCurrentSiteId();
 
-        const fileId = await this.getFileIdForMissingDependencies(fileUrl, targetSiteId);
+        const fileId = await this.getIdentifierFromUrl(fileUrl, targetSiteId);
 
         await Promise.all(missingDependencies.map((missingLibrary) => this.missingDependenciesTables[targetSiteId].insert({
             fileid: fileId,
@@ -1090,6 +1169,31 @@ export class CoreH5PFramework {
             component: options.component,
             componentId: options.componentId,
         })));
+    }
+
+    /**
+     * Store an unsupported package in DB.
+     *
+     * @param fileUrl URL of the package that has unsupported conditions.
+     * @param reason Reason that marks the package as unsupported.
+     * @param options Other options.
+     */
+    async storeUnsupportedPackage(
+        fileUrl: string,
+        reason: CoreH5PUnsupportedPackageReason,
+        options: StoreUnsupportedPackagesOptions = {},
+    ): Promise<void> {
+        const siteId = options.siteId ?? CoreSites.getCurrentSiteId();
+
+        const fileId = await this.getIdentifierFromUrl(fileUrl, siteId);
+
+        await this.unsupportedPackagesTables[siteId].insert({
+            fileid: fileId,
+            reason,
+            filetimemodified: options.fileTimemodified ?? 0,
+            component: options.component,
+            componentId: options.componentId,
+        });
     }
 
     /**
@@ -1208,6 +1312,16 @@ type LibraryAddonDBData = Omit<CoreH5PLibraryAddonData, 'addTo'> & {
  * Options for storeMissingDependencies.
  */
 type StoreMissingDependenciesOptions = {
+    component?: string;
+    componentId?: string | number;
+    fileTimemodified?: number;
+    siteId?: string;
+};
+
+/**
+ * Options for storeUnsupportedPackages.
+ */
+type StoreUnsupportedPackagesOptions = {
     component?: string;
     componentId?: string | number;
     fileTimemodified?: number;
