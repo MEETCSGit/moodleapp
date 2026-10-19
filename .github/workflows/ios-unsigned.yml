@@ -43,6 +43,10 @@ jobs:
           # Xcode 26 rejects the private header <netinet6/in6.h> used by the advanced-http plugin.
           # The same definitions are in the public <netinet/in.h>.
           grep -rl "netinet6/in6.h" platforms/ios/App/Plugins | xargs perl -pi -e 's#<netinet6/in6.h>#<netinet/in.h>#g'
+          # The push plugin hard-codes "Moodle-Swift.h"; the header is named after the app.
+          MODULE=$(sed -n 's:.*<name>\(.*\)</name>.*:\1:p' config.xml | head -1 | sed 's/[^A-Za-z0-9_]/_/g')
+          echo "Swift module name: $MODULE"
+          grep -rl "Moodle-Swift.h" platforms/ios/App/Plugins | MODULE="$MODULE" xargs perl -pi -e 's|#import "Moodle-Swift\.h"|#if __has_include("App-Swift.h")\n#import "App-Swift.h"\n#else\n#import "$ENV{MODULE}-Swift.h"\n#endif|'
           WS=$(ls -d platforms/ios/*.xcworkspace | head -1)
           SCHEME=$(basename "$WS" .xcworkspace)
           echo "Workspace: $WS  Scheme: $SCHEME"
