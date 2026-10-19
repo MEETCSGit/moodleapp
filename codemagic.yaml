@@ -110,3 +110,70 @@ workflows:
           xcode-project build-ipa --workspace "$WS" --scheme "$SCHEME"
     artifacts:
       - build/ios/ipa/*.ipa
+
+  # Signed APP STORE build, uploaded to TestFlight (needs the paid Apple Developer account).
+  # One-time setup in Codemagic: Teams > Personal account > Integrations > App Store Connect,
+  # create an integration named exactly:  meetcs_app_store_connect
+  # (Issuer ID, Key ID and the .p8 key from App Store Connect > Users and Access > Integrations).
+  # The App ID com.vector.meetcs must exist in the Apple Developer portal and the app must be
+  # created in App Store Connect. Codemagic creates the distribution certificate and profile itself.
+  vector-ios-appstore:
+    name: Vector iOS (App Store / TestFlight)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: meetcs_app_store_connect
+    environment:
+      node: 24.16.0
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.vector.meetcs
+    triggering:
+      events: []   # start builds manually from the Codemagic dashboard
+    scripts:
+      - name: Install dependencies
+        script: npm ci --include=dev
+      - name: Apply client config and set a unique build number
+        script: |
+          node scripts/apply-config.js
+          # Every upload to App Store Connect needs a higher build number than the last one.
+          # CFBundleVersion must be a plain integer here, so use the Codemagic build number.
+          sed -i '' "s/ios-CFBundleVersion=\"[^\"]*\"/ios-CFBundleVersion=\"$BUILD_NUMBER\"/" config.xml
+          grep -o 'ios-CFBundleVersion="[^"]*"' config.xml
+      - name: Build web app and prepare iOS project
+        script: |
+          export NODE_ENV=production
+          export npm_config_include=dev
+          export NODE_OPTIONS=--max-old-space-size=8192
+          mkdir -p www
+          npx cordova platform add ios
+          npx ionic cordova prepare ios --prod
+      - name: Patch plugins for Xcode 26
+        script: |
+          # Xcode 26 rejects the private header <netinet6/in6.h> used by the advanced-http plugin.
+          grep -rl "netinet6/in6.h" platforms/ios/App/Plugins | xargs perl -pi -e 's#<netinet6/in6.h>#<netinet/in.h>#g'
+          # The push plugin hard-codes "Moodle-Swift.h"; the header is named after the app.
+          MODULE=$(sed -n 's:.*<name>\(.*\)</name>.*:\1:p' config.xml | head -1 | sed 's/[^A-Za-z0-9_]/_/g')
+          echo "Swift module name: $MODULE"
+          grep -rl "Moodle-Swift.h" platforms/ios/App/Plugins | MODULE="$MODULE" xargs perl -pi -e 's|#import "Moodle-Swift\.h"|#if __has_include("App-Swift.h")\n#import "App-Swift.h"\n#else\n#import "$ENV{MODULE}-Swift.h"\n#endif|'
+      - name: Set up code signing
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "com.vector.meetcs" --type IOS_APP_STORE --create
+          keychain add-certificates
+          cd platforms/ios
+          xcode-project use-profiles
+      - name: Build signed IPA
+        script: |
+          WS=$(ls -d platforms/ios/*.xcworkspace | head -1)
+          SCHEME=$(basename "$WS" .xcworkspace)
+          echo "Workspace: $WS  Scheme: $SCHEME"
+          xcode-project build-ipa --workspace "$WS" --scheme "$SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
