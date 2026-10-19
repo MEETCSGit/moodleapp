@@ -22,6 +22,7 @@ workflows:
           export NODE_ENV=production
           export npm_config_include=dev
           export NODE_OPTIONS=--max-old-space-size=8192
+          mkdir -p www
           npx cordova platform add ios
           npx ionic cordova prepare ios --prod
       - name: Build app without code signing

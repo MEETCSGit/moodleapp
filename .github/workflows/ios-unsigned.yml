@@ -34,6 +34,7 @@ jobs:
           npm_config_include: dev
           NODE_OPTIONS: --max-old-space-size=8192
         run: |
+          mkdir -p www
           npx cordova platform add ios
           npx ionic cordova prepare ios --prod
 
