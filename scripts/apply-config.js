@@ -105,7 +105,7 @@ configXml = replaceOnce(
 );
 
 const splashColour = customisation.splash_background_colour || customisation.header_backgorud_colour;
-for (const pref of ['AndroidWindowSplashScreenBackground', 'AndroidWindowSplashScreenIconBackgroundColor']) {
+for (const pref of ['AndroidWindowSplashScreenBackground', 'AndroidWindowSplashScreenIconBackgroundColor', 'SplashScreenBackgroundColor']) {
   configXml = replaceOnce(
     configXml,
     new RegExp(`<preference name="${pref}" value="[^"]*" \/>`),
