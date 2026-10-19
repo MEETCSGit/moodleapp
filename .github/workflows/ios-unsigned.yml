@@ -1,0 +1,66 @@
+name: iOS unsigned IPA (Vector)
+
+# Builds an UNSIGNED .ipa on a GitHub macOS runner. Install it on an iPhone by signing it
+# with your own Apple ID using Sideloadly or AltStore (free Apple ID: valid for 7 days).
+# Runs when this branch is pushed (docs/assets-only pushes are ignored) or manually.
+on:
+  push:
+    branches: [meetcs-base-vector-android]
+    paths-ignore:
+      - 'store-assets/**'
+      - '**.md'
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.16.0
+
+      - name: Install dependencies
+        run: npm ci --include=dev
+
+      - name: Apply client config
+        run: node scripts/apply-config.js
+
+      - name: Build web app and prepare iOS project
+        env:
+          NODE_ENV: production
+          npm_config_include: dev
+          NODE_OPTIONS: --max-old-space-size=8192
+        run: npx ionic cordova prepare ios --prod
+
+      - name: Build app without code signing
+        run: |
+          WS=$(ls -d platforms/ios/*.xcworkspace | head -1)
+          SCHEME=$(basename "$WS" .xcworkspace)
+          echo "Workspace: $WS  Scheme: $SCHEME"
+          xcodebuild \
+            -workspace "$WS" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Package .ipa
+        run: |
+          APP=$(ls -d build/Build/Products/Release-iphoneos/*.app | head -1)
+          echo "App: $APP"
+          mkdir -p Payload
+          cp -R "$APP" Payload/
+          zip -qry Vector-unsigned.ipa Payload
+          ls -la Vector-unsigned.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Vector-unsigned-ipa
+          path: Vector-unsigned.ipa
+          retention-days: 7

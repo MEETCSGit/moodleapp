@@ -1,0 +1,49 @@
+# Codemagic build for the Vector iOS app.
+# Builds an UNSIGNED .ipa. Sign and install it on an iPhone with Sideloadly or AltStore
+# using a free Apple ID (valid for 7 days).
+workflows:
+  vector-ios-unsigned:
+    name: Vector iOS (unsigned IPA)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      node: 24.16.0
+      xcode: latest
+      cocoapods: default
+    triggering:
+      events: []   # start builds manually from the Codemagic dashboard
+    scripts:
+      - name: Install dependencies
+        script: npm ci --include=dev
+      - name: Apply client config
+        script: node scripts/apply-config.js
+      - name: Build web app and prepare iOS project
+        script: |
+          export NODE_ENV=production
+          export npm_config_include=dev
+          export NODE_OPTIONS=--max-old-space-size=8192
+          npx ionic cordova prepare ios --prod
+      - name: Build app without code signing
+        script: |
+          WS=$(ls -d platforms/ios/*.xcworkspace | head -1)
+          SCHEME=$(basename "$WS" .xcworkspace)
+          echo "Workspace: $WS  Scheme: $SCHEME"
+          xcodebuild \
+            -workspace "$WS" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build
+      - name: Package .ipa
+        script: |
+          APP=$(ls -d build/Build/Products/Release-iphoneos/*.app | head -1)
+          echo "App: $APP"
+          mkdir -p Payload
+          cp -R "$APP" Payload/
+          zip -qry Vector-unsigned.ipa Payload
+          ls -la Vector-unsigned.ipa
+    artifacts:
+      - Vector-unsigned.ipa
