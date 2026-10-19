@@ -33,7 +33,9 @@ jobs:
           NODE_ENV: production
           npm_config_include: dev
           NODE_OPTIONS: --max-old-space-size=8192
-        run: npx ionic cordova prepare ios --prod
+        run: |
+          npx cordova platform add ios
+          npx ionic cordova prepare ios --prod
 
       - name: Build app without code signing
         run: |
