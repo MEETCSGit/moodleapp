@@ -56,3 +56,57 @@ workflows:
           ls -la Vector-unsigned.ipa
     artifacts:
       - Vector-unsigned.ipa
+
+  # Signed DEVELOPMENT build for registered test devices (needs the paid Apple Developer account).
+  # Install it on the iPhone by opening the build's download/App Preview link in Safari.
+  # Before the first run, upload the certificate (.p12) and provisioning profile in Codemagic:
+  #   Teams > Personal account > Code signing identities
+  #   reference names: vector_dev_cert (certificate) and vector_dev_profile (provisioning profile)
+  vector-ios-development:
+    name: Vector iOS (development, signed)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      node: 24.16.0
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        certificates:
+          - vector_dev_cert
+        provisioning_profiles:
+          - vector_dev_profile
+    triggering:
+      events: []   # start builds manually from the Codemagic dashboard
+    scripts:
+      - name: Install dependencies
+        script: npm ci --include=dev
+      - name: Apply client config
+        script: node scripts/apply-config.js
+      - name: Build web app and prepare iOS project
+        script: |
+          export NODE_ENV=production
+          export npm_config_include=dev
+          export NODE_OPTIONS=--max-old-space-size=8192
+          mkdir -p www
+          npx cordova platform add ios
+          npx ionic cordova prepare ios --prod
+      - name: Patch plugins for Xcode 26
+        script: |
+          # Xcode 26 rejects the private header <netinet6/in6.h> used by the advanced-http plugin.
+          grep -rl "netinet6/in6.h" platforms/ios/App/Plugins | xargs perl -pi -e 's#<netinet6/in6.h>#<netinet/in.h>#g'
+          # The push plugin hard-codes "Moodle-Swift.h"; the header is named after the app.
+          MODULE=$(sed -n 's:.*<name>\(.*\)</name>.*:\1:p' config.xml | head -1 | sed 's/[^A-Za-z0-9_]/_/g')
+          echo "Swift module name: $MODULE"
+          grep -rl "Moodle-Swift.h" platforms/ios/App/Plugins | MODULE="$MODULE" xargs perl -pi -e 's|#import "Moodle-Swift\.h"|#if __has_include("App-Swift.h")\n#import "App-Swift.h"\n#else\n#import "$ENV{MODULE}-Swift.h"\n#endif|'
+      - name: Set up code signing
+        script: |
+          cd platforms/ios
+          xcode-project use-profiles
+      - name: Build signed IPA
+        script: |
+          WS=$(ls -d platforms/ios/*.xcworkspace | head -1)
+          SCHEME=$(basename "$WS" .xcworkspace)
+          echo "Workspace: $WS  Scheme: $SCHEME"
+          xcode-project build-ipa --workspace "$WS" --scheme "$SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
