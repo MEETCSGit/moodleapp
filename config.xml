@@ -21,7 +21,7 @@
     <hook src="scripts/cordova-hooks/before_plugin_add.sh" type="before_plugin_add" />
     <preference name="permissions" value="none" />
     <preference name="orientation" value="default" />
-    <preference name="target-device" value="universal" />
+    <preference name="target-device" value="handset" />
     <preference name="fullscreen" value="false" />
     <preference name="stay-in-webview" value="false" />
     <preference name="webviewbounce" value="false" />
