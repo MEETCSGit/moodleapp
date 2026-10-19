@@ -124,12 +124,11 @@ workflows:
     integrations:
       app_store_connect: meetcs_app_store_connect
     environment:
+      groups:
+        - vector_signing
       node: 24.16.0
       xcode: latest
       cocoapods: default
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.vector.meetcs
     triggering:
       events: []   # start builds manually from the Codemagic dashboard
     scripts:
