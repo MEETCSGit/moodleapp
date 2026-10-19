@@ -40,6 +40,9 @@ jobs:
 
       - name: Build app without code signing
         run: |
+          # Xcode 26 rejects the private header <netinet6/in6.h> used by the advanced-http plugin.
+          # The same definitions are in the public <netinet/in.h>.
+          grep -rl "netinet6/in6.h" platforms/ios/App/Plugins | xargs perl -pi -e 's#<netinet6/in6.h>#<netinet/in.h>#g'
           WS=$(ls -d platforms/ios/*.xcworkspace | head -1)
           SCHEME=$(basename "$WS" .xcworkspace)
           echo "Workspace: $WS  Scheme: $SCHEME"
