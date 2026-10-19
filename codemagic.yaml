@@ -98,6 +98,13 @@ workflows:
           MODULE=$(sed -n 's:.*<name>\(.*\)</name>.*:\1:p' config.xml | head -1 | sed 's/[^A-Za-z0-9_]/_/g')
           echo "Swift module name: $MODULE"
           grep -rl "Moodle-Swift.h" platforms/ios/App/Plugins | MODULE="$MODULE" xargs perl -pi -e 's|#import "Moodle-Swift\.h"|#if __has_include("App-Swift.h")\n#import "App-Swift.h"\n#else\n#import "$ENV{MODULE}-Swift.h"\n#endif|'
+          # Push notifications are not set up yet (no Firebase or Apple push key). Remove the entitlement the
+          # push plugin adds, so the app does not need a provisioning profile with the Push Notifications capability.
+          # Remove this block when push notifications are set up.
+          for f in $(find platforms/ios -name "Entitlements-*.plist" -not -path "*/Pods/*"); do
+            /usr/libexec/PlistBuddy -c "Delete :aps-environment" "$f" || true
+            echo "Patched $f"
+          done
       - name: Set up code signing
         script: |
           cd platforms/ios
@@ -157,6 +164,13 @@ workflows:
           MODULE=$(sed -n 's:.*<name>\(.*\)</name>.*:\1:p' config.xml | head -1 | sed 's/[^A-Za-z0-9_]/_/g')
           echo "Swift module name: $MODULE"
           grep -rl "Moodle-Swift.h" platforms/ios/App/Plugins | MODULE="$MODULE" xargs perl -pi -e 's|#import "Moodle-Swift\.h"|#if __has_include("App-Swift.h")\n#import "App-Swift.h"\n#else\n#import "$ENV{MODULE}-Swift.h"\n#endif|'
+          # Push notifications are not set up yet (no Firebase or Apple push key). Remove the entitlement the
+          # push plugin adds, so the app does not need a provisioning profile with the Push Notifications capability.
+          # Remove this block when push notifications are set up.
+          for f in $(find platforms/ios -name "Entitlements-*.plist" -not -path "*/Pods/*"); do
+            /usr/libexec/PlistBuddy -c "Delete :aps-environment" "$f" || true
+            echo "Patched $f"
+          done
       - name: Set up code signing
         script: |
           keychain initialize
