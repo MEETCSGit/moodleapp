@@ -1,7 +1,7 @@
 {
     "app_id": "com.vector.meetcs",
     "appname": "Vector LMS",
-    "versioncode": 53000,
+    "versioncode": 53001,
     "versionname": "5.3.0",
     "cache_update_frequency_usually": 420000,
     "cache_update_frequency_often": 1200000,
@@ -91,7 +91,7 @@
         {
             "name": "Vector",
             "alias": "Vector",
-            "url": "https://vector.meetcs.com/learning/",
+            "url": "https://upgrade.vector.meetcs.com",
             "logo": "assets/img/vector/logo-black.png",
             "staging": false
         }
