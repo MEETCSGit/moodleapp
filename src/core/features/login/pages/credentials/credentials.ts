@@ -42,6 +42,8 @@ import { CoreSiteError } from '@classes/errors/siteerror';
 import { CoreKeyboard } from '@static/keyboard';
 import { CoreLoadings } from '@services/overlays/loadings';
 import { CoreAlerts } from '@services/overlays/alerts';
+import { CoreOpener } from '@static/opener';
+import { CorePath } from '@static/path';
 import { CoreLoginMethodsComponent } from '../../components/login-methods/login-methods';
 import { CoreLoginExceededAttemptsComponent } from '../../components/exceeded-attempts/exceeded-attempts';
 import { CoreSiteLogoComponent } from '../../../../components/site-logo/site-logo';
@@ -360,10 +362,39 @@ export default class CoreLoginCredentialsPage implements OnInit, OnDestroy {
     }
 
     /**
-     * Open email signup page.
+     * Open the sign up page.
+     *
+     * By default (login_page_customisation.signup_mode "website") the website sign up form opens in the in-app browser.
+     * The website form runs all the site's sign up rules (mobile number, allowed countries, State, limits), which
+     * Moodle's sign up web service used by the in-app form does not. Set signup_mode to "app" to use the in-app form.
      */
     openEmailSignup(): void {
-        CoreNavigator.navigate('/login/emailsignup', { params: { siteUrl: this.site.getURL() } });
+        if (this.loginTexts.signup_mode === 'app') {
+            CoreNavigator.navigate('/login/emailsignup', { params: { siteUrl: this.site.getURL() } });
+
+            return;
+        }
+
+        const signupUrl = CorePath.concatenatePaths(this.site.getURL(), '/login/signup.php');
+        const browser = CoreOpener.openInApp(signupUrl);
+
+        // When the student closes the browser after going past the first page (the form was sent), remind them
+        // to confirm their email before logging in.
+        let pagesLoaded = 0;
+        const loadStop = browser.on('loadstop').subscribe(() => {
+            pagesLoaded++;
+        });
+        const exit = browser.on('exit').subscribe(() => {
+            loadStop.unsubscribe();
+            exit.unsubscribe();
+
+            if (pagesLoaded > 1) {
+                CoreAlerts.show({
+                    message: this.loginTexts.signup_return_message ||
+                        'If you created an account, open the confirmation email we sent you, then log in here.',
+                });
+            }
+        });
     }
 
     /**
@@ -394,8 +425,9 @@ export default class CoreLoginCredentialsPage implements OnInit, OnDestroy {
 }
 
 /**
- * Login page texts that can be customised in client.config.json (login_page_customisation).
+ * Login page settings that can be customised in client.config.json (login_page_customisation).
+ * signup_mode: "website" (default, website sign up form in the in-app browser) or "app" (Moodle's in-app form).
  */
 type CoreLoginPageTextKey = 'welcome_title' | 'welcome_subtitle' | 'username_label' | 'username_placeholder' |
     'password_label' | 'password_placeholder' | 'forgot_password_label' | 'signup_prompt' | 'signup_label' |
-    'site_url_to_show';
+    'site_url_to_show' | 'signup_mode' | 'signup_return_message';
