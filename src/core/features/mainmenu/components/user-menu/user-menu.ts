@@ -74,7 +74,6 @@ export class CoreMainMenuUserMenuComponent implements OnInit, OnDestroy {
     removeAccountOnLogout = false;
     displayLogoutButton = clientConfig.app_data?.display_side_menu_logout_menu;
 
-
     protected siteId?: string;
     protected siteName?: string;
     protected subscription!: Subscription;
