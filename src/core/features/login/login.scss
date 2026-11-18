@@ -142,6 +142,109 @@
         margin-top: 32px;
     }
 
+    // Card layout matching the site's login page (colours come from client.config.json via client-variables.scss).
+    // The card already names the site, so don't repeat the site name under the logo.
+    .core-login-info-box:has(+ .core-login-card) core-site-logo {
+        --core-site-logo-sitename-display: none;
+    }
+
+    .core-login-card {
+        background: var(--core-login-background);
+        border: 1px solid var(--core-login-card-border-color, var(--stroke));
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.075);
+        padding: 24px 20px;
+        color: var(--core-login-text-color);
+
+        .core-login-card-heading {
+            margin-bottom: 24px;
+        }
+
+        .core-login-card-title {
+            margin: 0;
+            font-size: 1.625rem;
+            font-weight: 700;
+            line-height: 1.2;
+            color: var(--core-login-text-color);
+        }
+
+        .core-login-card-subtitle {
+            margin: 8px 0 0;
+            font-size: 0.875rem;
+            color: var(--core-login-muted-text-color, var(--subdued-text-color));
+        }
+
+        .core-login-field-label {
+            display: block;
+            margin: 0 0 8px;
+            font-size: 0.9375rem;
+            color: var(--core-login-text-color);
+        }
+
+        ion-input.core-login-field {
+            --background: var(--core-login-input-background);
+            --color: var(--core-login-input-color);
+            --placeholder-color: var(--core-login-muted-text-color, var(--subdued-text-color));
+            --placeholder-opacity: 1;
+            --padding-start: 12px;
+            --padding-end: 12px;
+            --highlight-color-focused: var(--primary);
+            min-height: 44px;
+            margin-bottom: 20px;
+            border: 1px solid var(--core-login-input-border-color, var(--gray-500));
+            border-radius: 8px;
+            background: var(--core-login-input-background);
+            overflow: hidden;
+            font-size: 1rem;
+
+            &.has-focus {
+                border-color: var(--primary);
+            }
+        }
+
+        .core-login-forgotten-password-wrapper {
+            text-align: end;
+            margin-top: -8px;
+        }
+
+        button.core-login-forgotten-password,
+        button.core-login-card-signup-link {
+            background: none;
+            border: 0;
+            padding: 4px 0;
+            font: inherit;
+            color: var(--core-login-text-color);
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        button.core-login-forgotten-password {
+            font-size: 0.9375rem;
+        }
+
+        .core-login-login-button {
+            --border-radius: 8px;
+            margin-top: 20px;
+            min-height: 44px;
+            font-size: 1rem;
+            text-transform: none;
+        }
+
+        .core-login-card-signup {
+            margin: 24px 0 0;
+            padding-top: 20px;
+            border-top: 1px solid var(--core-login-card-border-color, var(--stroke));
+            font-size: 0.8125rem;
+            color: var(--core-login-muted-text-color, var(--subdued-text-color));
+
+            button.core-login-card-signup-link {
+                margin-inline-start: 4px;
+                font-size: inherit;
+                font-weight: 500;
+            }
+        }
+    }
+
     .core-login-login-inbrowser-button {
         margin-bottom: 8px;
     }

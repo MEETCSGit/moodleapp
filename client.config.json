@@ -9,10 +9,10 @@
     "app_description" : "Meetcs Moodle app",
     "moodle_site_url" :
     {
-      "name": "Beta A2A",
-      "alias": "Beta A2A",
+      "name": "IRClass Academy",
+      "alias": "IRClass Academy",
       "url":"https://irclass.academy.meetcs.com",
-      "logo": "assets/img/SIESCOMS.jpg",
+      "logo": "assets/img/login_logo.png",
       "staging": false
     },
     "side_menu_site_url" : "https://irclass.academy.meetcs.com",
@@ -29,16 +29,29 @@
 
   "app_customisation" :{
 
-    "header_backgorud_colour" : "#0a0379",
-    "header_text_colour" : "#ffffff",
-    "brandColor" : "#0a0379"
+    "header_backgorud_colour" : "#ffffff",
+    "header_text_colour" : "#21225f",
+    "brandColor" : "#08A9E6",
+    "brand_contrast_colour" : "#ffffff",
+    "login_text_colour" : "#21225f",
+    "login_muted_text_colour" : "#6a737b",
+    "login_input_background_colour" : "#f8f9fa",
+    "login_input_border_colour" : "#8f959e",
+    "login_card_border_colour" : "#dee2e6"
 
   },
 
   "login_page_customisation" : {
 
-    "forgot_password_label" : "Forget Password?",
-    "site_url_to_show" : "https://irclass.academy.meetcs.com"
+    "welcome_title" : "Welcome back",
+    "welcome_subtitle" : "Log in to IRCLASS ACADEMY",
+    "username_label" : "Username or email",
+    "username_placeholder" : "Enter your username or email",
+    "password_label" : "Password",
+    "password_placeholder" : "Enter your password",
+    "forgot_password_label" : "Forgot password?",
+    "signup_prompt" : "Don't have an account?",
+    "signup_label" : "Sign up"
 
   }
 

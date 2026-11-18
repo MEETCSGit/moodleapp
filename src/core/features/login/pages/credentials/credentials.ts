@@ -80,8 +80,10 @@ export default class CoreLoginCredentialsPage implements OnInit, OnDestroy {
     siteCheckError = '';
     displaySiteUrl = false;
     showLoginForm = true;
-    loginFormForgotPasswordLabel = clientConfig.login_page_customisation?.forgot_password_label;
-    siteUrlToShow = clientConfig.login_page_customisation.site_url_to_show;
+    // Login page texts from client.config.json. Every key is optional; the template falls back to the default strings.
+    loginTexts: Partial<Record<CoreLoginPageTextKey, string>> = clientConfig.login_page_customisation ?? {};
+    loginFormForgotPasswordLabel = this.loginTexts.forgot_password_label;
+    siteUrlToShow = this.loginTexts.site_url_to_show;
 
     protected siteCheck?: CoreSiteCheckResponse;
     protected eventThrown = false;
@@ -390,3 +392,10 @@ export default class CoreLoginCredentialsPage implements OnInit, OnDestroy {
     }
 
 }
+
+/**
+ * Login page texts that can be customised in client.config.json (login_page_customisation).
+ */
+type CoreLoginPageTextKey = 'welcome_title' | 'welcome_subtitle' | 'username_label' | 'username_placeholder' |
+    'password_label' | 'password_placeholder' | 'forgot_password_label' | 'signup_prompt' | 'signup_label' |
+    'site_url_to_show';

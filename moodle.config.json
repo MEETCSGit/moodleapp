@@ -89,10 +89,10 @@
     "customurlscheme": "moodlemobile",
     "sites": [
         {
-            "name": "Beta A2A",
-            "alias": "Beta A2A",
+            "name": "IRClass Academy",
+            "alias": "IRClass Academy",
             "url": "https://irclass.academy.meetcs.com",
-            "logo": "assets/img/SIESCOMS.jpg",
+            "logo": "assets/img/login_logo.png",
             "staging": false
         }
     ],

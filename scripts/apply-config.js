@@ -26,7 +26,16 @@ for (const [section, keys] of Object.entries(required)) {
 if (appData && appData.packageid && !/^[a-zA-Z][\w]*(\.[a-zA-Z][\w]*)+$/.test(appData.packageid)) {
   errors.push(`Invalid app_data.packageid: ${appData.packageid}`);
 }
-for (const key of ['header_backgorud_colour', 'header_text_colour', 'brandColor']) {
+// Optional colours (only validated and applied when present).
+const optionalColours = {
+  brand_contrast_colour: ['--primary-contrast', '--ion-color-primary-contrast'],
+  login_text_colour: ['--core-login-text-color', '--core-login-input-color'],
+  login_muted_text_colour: ['--core-login-muted-text-color'],
+  login_input_background_colour: ['--core-login-input-background'],
+  login_input_border_colour: ['--core-login-input-border-color'],
+  login_card_border_colour: ['--core-login-card-border-color'],
+};
+for (const key of ['header_backgorud_colour', 'header_text_colour', 'brandColor', ...Object.keys(optionalColours)]) {
   const value = customisation && customisation[key];
   if (value && !/^#[0-9a-fA-F]{3,8}$/.test(value)) {
     errors.push(`Invalid colour app_customisation.${key}: ${value}`);
@@ -102,11 +111,28 @@ console.log(`✅ Updated config.xml: ${appData.appname} (${appData.packageid}) $
 
 // === Update client-variables.scss ===
 const themeFile = path.join(root, 'src/theme/client-variables.scss');
+const hexToRgbList = (hex) => {
+  let h = hex.replace('#', '');
+  if (h.length === 3 || h.length === 4) {
+    h = h.split('').map((c) => c + c).join('');
+  }
+  return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)).join(', ');
+};
+const optionalVars = [];
+for (const [key, cssVars] of Object.entries(optionalColours)) {
+  if (customisation[key]) {
+    cssVars.forEach((cssVar) => optionalVars.push(`  ${cssVar}: ${customisation[key]};`));
+    if (key === 'brand_contrast_colour') {
+      optionalVars.push(`  --ion-color-primary-contrast-rgb: ${hexToRgbList(customisation[key])};`);
+    }
+  }
+}
 const themeContent = `
 $brand-color: ${customisation.brandColor};
 :root {
   --core-header-toolbar-background: ${customisation.header_backgorud_colour};
   --core-header-toolbar-color: ${customisation.header_text_colour};
+${optionalVars.join('\n')}
 }
 `;
 

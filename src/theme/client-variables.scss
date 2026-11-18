@@ -1,6 +1,15 @@
 
-$brand-color: #0a0379;
+$brand-color: #08A9E6;
 :root {
-  --core-header-toolbar-background: #0a0379;
-  --core-header-toolbar-color: #ffffff;
+  --core-header-toolbar-background: #ffffff;
+  --core-header-toolbar-color: #21225f;
+  --primary-contrast: #ffffff;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --core-login-text-color: #21225f;
+  --core-login-input-color: #21225f;
+  --core-login-muted-text-color: #6a737b;
+  --core-login-input-background: #f8f9fa;
+  --core-login-input-border-color: #8f959e;
+  --core-login-card-border-color: #dee2e6;
 }
