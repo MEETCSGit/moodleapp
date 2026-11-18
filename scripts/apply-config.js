@@ -26,6 +26,10 @@ for (const [section, keys] of Object.entries(required)) {
 if (appData && appData.packageid && !/^[a-zA-Z][\w]*(\.[a-zA-Z][\w]*)+$/.test(appData.packageid)) {
   errors.push(`Invalid app_data.packageid: ${appData.packageid}`);
 }
+// Lower case, so iOS and Android match it the same way, and the same rule as Moodle's launch.php.
+if (appData && appData.url_scheme && !/^[a-z][a-z0-9+.-]*$/.test(appData.url_scheme)) {
+  errors.push(`Invalid app_data.url_scheme: ${appData.url_scheme} (lower case letters, digits, + . -, starting with a letter)`);
+}
 // Colours in app_customisation and the Sass variable each one sets in src/theme/irclass/_client.scss.
 // A key can have older aliases (second and later names), kept so existing client configs still work.
 // Only the first three are required; any other colour that is missing uses the default in _variables.scss.
@@ -151,9 +155,28 @@ if (appData.notificoncolor) {
 if (appData.moodle_site_url) {
   moodleConfig.sites = [appData.moodle_site_url];
 }
+if (appData.url_scheme) {
+  // Own scheme, so links from the website (login, signup confirmation) open this app and not another Moodle app.
+  moodleConfig.customurlscheme = appData.url_scheme;
+}
 
 fs.writeFileSync(configPath, JSON.stringify(moodleConfig, null, 4) + '\n', 'utf8');
 console.log('✅ moodle.config.json updated successfully!');
+
+// === Update the URL scheme registered by cordova-plugin-customurlscheme (package.json) ===
+if (appData.url_scheme) {
+  const packagePath = path.join(root, 'package.json');
+  const packageText = fs.readFileSync(packagePath, 'utf8');
+  const schemeRegex = /("cordova-plugin-customurlscheme":\s*\{\s*"URL_SCHEME":\s*")[^"]*(")/;
+  if (!schemeRegex.test(packageText)) {
+    throw new Error('cordova-plugin-customurlscheme URL_SCHEME not found in package.json');
+  }
+  const updated = packageText.replace(schemeRegex, (_, start, end) => start + appData.url_scheme + end);
+  if (updated !== packageText) {
+    fs.writeFileSync(packagePath, updated, 'utf8');
+  }
+  console.log(`✅ App URL scheme: ${appData.url_scheme}`);
+}
 
 // === Update google-services.json ===
 const googleConfigPath = path.join(root, 'google-services.json');

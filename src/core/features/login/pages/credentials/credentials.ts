@@ -44,6 +44,8 @@ import { CoreLoadings } from '@services/overlays/loadings';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreOpener } from '@static/opener';
 import { CorePath } from '@static/path';
+import { CoreUrl, CoreUrlPartNames } from '@static/url';
+import { CoreConstants } from '@/core/constants';
 import { CoreLoginMethodsComponent } from '../../components/login-methods/login-methods';
 import { CoreLoginExceededAttemptsComponent } from '../../components/exceeded-attempts/exceeded-attempts';
 import { CoreSiteLogoComponent } from '../../../../components/site-logo/site-logo';
@@ -367,28 +369,59 @@ export default class CoreLoginCredentialsPage implements OnInit, OnDestroy {
      * By default (login_page_customisation.signup_mode "website") the website sign up form opens in the in-app browser.
      * The website form runs all the site's sign up rules (mobile number, allowed countries, State, limits), which
      * Moodle's sign up web service used by the in-app form does not. Set signup_mode to "app" to use the in-app form.
+     *
+     * The app is prepared to receive a login token, as for a browser login, and the website is told how to return
+     * to the app (service, passport, urlscheme). On the IRClass site, signup_path is local_irclass_geo/appsignup.php,
+     * which keeps these details with the new account: when the learner opens the confirmation email on their phone,
+     * the website offers "Open the app" and the app logs them in. Sites without that page use /login/signup.php,
+     * which ignores the extra parameters.
      */
-    openEmailSignup(): void {
+    async openEmailSignup(): Promise<void> {
+        const siteUrl = this.site.getURL();
+
         if (this.loginTexts.signup_mode === 'app') {
-            CoreNavigator.navigate('/login/emailsignup', { params: { siteUrl: this.site.getURL() } });
+            CoreNavigator.navigate('/login/emailsignup', { params: { siteUrl } });
 
             return;
         }
 
-        const signupUrl = CorePath.concatenatePaths(this.site.getURL(), '/login/signup.php');
+        const launchParams = CoreUrl.extractUrlParams(await CoreLoginHelper.prepareForSSOLogin(siteUrl));
+        const signupUrl = CoreUrl.addParamsToUrl(
+            CorePath.concatenatePaths(siteUrl, this.loginTexts.signup_path || '/login/signup.php'),
+            { service: launchParams.service, passport: launchParams.passport, urlscheme: launchParams.urlscheme },
+        );
         const browser = CoreOpener.openInApp(signupUrl);
+        const siteHome = CoreUrl.removeUrlParts(siteUrl, CoreUrlPartNames.Protocol).replace(/\/$/, '');
 
-        // When the student closes the browser after going past the first page (the form was sent), remind them
-        // to confirm their email before logging in.
         let pagesLoaded = 0;
+        let returnedToApp = false;
+        const loadStart = browser.on('loadstart').subscribe((event) => {
+            if (event.url.includes(`${CoreConstants.CONFIG.customurlscheme}://`)) {
+                // The website sent a login token back (the learner was already logged in there). The app handles it.
+                returnedToApp = true;
+
+                return;
+            }
+
+            // "Continue" on the "check your email" page goes to the site home page: the sign up is done, close the browser.
+            const target = CoreUrl.removeUrlParts(
+                event.url,
+                [CoreUrlPartNames.Protocol, CoreUrlPartNames.Query, CoreUrlPartNames.Fragment],
+            ).replace(/\/(index\.php)?$/, '');
+            if (pagesLoaded > 1 && target === siteHome) {
+                CoreOpener.closeInAppBrowser();
+            }
+        });
         const loadStop = browser.on('loadstop').subscribe(() => {
             pagesLoaded++;
         });
         const exit = browser.on('exit').subscribe(() => {
+            loadStart.unsubscribe();
             loadStop.unsubscribe();
             exit.unsubscribe();
 
-            if (pagesLoaded > 1) {
+            // After going past the first page (the form was sent), remind the learner to confirm their email.
+            if (pagesLoaded > 1 && !returnedToApp) {
                 CoreAlerts.show({
                     message: this.loginTexts.signup_return_message ||
                         'If you created an account, open the confirmation email we sent you, then log in here.',
@@ -427,7 +460,8 @@ export default class CoreLoginCredentialsPage implements OnInit, OnDestroy {
 /**
  * Login page settings that can be customised in client.config.json (login_page_customisation).
  * signup_mode: "website" (default, website sign up form in the in-app browser) or "app" (Moodle's in-app form).
+ * signup_path: website page opened for "website" sign up (default /login/signup.php).
  */
 type CoreLoginPageTextKey = 'welcome_title' | 'welcome_subtitle' | 'username_label' | 'username_placeholder' |
     'password_label' | 'password_placeholder' | 'forgot_password_label' | 'signup_prompt' | 'signup_label' |
-    'site_url_to_show' | 'signup_mode' | 'signup_return_message';
+    'site_url_to_show' | 'signup_mode' | 'signup_return_message' | 'signup_path';

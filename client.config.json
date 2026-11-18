@@ -3,6 +3,7 @@
 
     "appname": "IRClass Academy",
     "packageid": "com.meetcs.irclass",
+    "url_scheme": "irclassacademy",
     "versionname": "5.3.0",
     "versioncode": "53000",
     "ios_CFBundleVersion": "5.3.0.0",
@@ -57,6 +58,7 @@
     "signup_prompt" : "Don't have an account?",
     "signup_label" : "Sign up",
     "signup_mode" : "website",
+    "signup_path" : "/local/irclass_geo/appsignup.php",
     "signup_return_message" : "If you created an account, open the confirmation email we sent you, then log in here."
 
   }
