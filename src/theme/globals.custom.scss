@@ -3,3 +3,8 @@
  * ----------------------------------------------------------------------------
  * Place here all custom app variables.
  */
+
+// IRClass brand (src/theme/irclass). Sass variables only: this file is included by every component stylesheet.
+// _client.scss is written by scripts/apply-config.js from client.config.json and must come first.
+@import "./irclass/client";
+@import "./irclass/variables";

@@ -1,0 +1,69 @@
+// IRClass brand: fonts and text sizes (BRAND-03).
+// The font files are the same files the website serves (public/theme/irclass/fonts, manifest in
+// classes/typography.php), copied unchanged into src/assets/fonts/irclass with their SIL OFL 1.1 licences.
+// They are bundled in the app: no font is loaded from the internet.
+
+$irclass-font-path: "/assets/fonts/irclass";
+
+// Inter variable font, Latin and Latin Extended subsets (unicode ranges from the website manifest).
+@font-face {
+    font-family: "IRClass Inter";
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url("#{$irclass-font-path}/irclass_inter_latin_wght.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+        U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: "IRClass Inter";
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url("#{$irclass-font-path}/irclass_inter_latinext_wght.woff2") format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+        U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+// Noto Sans Devanagari variable font, for Hindi text.
+@font-face {
+    font-family: "IRClass Devanagari";
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url("#{$irclass-font-path}/irclass_devanagari_wght.woff2") format("woff2");
+    unicode-range: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+20F0, U+25CC, U+A830-A839, U+A8E0-A8FF,
+        U+11B00-11B09;
+}
+
+:root {
+    // Same stack as the website (theme_irclass\typography::INTER_STACK).
+    --irclass-font-family: "IRClass Inter", "IRClass Devanagari", Arial, Helvetica, sans-serif;
+    --ion-font-family: var(--irclass-font-family);
+
+    // Weights: the website uses 700 for headings and bold text.
+    --irclass-font-weight-normal: 400;
+    --irclass-font-weight-medium: 500;
+    --irclass-font-weight-bold: 700;
+
+    // Text size scale. Every IRClass screen uses only these four sizes. They map to Moodle's sizes, which follow
+    // the font size the student chooses in the app settings.
+    --irclass-text-heading: var(--mdl-typography-heading2-fontSize);    // 24px
+    --irclass-text-subheading: var(--mdl-typography-heading5-fontSize); // 18px
+    --irclass-text-normal: var(--mdl-typography-fontSize-md);           // 14px, website body text
+    --irclass-text-small: var(--mdl-typography-fontSize-sm);            // 12px
+
+    // Moodle headings in the website weight.
+    --mdl-typography-heading1-fontWeight: var(--irclass-font-weight-bold);
+    --mdl-typography-heading2-fontWeight: var(--irclass-font-weight-bold);
+    --mdl-typography-heading3-fontWeight: var(--irclass-font-weight-bold);
+    --mdl-typography-heading4-fontWeight: var(--irclass-font-weight-bold);
+    --mdl-typography-heading5-fontWeight: var(--irclass-font-weight-bold);
+    --mdl-typography-heading6-fontWeight: var(--irclass-font-weight-bold);
+}
+
+body b,
+body strong {
+    font-weight: var(--irclass-font-weight-bold);
+}

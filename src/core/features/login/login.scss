@@ -151,8 +151,8 @@
     .core-login-card {
         background: var(--core-login-background);
         border: 1px solid var(--core-login-card-border-color, var(--stroke));
-        border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.075);
+        border-radius: var(--irclass-radius-card, 10px);
+        box-shadow: var(--irclass-shadow-card);
         padding: 24px 20px;
         color: var(--core-login-text-color);
 
@@ -189,10 +189,10 @@
             --padding-start: 12px;
             --padding-end: 12px;
             --highlight-color-focused: var(--primary);
-            min-height: 44px;
+            min-height: var(--irclass-min-target, 48px);
             margin-bottom: 20px;
             border: 1px solid var(--core-login-input-border-color, var(--gray-500));
-            border-radius: 8px;
+            border-radius: var(--irclass-radius-control, 8px);
             background: var(--core-login-input-background);
             overflow: hidden;
             font-size: 1rem;
@@ -223,9 +223,9 @@
         }
 
         .core-login-login-button {
-            --border-radius: 8px;
+            --border-radius: var(--irclass-radius-control, 8px);
             margin-top: 20px;
-            min-height: 44px;
+            min-height: var(--irclass-min-target, 48px);
             font-size: 1rem;
             text-transform: none;
         }

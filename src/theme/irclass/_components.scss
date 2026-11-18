@@ -1,0 +1,70 @@
+// IRClass brand: shared buttons, fields, cards and the course card (BRAND-05, BRAND-08).
+// theme.custom.scss is loaded before Moodle's Ionic component overrides (components/ionic), so the rules
+// below start with "body" or ":root" to win by specificity, without !important.
+
+// Page background behind cards, as on the website dashboard.
+body ion-content {
+    --background: var(--irclass-page-background);
+}
+
+// Buttons: website .btn-primary (brand colour, white text, 8px corners). Height at least 48px (BRAND-08).
+body ion-button.button-solid,
+body ion-button.button-outline {
+    --border-radius: var(--irclass-radius-control);
+    min-height: var(--irclass-min-target);
+    font-family: var(--irclass-font-family);
+    font-weight: var(--irclass-font-weight-medium);
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+body ion-button.button-solid:not(.button-small) {
+    --padding-top: var(--irclass-space-3);
+    --padding-bottom: var(--irclass-space-3);
+}
+
+// Outline buttons use the brand colour for their border and text, like the website secondary actions.
+body ion-button.button-outline:not([color]) {
+    --border-color: var(--irclass-brand);
+    --color: var(--irclass-ink);
+}
+
+// Visible keyboard focus (BRAND-08). Uses the website focus colour.
+body ion-button.ion-focused::part(native),
+body ion-card.ion-focused::part(native) {
+    outline: 3px solid var(--irclass-focus);
+    outline-offset: 2px;
+}
+
+// Cards: white, 8px corners, divider coloured border and the website card shadow.
+body ion-card {
+    --border-radius: var(--irclass-radius-card);
+    --border-color: var(--irclass-line);
+    --box-shadow: var(--irclass-shadow-card);
+}
+
+// Shared course card (Moodle's course list item, used by Dashboard and My courses; the Catalogue and Home cards
+// will reuse it). It holds the image, title, category badge and progress bar. Its corner and spacing variables are
+// set on the component host, so ":root" raises the specificity above the component's own :host rule.
+:root core-courses-course-list-item {
+    --card-radius: var(--irclass-radius-card);
+    --card-vertical-margin: var(--irclass-space-2);
+    --avatar-radius: var(--irclass-radius-control);
+}
+
+body core-courses-course-list-item ion-card .item-heading {
+    color: var(--irclass-ink);
+    font-weight: var(--irclass-font-weight-bold);
+}
+
+// Badges: website .badge (brand colour, white text, 8px corners).
+body ion-badge {
+    --padding-start: var(--irclass-space-2);
+    --padding-end: var(--irclass-space-2);
+    border-radius: var(--irclass-radius-badge);
+}
+
+// Form fields outside the login card (search boxes, filters): website .form-control corners and border.
+body ion-searchbar {
+    --border-radius: var(--irclass-radius-control);
+}

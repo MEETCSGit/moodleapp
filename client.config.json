@@ -33,11 +33,15 @@
     "header_text_colour" : "#21225f",
     "brandColor" : "#08A9E6",
     "brand_contrast_colour" : "#ffffff",
-    "login_text_colour" : "#21225f",
-    "login_muted_text_colour" : "#6a737b",
-    "login_input_background_colour" : "#f8f9fa",
-    "login_input_border_colour" : "#8f959e",
-    "login_card_border_colour" : "#dee2e6"
+    "accent_colour" : "#EC272E",
+    "text_colour" : "#21225f",
+    "muted_text_colour" : "#6a737b",
+    "page_background_colour" : "#F9FAFC",
+    "tint_colour" : "#E6F8FF",
+    "line_colour" : "#dee2e6",
+    "input_border_colour" : "#8f959e",
+    "input_fill_colour" : "#f8f9fa",
+    "focus_colour" : "#0B2345"
 
   },
 

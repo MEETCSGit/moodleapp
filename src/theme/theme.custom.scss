@@ -7,14 +7,18 @@
 /*
  * Light Theme
  * -------------------------------------------
+ * IRClass brand (src/theme/irclass). Loaded once, in the global stylesheet.
  */
-:root {
-
-}
+@import "./irclass/colors";
+@import "./irclass/typography";
+@import "./irclass/spacing";
+@import "./irclass/components";
+@import "./irclass/utilities";
 
 /*
  * Dark Theme
  * -------------------------------------------
+ * Not customised: dark mode is out of scope for this work (BRAND-07), so Moodle's dark colours are used.
  */
 :root.dark {
 

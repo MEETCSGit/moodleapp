@@ -1,0 +1,66 @@
+// IRClass brand: colour tokens as CSS custom properties (BRAND-02).
+// Every IRClass screen must use these variables. Do not type colour codes in screen stylesheets.
+// Light mode only: dark mode (BRAND-07) is not part of this work, so Moodle's :root.dark values still apply there.
+
+:root {
+    --irclass-brand: #{$irclass-brand};
+    --irclass-brand-rgb: #{color-to-rgb-list($irclass-brand)};
+    --irclass-brand-contrast: #{$irclass-brand-contrast};
+    --irclass-accent: #{$irclass-accent};
+    --irclass-ink: #{$irclass-ink};
+    --irclass-muted: #{$irclass-muted};
+    --irclass-surface: #{$irclass-surface};
+    --irclass-page-background: #{$irclass-page-background};
+    --irclass-tint: #{$irclass-tint};
+    --irclass-line: #{$irclass-line};
+    --irclass-input-border: #{$irclass-input-border};
+    --irclass-input-fill: #{$irclass-input-fill};
+    --irclass-focus: #{$irclass-focus};
+    --irclass-header-background: #{$irclass-header-background};
+    --irclass-header-text: #{$irclass-header-text};
+
+    // Page title banner of the site (.page-title-area).
+    --irclass-banner-gradient: linear-gradient(to left, #FEF0ED, #FEF1F5, #F9F3FD, #F1F7FF, #ECFAFF);
+
+    // Moodle and Ionic tokens mapped to the IRClass colours.
+    --primary-contrast: var(--irclass-brand-contrast);
+    --ion-color-primary-contrast: var(--irclass-brand-contrast);
+    --ion-color-primary-contrast-rgb: #{color-to-rgb-list($irclass-brand-contrast)};
+
+    --stroke: var(--irclass-line);
+    --subdued-text-color: var(--irclass-muted);
+    --core-link-color: var(--irclass-ink);
+
+    --core-header-toolbar-background: var(--irclass-header-background);
+    --core-header-toolbar-color: var(--irclass-header-text);
+    --core-header-toolbar-border-color: var(--irclass-line);
+
+    --core-input-stroke: var(--irclass-input-border);
+    --core-input-text: var(--irclass-ink);
+    --core-input-background: var(--irclass-surface);
+
+    --ion-item-background: var(--irclass-surface);
+    --ion-card-background: var(--irclass-surface);
+    --ion-card-color: var(--irclass-ink);
+    --ion-card-border-color: var(--irclass-line);
+
+    --core-tab-color-active: var(--irclass-ink);
+    --core-tab-border-color-active: var(--irclass-brand);
+    --core-bottom-tabs-background: var(--irclass-surface);
+    --core-bottom-tabs-color-selected: var(--irclass-brand);
+    --core-bottom-tabs-border-color-active: var(--irclass-brand);
+
+    --core-progressbar-color: var(--irclass-brand);
+    --core-progressbar-background: var(--irclass-tint);
+
+    --a11y-shadow-focus-boxShadowColor: var(--irclass-focus);
+
+    // Login page.
+    --core-login-background: var(--irclass-surface);
+    --core-login-text-color: var(--irclass-ink);
+    --core-login-input-color: var(--irclass-ink);
+    --core-login-input-background: #{$irclass-input-fill};
+    --core-login-input-border-color: var(--irclass-input-border);
+    --core-login-muted-text-color: var(--irclass-muted);
+    --core-login-card-border-color: var(--irclass-line);
+}

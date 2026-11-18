@@ -1,0 +1,34 @@
+// IRClass brand: Sass variables (BRAND-01, BRAND-02).
+// Loaded from globals.custom.scss, which every component stylesheet includes, so this file must only declare
+// Sass variables and never output CSS.
+//
+// Values come from the IRClass website (theme_irclass, which inherits theme_edash) and were checked on the live
+// site after login on 2026-11-18. The client values in _client.scss (written by scripts/apply-config.js from
+// client.config.json) win; the values below are the defaults when a client does not set them.
+
+// Brand and text.
+$irclass-brand:            #08A9E6 !default; // Edash "main colour" (theme/edash/settings.php), buttons, badges, links on hover.
+$irclass-brand-contrast:   #FFFFFF !default; // Text on the brand colour (white on the site's buttons).
+$irclass-accent:           #EC272E !default; // Edash "secondary colour" (site Sign Up button).
+$irclass-ink:              #21225F !default; // Body text, headings and links on the site.
+$irclass-muted:            #6A737B !default; // Secondary text (login subtitle, card meta).
+
+// Surfaces and lines.
+$irclass-surface:          #FFFFFF !default; // Cards, header, inputs.
+$irclass-page-background:  #F9FAFC !default; // Page background behind cards (dashboard).
+$irclass-tint:             #E6F8FF !default; // Light brand tint (site footer).
+$irclass-line:             #DEE2E6 !default; // Dividers and card borders.
+$irclass-input-border:     #8F959E !default; // Form field borders (login form).
+$irclass-input-fill:       #F8F9FA !default; // Login field background.
+$irclass-focus:            #0B2345 !default; // Keyboard focus ring (theme_irclass irclass.css).
+
+// Header.
+$irclass-header-background: $irclass-surface !default;
+$irclass-header-text:       $irclass-ink !default;
+
+// Moodle app variables (globals.variables.scss uses !default, so these must be set before it is loaded).
+$brand-color:      $irclass-brand;
+$text-color:       $irclass-ink;
+$background-color: $irclass-page-background;
+$info:             $irclass-ink; // Moodle uses --info for links (--core-link-color).
+$danger:           #CA3120;      // Moodle default kept: the accent red is a brand colour, not an error colour.

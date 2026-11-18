@@ -1,0 +1,29 @@
+// IRClass brand: spacing, corners and shadows (BRAND-05).
+// Every IRClass screen uses only these sizes.
+
+:root {
+    // Space scale: 4, 8, 12, 16, 24 and 32 px.
+    --irclass-space-1: 4px;
+    --irclass-space-2: 8px;
+    --irclass-space-3: 12px;
+    --irclass-space-4: 16px;
+    --irclass-space-5: 24px;
+    --irclass-space-6: 32px;
+
+    // Corners, as on the website: buttons and fields 8px (.btn-primary, .form-control), cards 8px.
+    --irclass-radius-control: 8px;
+    --irclass-radius-card: 8px;
+    --irclass-radius-badge: 8px;
+
+    // Card shadow of the website (.card).
+    --irclass-shadow-card: 0 1px 4px rgba(0, 0, 0, 0.09);
+
+    // Minimum tap area for IRClass buttons and fields (BRAND-08).
+    --irclass-min-target: 48px;
+
+    // Moodle tokens mapped to the IRClass shapes.
+    --core-input-radius: var(--irclass-radius-control);
+    --ion-card-radius: var(--irclass-radius-card);
+    --ion-card-vertical-margin: var(--irclass-space-3);
+    --ion-card-horizontal-margin: var(--irclass-space-3);
+}

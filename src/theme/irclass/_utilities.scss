@@ -1,0 +1,23 @@
+// IRClass brand: small helper classes for IRClass screens.
+
+.irclass-text-muted {
+    color: var(--irclass-muted);
+}
+
+.irclass-text-brand {
+    color: var(--irclass-brand);
+}
+
+// Page title band with the website's soft gradient (.page-title-area).
+.irclass-banner {
+    background: var(--irclass-banner-gradient);
+    color: var(--irclass-ink);
+    padding: var(--irclass-space-5) var(--irclass-space-4);
+    text-align: center;
+}
+
+// Any custom tap area on IRClass screens (BRAND-08).
+.irclass-tap-target {
+    min-width: var(--irclass-min-target);
+    min-height: var(--irclass-min-target);
+}
