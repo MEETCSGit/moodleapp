@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget android-versionCode="53000" id="com.meetcs.moodle" ios-CFBundleVersion="5.3.0.0" version="5.3.0" versionCode="53000" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
-    <name>MeetCS Moodle</name>
+<widget android-versionCode="53000" id="com.meetcs.irclass" ios-CFBundleVersion="5.3.0.0" version="5.3.0" versionCode="53000" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+    <name>IRClass Academy</name>
     <description>Meetcs Moodle app</description>
     <author email="support@meetcs.com" href="https://meetcs.com/">Meetcs Moodle App team</author>
     <content src="index.html" />

@@ -1,0 +1,49 @@
+workflows:
+  ios-testflight:
+    name: iOS TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 90
+    integrations:
+      # Name of the App Store Connect API key added in Codemagic > Team settings > Integrations > Developer Portal.
+      app_store_connect: CHANGE_ME_ASC_KEY_NAME
+    environment:
+      node: 24.22.3
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store # Use ad_hoc to install directly on registered devices.
+        bundle_identifier: com.meetcs.irclass # Must match app_data.packageid in client.config.json.
+      vars:
+        NODE_OPTIONS: --max-old-space-size=8192
+        # Set APP_STORE_APPLE_ID (numeric Apple ID from App Store Connect > App Information) in the Codemagic UI.
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+      - name: Apply client config
+        script: node scripts/apply-config.js
+      - name: Build Moodle Cordova plugin
+        script: npm run prod --prefix cordova-plugin-moodleapp
+      - name: Build web app and prepare iOS project
+        # npm_config_include=dev stops Cordova's npm install from pruning devDependencies
+        # (cordova-plugin-moodleapp, es6-promise-plugin) when NODE_ENV=production.
+        script: |
+          NODE_ENV=production npm_config_include=dev \
+            npx ionic cordova prepare ios --prod --confirm --no-interactive
+      - name: Set up code signing
+        script: xcode-project use-profiles
+      - name: Increment build number
+        script: |
+          cd platforms/ios
+          agvtool new-version -all $(($(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID") + 1))
+      - name: Build IPA
+        script: |
+          xcode-project build-ipa \
+            --workspace platforms/ios/App.xcworkspace \
+            --scheme App
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

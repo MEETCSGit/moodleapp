@@ -1,8 +1,8 @@
 {
   "app_data" :{
 
-    "appname": "MeetCS Moodle",
-    "packageid": "com.meetcs.moodle",
+    "appname": "IRClass Academy",
+    "packageid": "com.meetcs.irclass",
     "versionname": "5.3.0",
     "versioncode": "53000",
     "ios_CFBundleVersion": "5.3.0.0",
@@ -11,13 +11,13 @@
     {
       "name": "Beta A2A",
       "alias": "Beta A2A",
-      "url":"https://beta.a2a.meetcs.com/lms",
+      "url":"https://irclass.academy.meetcs.com",
       "logo": "assets/img/SIESCOMS.jpg",
       "staging": false
     },
-    "side_menu_site_url" : "https://beta.a2a.meetcs.com",
-    "display_side_menu_switch_account_menu" : false,
-    "display_side_menu_logout_menu" : false
+    "side_menu_site_url" : "https://irclass.academy.meetcs.com",
+    "display_side_menu_switch_account_menu" : true,
+    "display_side_menu_logout_menu" : true
   },
 
   "author_data" :{
@@ -38,7 +38,7 @@
   "login_page_customisation" : {
 
     "forgot_password_label" : "Forget Password?",
-    "site_url_to_show" : "https://beta.a2a.meetcs.com"
+    "site_url_to_show" : "https://irclass.academy.meetcs.com"
 
   }
 

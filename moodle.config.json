@@ -1,6 +1,6 @@
 {
-    "app_id": "com.meetcs.moodle",
-    "appname": "MeetCS Moodle",
+    "app_id": "com.meetcs.irclass",
+    "appname": "IRClass Academy",
     "versioncode": 53000,
     "versionname": "5.3.0",
     "cache_update_frequency_usually": 420000,
@@ -91,7 +91,7 @@
         {
             "name": "Beta A2A",
             "alias": "Beta A2A",
-            "url": "https://beta.a2a.meetcs.com/lms",
+            "url": "https://irclass.academy.meetcs.com",
             "logo": "assets/img/SIESCOMS.jpg",
             "staging": false
         }
