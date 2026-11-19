@@ -162,6 +162,12 @@ export default class CoreCourseSummaryPage implements OnInit, OnDestroy {
         this.courseUrl = CorePath.concatenatePaths(currentSiteUrl, `course/view.php?id=${this.courseId}`);
         this.displayOpenInBrowser = CoreSites.getRequiredCurrentSite().shouldDisplayInformativeLinks();
 
+        if (this.coursePrice) {
+            // IRClass: opened from the catalogue to buy. Check enrolment with the site, not the saved course list, so a
+            // course bought elsewhere (website, another device) never shows "Buy this course".
+            await CorePromiseUtils.ignoreErrors(CoreCourses.invalidateUserCourses());
+        }
+
         await this.getCourse();
     }
 

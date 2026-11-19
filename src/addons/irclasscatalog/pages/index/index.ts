@@ -70,15 +70,13 @@ export default class AddonIrclassCatalogIndexPage implements OnInit {
 
     /**
      * Load the first page for the current search and filters.
-     *
-     * @param refresh Whether to ignore cached data.
      */
-    async fetch(refresh = false): Promise<void> {
+    async fetch(): Promise<void> {
         this.filters.page = 0;
         this.loadMoreError = false;
 
         try {
-            const result = await AddonIrclassCatalog.search(this.filters, { refresh });
+            const result = await AddonIrclassCatalog.search(this.filters);
             this.options = result.filters;
             this.courses = result.courses;
             this.total = result.total;
@@ -185,7 +183,7 @@ export default class AddonIrclassCatalogIndexPage implements OnInit {
      * @param refresher Refresher.
      */
     async refresh(refresher?: HTMLIonRefresherElement): Promise<void> {
-        await this.fetch(true);
+        await this.fetch();
         refresher?.complete();
     }
 

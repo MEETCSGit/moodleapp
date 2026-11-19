@@ -46,12 +46,11 @@ export class AddonIrclassCatalogProvider {
      * @param filters Keyword, filters and page.
      * @param options Options.
      * @param options.siteId Site ID. Current site if not defined.
-     * @param options.refresh Whether to ignore cached data.
      * @returns Page of courses, total and the filter options.
      */
     async search(
         filters: AddonIrclassCatalogFilters,
-        options: { siteId?: string; refresh?: boolean } = {},
+        options: { siteId?: string } = {},
     ): Promise<AddonIrclassCatalogSearchResult> {
         const site = await CoreSites.getSite(options.siteId);
         const params: AddonIrclassCatalogFilters = {
@@ -61,11 +60,14 @@ export class AddonIrclassCatalogProvider {
             delivery: filters.delivery,
             page: filters.page,
         };
+        // Always ask the site when online: prices and "Enrolled" must be current (for example after buying on another device).
+        // The answer is still saved, and used when the device is offline.
         const preSets: CoreSiteWSPreSets = {
             cacheKey: this.getSearchCacheKey(params),
             updateFrequency: CoreCacheUpdateFrequency.SOMETIMES,
             component: ADDON_IRCLASS_CATALOG_COMPONENT_NAME,
-            getFromCache: !options.refresh,
+            getFromCache: false,
+            emergencyCache: true,
         };
 
         return site.read<AddonIrclassCatalogSearchResult>(ADDON_IRCLASS_CATALOG_WS, params, preSets);
