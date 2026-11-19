@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, viewChild } from '@angular/core';
+import { IonContent } from '@ionic/angular';
 import { CoreSharedModule } from '@/core/shared.module';
 import { CoreMainMenuUserButtonComponent } from '@features/mainmenu/components/user-menu-button/user-menu-button';
 import { CoreCourseHelper } from '@features/course/services/course-helper';
@@ -48,6 +49,9 @@ export default class AddonIrclassCatalogIndexPage implements OnInit {
     canLoadMore = false;
     loadMoreError = false;
     showFilters = false;
+    showBackToTop = false;
+
+    readonly content = viewChild(IonContent);
 
     /**
      * @inheritdoc
@@ -175,6 +179,25 @@ export default class AddonIrclassCatalogIndexPage implements OnInit {
         this.showFilters = false;
         this.loaded = false;
         await this.fetch();
+    }
+
+    /**
+     * Page scrolled: show the back to top button once the learner is past the first courses.
+     *
+     * @param scrollTop Scroll position in pixels.
+     */
+    onScroll(scrollTop: number): void {
+        const show = scrollTop > 600;
+        if (show !== this.showBackToTop) {
+            this.showBackToTop = show;
+        }
+    }
+
+    /**
+     * Scroll back to the search box.
+     */
+    backToTop(): void {
+        this.content()?.scrollToTop(300);
     }
 
     /**
