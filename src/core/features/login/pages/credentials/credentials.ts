@@ -97,13 +97,24 @@ export default class CoreLoginCredentialsPage implements OnInit, OnDestroy {
     protected valueChangeSubscription?: Subscription;
     protected alwaysShowLoginFormObserver?: CoreEventObserver;
     protected loginObserver?: CoreEventObserver;
+    protected signupReminder?: HTMLIonAlertElement;
     protected fb = inject(FormBuilder);
 
     constructor() {
         // Listen to LOGIN event to determine if login was successful, since the login can be done using QR, SSO, etc.
         this.loginObserver = CoreEvents.on(CoreEvents.LOGIN, ({ siteId }) => {
             this.siteId = siteId;
+            // The learner confirmed their email and the website logged them in to the app: the reminder is not needed.
+            this.dismissSignupReminder();
         });
+    }
+
+    /**
+     * Close the "confirm your email" reminder if it is still open.
+     */
+    protected dismissSignupReminder(): void {
+        this.signupReminder?.dismiss();
+        this.signupReminder = undefined;
     }
 
     /**
@@ -415,17 +426,24 @@ export default class CoreLoginCredentialsPage implements OnInit, OnDestroy {
         const loadStop = browser.on('loadstop').subscribe(() => {
             pagesLoaded++;
         });
-        const exit = browser.on('exit').subscribe(() => {
+        const exit = browser.on('exit').subscribe(async () => {
             loadStart.unsubscribe();
             loadStop.unsubscribe();
             exit.unsubscribe();
 
             // After going past the first page (the form was sent), remind the learner to confirm their email.
-            if (pagesLoaded > 1 && !returnedToApp) {
-                CoreAlerts.show({
+            // Closed automatically when the app gets logged in from the confirmation link (see constructor).
+            if (pagesLoaded > 1 && !returnedToApp && !this.viewLeft) {
+                this.dismissSignupReminder();
+                const reminder = await CoreAlerts.show({
                     message: this.loginTexts.signup_return_message ||
                         'If you created an account, open the confirmation email we sent you, then log in here.',
                 });
+                this.signupReminder = reminder;
+                await reminder.onDidDismiss();
+                if (this.signupReminder === reminder) {
+                    this.signupReminder = undefined;
+                }
             }
         });
     }
@@ -442,6 +460,7 @@ export default class CoreLoginCredentialsPage implements OnInit, OnDestroy {
      */
     ngOnDestroy(): void {
         this.viewLeft = true;
+        this.dismissSignupReminder();
         CoreEvents.trigger(
             CoreEvents.LOGIN_SITE_UNCHECKED,
             {
