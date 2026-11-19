@@ -1,0 +1,11 @@
+@if (!edit && field && field.name && value) {
+    <ion-item>
+        <ion-label>
+            <p class="item-heading">
+                <core-format-text [text]="field.name" [contextLevel]="contextLevel" [contextInstanceId]="contextInstanceId"
+                    [courseId]="courseId" [wsNotFiltered]="true" />
+            </p>
+            <p>{{ value }}</p>
+        </ion-label>
+    </ion-item>
+}
