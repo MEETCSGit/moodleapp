@@ -1,0 +1,22 @@
+diff --git a/node_modules/@moodlehq/cordova-plugin-inappbrowser/src/ios/CDVWKInAppBrowser.m b/node_modules/@moodlehq/cordova-plugin-inappbrowser/src/ios/CDVWKInAppBrowser.m
+index 599d272..3c0afdb 100644
+--- a/node_modules/@moodlehq/cordova-plugin-inappbrowser/src/ios/CDVWKInAppBrowser.m
++++ b/node_modules/@moodlehq/cordova-plugin-inappbrowser/src/ios/CDVWKInAppBrowser.m
+@@ -322,6 +322,8 @@ static UIBarButtonSystemItem CDVWKInAppBrowserCloseButtonSystemItem(void)
+     __block CDVInAppBrowserNavigationController *nav = [[CDVInAppBrowserNavigationController alloc]
+                                                         initWithRootViewController:self.inAppBrowserViewController];
+     nav.navigationBarHidden = YES;
++    // IRClass: solid background, so the app never shows through between the status bar and the page (iOS).
++    nav.view.backgroundColor = [UIColor whiteColor];
+     nav.modalPresentationStyle = self.inAppBrowserViewController.modalPresentationStyle;
+     nav.presentationController.delegate = self.inAppBrowserViewController;
+ 
+@@ -776,6 +778,8 @@ BOOL isExiting = NO;
+ - (void)createViews
+ {
+     // We create the views in code for primarily for ease of upgrades and not requiring an external .xib to be included.
++    // IRClass: solid background behind the toolbar and web view (the default is transparent on iOS 13+).
++    self.view.backgroundColor = [UIColor whiteColor];
+     WKUserContentController *userContentController = [[WKUserContentController alloc] init];
+     WKWebViewConfiguration *configuration = [[WKWebViewConfiguration alloc] init];
+     NSString *userAgent = configuration.applicationNameForUserAgent;
