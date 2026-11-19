@@ -47,6 +47,7 @@ import { CoreTimeConstants } from '@/core/constants';
 import { CoreOpener } from '@static/opener';
 import { CoreUrl, CoreUrlPartNames } from '@static/url';
 import clientConfig from '@/../client.config.json';
+import { AddonIrclassCatalog } from '@addons/irclasscatalog/services/irclasscatalog';
 
 /**
  * Page that shows the summary of a course including buttons to enrol and other available options.
@@ -243,6 +244,33 @@ export default class CoreCourseSummaryPage implements OnInit, OnDestroy {
         }
 
         await this.getEnrolmentInfo(courseByField?.enrollmentmethods);
+
+        if (!this.coursePrice && !this.isEnrolled && courseByField?.enrollmentmethods?.includes('irclasspaidusers')) {
+            await this.loadIrclassPrice(courseByField.fullname);
+        }
+    }
+
+    /**
+     * IRClass: get the price of a course sold by IRClass commerce when the page was not opened from the catalogue
+     * (Site home, available courses, links, notifications). Uses the catalogue service with the course name as keyword and
+     * keeps the result for this course id. Without a price the page keeps the standard "Enrol me" behaviour.
+     *
+     * @param fullname Course full name.
+     */
+    protected async loadIrclassPrice(fullname: string): Promise<void> {
+        try {
+            if (!fullname || !(await AddonIrclassCatalog.isAvailable())) {
+                return;
+            }
+
+            const result = await AddonIrclassCatalog.search({ q: fullname, category: 0, price: '', delivery: 0, page: 0 });
+            const course = result.courses.find((item) => item.id === this.courseId);
+            if (course?.pricestate) {
+                this.coursePrice = { state: course.pricestate, prices: course.prices };
+            }
+        } catch {
+            // No price: the page keeps the standard enrolment button.
+        }
     }
 
     /**
@@ -580,6 +608,14 @@ export default class CoreCourseSummaryPage implements OnInit, OnDestroy {
      * Open enrol action sheet.
      */
     async enrolMe(): Promise<void> {
+        if (this.coursePrice?.state && this.hasBrowserEnrolments) {
+            // IRClass: a course sold by IRClass commerce (paid or free) always enrols through the website checkout, which
+            // shows the registration form when the course needs one. Do not offer Moodle self enrolment, which skips it.
+            this.browserEnrol();
+
+            return;
+        }
+
         if (this.selfEnrolInstances.length === 1 && !this.hasBrowserEnrolments) {
             this.selfEnrolInCourse(this.selfEnrolInstances[0]);
 
