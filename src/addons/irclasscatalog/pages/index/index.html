@@ -1,0 +1,173 @@
+<ion-header>
+    <ion-toolbar>
+        <ion-buttons slot="start">
+            <ion-back-button [text]="'core.back' | translate" />
+        </ion-buttons>
+        <ion-title>
+            <h1>{{ 'addon.irclasscatalog.coursecatalogue' | translate }}</h1>
+        </ion-title>
+        <ion-buttons slot="end">
+            <core-user-menu-button />
+        </ion-buttons>
+    </ion-toolbar>
+</ion-header>
+<ion-content class="addon-irclasscatalog">
+    <ion-refresher slot="fixed" [disabled]="!loaded" (ionRefresh)="refresh($event.target)">
+        <ion-refresher-content pullingText="{{ 'core.pulltorefresh' | translate }}" />
+    </ion-refresher>
+
+    <div class="list-item-limited-width">
+        <!-- Row 1: search field and a square filter button (with the number of active filters). -->
+        <div class="addon-irclasscatalog-searchrow">
+            <ion-searchbar #searchbar [value]="filters.q" [placeholder]="'addon.irclasscatalog.searchplaceholder' | translate"
+                [attr.aria-label]="'addon.irclasscatalog.searchlabel' | translate" enterkeyhint="search" inputmode="search"
+                (keyup.enter)="search(searchbar.value || '')" (ionClear)="search('')" />
+            <button type="button" class="addon-irclasscatalog-filterbtn" [class.addon-irclasscatalog-filterbtn-active]="showFilters"
+                (click)="showFilters = !showFilters" [attr.aria-expanded]="showFilters"
+                [attr.aria-label]="'core.filter' | translate">
+                <ion-icon name="fas-sliders" aria-hidden="true" />
+                @if (activeFilters) {
+                    <span class="addon-irclasscatalog-filtercount" aria-hidden="true">{{ activeFilters }}</span>
+                }
+            </button>
+        </div>
+
+        <!-- Row 2: result count, and Clear all when filters are active. -->
+        <div class="addon-irclasscatalog-statusrow">
+            <p class="addon-irclasscatalog-count" role="status">
+                @if (loaded) {
+                    @if (total === 1) {
+                        {{ 'addon.irclasscatalog.resultone' | translate }}
+                    } @else {
+                        {{ 'addon.irclasscatalog.resultcount' | translate: { $a: total } }}
+                    }
+                }
+            </p>
+            @if (activeFilters) {
+                <button type="button" class="addon-irclasscatalog-clearall" (click)="clearFilters()">
+                    {{ 'addon.irclasscatalog.clearall' | translate }}
+                </button>
+            }
+        </div>
+
+        <!-- Active filters as chips on one line that scrolls sideways. -->
+        @if (!showFilters && activeFilterChips.length) {
+            <div class="addon-irclasscatalog-chips">
+                @for (chip of activeFilterChips; track chip.key) {
+                    <ion-chip (click)="removeFilter(chip.key)" [attr.aria-label]="('core.remove' | translate) + ': ' + chip.label">
+                        <ion-label>{{ chip.label }}</ion-label>
+                        <ion-icon name="fas-xmark" aria-hidden="true" />
+                    </ion-chip>
+                }
+            </div>
+        }
+
+        @if (showFilters && options) {
+            <ion-list class="addon-irclasscatalog-filters" lines="full">
+                <ion-item>
+                    <ion-select [label]="'addon.irclasscatalog.category' | translate" labelPlacement="stacked" interface="action-sheet"
+                        [(ngModel)]="filters.category" (ionChange)="filterChanged()" [cancelText]="'core.cancel' | translate">
+                        <ion-select-option [value]="0">{{ 'addon.irclasscatalog.allcategories' | translate }}</ion-select-option>
+                        @for (category of options.categories; track category.id) {
+                            <ion-select-option [value]="category.id">{{ category.name }}</ion-select-option>
+                        }
+                    </ion-select>
+                </ion-item>
+                @if (options.hasprices) {
+                    <ion-item>
+                        <ion-select [label]="'addon.irclasscatalog.price' | translate" labelPlacement="stacked"
+                            interface="action-sheet" [(ngModel)]="filters.price" (ionChange)="filterChanged()"
+                            [cancelText]="'core.cancel' | translate">
+                            <ion-select-option value="">{{ 'addon.irclasscatalog.anyprice' | translate }}</ion-select-option>
+                            <ion-select-option value="free">{{ 'addon.irclasscatalog.pricefree' | translate }}</ion-select-option>
+                            <ion-select-option value="paid">{{ 'addon.irclasscatalog.pricepaid' | translate }}</ion-select-option>
+                        </ion-select>
+                    </ion-item>
+                }
+                @if (options.deliveryoptions.length) {
+                    <ion-item>
+                        <ion-select [label]="'addon.irclasscatalog.delivery' | translate" labelPlacement="stacked"
+                            interface="action-sheet" [(ngModel)]="filters.delivery" (ionChange)="filterChanged()"
+                            [cancelText]="'core.cancel' | translate">
+                            <ion-select-option [value]="0">{{ 'addon.irclasscatalog.anydelivery' | translate }}</ion-select-option>
+                            @for (option of options.deliveryoptions; track option.id) {
+                                <ion-select-option [value]="option.id">{{ option.name }}</ion-select-option>
+                            }
+                        </ion-select>
+                    </ion-item>
+                }
+            </ion-list>
+        }
+
+        <core-loading [hideUntil]="loaded" placeholderType="column" placeholderHeight="320px">
+            @for (course of courses; track course.id) {
+                <ion-card class="addon-irclasscatalog-card" button (click)="openCourse(course)">
+                    <div class="addon-irclasscatalog-image" [class.addon-irclasscatalog-noimage]="!course.imageurl">
+                        @if (course.imageurl) {
+                            <img [url]="course.imageurl" core-external-content alt="" />
+                        }
+                        @if (course.categoryname) {
+                            <span class="addon-irclasscatalog-category">
+                                <core-format-text [text]="course.categoryname" [wsNotFiltered]="true" />
+                            </span>
+                        }
+                    </div>
+                    <ion-card-content>
+                        <div class="addon-irclasscatalog-meta">
+                            @if (course.enrolled) {
+                                <span class="addon-irclasscatalog-enrolled">
+                                    <ion-icon name="fas-user-check" aria-hidden="true" />
+                                    {{ 'addon.irclasscatalog.enrolled' | translate }}
+                                </span>
+                            } @else {
+                                <span>
+                                    <ion-icon name="far-clock" aria-hidden="true" />
+                                    <span class="sr-only">{{ 'addon.irclasscatalog.lastupdated' | translate }}</span>
+                                    {{ course.updated }}
+                                </span>
+                            }
+                            <span>
+                                <ion-icon name="fas-users" aria-hidden="true" />
+                                {{ 'addon.irclasscatalog.studentcount' | translate: { $a: course.students } }}
+                            </span>
+                        </div>
+                        <h2 class="addon-irclasscatalog-title">
+                            <core-format-text [text]="course.fullname" [wsNotFiltered]="true" contextLevel="course"
+                                [contextInstanceId]="course.id" />
+                        </h2>
+                        @if (course.summary) {
+                            <p class="addon-irclasscatalog-summary">
+                                <core-format-text [text]="course.summary" [wsNotFiltered]="true" contextLevel="course"
+                                    [contextInstanceId]="course.id" />
+                            </p>
+                        }
+                        @if (course.delivery) {
+                            <p class="addon-irclasscatalog-delivery">{{ course.delivery }}</p>
+                        }
+                        @if (course.pricestate === 'free') {
+                            <p class="addon-irclasscatalog-price">{{ 'addon.irclasscatalog.pricefree' | translate }}</p>
+                        } @else if (course.pricestate === 'paid' && course.prices.length) {
+                            <p class="addon-irclasscatalog-price">
+                                @for (price of course.prices; track price.currency; let last = $last) {
+                                    <span class="addon-irclasscatalog-amount">{{ price.amount }}</span>
+                                    @if (price.gst) {
+                                        <span class="addon-irclasscatalog-gst">{{ price.gst }}</span>
+                                    }
+                                    @if (!last) {
+                                        <span class="addon-irclasscatalog-sep">/</span>
+                                    }
+                                }
+                            </p>
+                        }
+                    </ion-card-content>
+                </ion-card>
+            }
+
+            <core-infinite-loading [enabled]="canLoadMore" (action)="loadMore($event)" [error]="loadMoreError" />
+
+            @if (!courses.length) {
+                <core-empty-box icon="fas-magnifying-glass" [message]="'addon.irclasscatalog.noresults' | translate" role="alert" />
+            }
+        </core-loading>
+    </div>
+</ion-content>

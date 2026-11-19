@@ -45,6 +45,8 @@ import {
 import { CoreAlerts } from '@services/overlays/alerts';
 import { Translate } from '@singletons';
 import { CoreCourseDownloadStatusIcon } from '@features/course/constants';
+import { AddonIrclassCatalog } from '@addons/irclasscatalog/services/irclasscatalog';
+import { ADDON_IRCLASS_CATALOG_PAGE_NAME } from '@addons/irclasscatalog/constants';
 
 const FILTER_PRIORITY: AddonBlockMyOverviewTimeFilters[] =
     ['all', 'inprogress', 'future', 'past', 'favourite', 'allincludinghidden', 'hidden', 'custom'];
@@ -719,7 +721,16 @@ export class AddonBlockMyOverviewComponent extends CoreBlockBaseComponent implem
      * Go to search courses.
      */
     async openSearch(): Promise<void> {
-        CoreNavigator.navigateToSitePath('courses/list', { params: { mode: 'search', searchText: this.textFilter.trim() } });
+        const searchText = this.textFilter.trim();
+
+        // IRClass: open the course catalogue tab when the site offers it (same courses, filters and prices as the website).
+        if (await AddonIrclassCatalog.isAvailable()) {
+            CoreNavigator.navigateToSitePath(ADDON_IRCLASS_CATALOG_PAGE_NAME, { params: { searchText } });
+
+            return;
+        }
+
+        CoreNavigator.navigateToSitePath('courses/list', { params: { mode: 'search', searchText } });
     }
 
     /**

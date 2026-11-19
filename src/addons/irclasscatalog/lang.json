@@ -1,0 +1,23 @@
+{
+    "allcategories": "All categories",
+    "anydelivery": "Any delivery mode",
+    "anyprice": "Any price",
+    "buythiscourse": "Buy this course",
+    "category": "Category",
+    "clearall": "Clear all",
+    "coursecatalogue": "Course catalogue",
+    "courses": "Courses",
+    "delivery": "Delivery mode",
+    "enrolfree": "Enrol for free",
+    "enrolled": "Enrolled",
+    "lastupdated": "Last updated",
+    "noresults": "No courses match your search. Try fewer words or clear the filters.",
+    "price": "Price",
+    "pricefree": "Free",
+    "pricepaid": "Paid",
+    "resultcount": "{{$a}} courses found",
+    "resultone": "1 course found",
+    "searchlabel": "Search by course name or keyword",
+    "searchplaceholder": "Search courses",
+    "studentcount": "{{$a}} Students"
+}

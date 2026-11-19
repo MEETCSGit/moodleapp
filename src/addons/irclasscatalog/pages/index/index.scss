@@ -1,0 +1,235 @@
+// Course cards like the website catalogue: image with the category label, date and learners, title, summary,
+// delivery mode and price. Colours, radius and shadow come from the IRClass tokens (src/theme/irclass).
+:host {
+    // Row 1: search field and a square filter button, both 44px high, 16px side margins like the cards.
+    .addon-irclasscatalog-searchrow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 16px 4px;
+
+        ion-searchbar {
+            flex: 1;
+            padding: 0;
+            min-height: 44px;
+            --box-shadow: none;
+            --background: var(--ion-item-background, #fff);
+            --border-radius: var(--irclass-radius, 8px);
+            border: 1px solid var(--irclass-input-border, #8f959e);
+            border-radius: var(--irclass-radius, 8px);
+        }
+    }
+
+    .addon-irclasscatalog-filterbtn {
+        position: relative;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 46px;
+        height: 46px;
+        padding: 0;
+        border: 1px solid var(--irclass-input-border, #8f959e);
+        border-radius: var(--irclass-radius, 8px);
+        background: var(--ion-item-background, #fff);
+        color: var(--text-color, #21225f);
+        font-size: 1.125rem;
+        cursor: pointer;
+
+        &.addon-irclasscatalog-filterbtn-active {
+            border-color: var(--ion-color-primary);
+            background: var(--irclass-tint, #e6f8ff);
+            color: var(--ion-color-primary);
+        }
+    }
+
+    .addon-irclasscatalog-filtercount {
+        position: absolute;
+        top: -6px;
+        inset-inline-end: -6px;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        border-radius: 9px;
+        background: var(--ion-color-primary);
+        color: var(--ion-color-primary-contrast, #fff);
+        font-size: 0.6875rem;
+        font-weight: 700;
+        line-height: 18px;
+        text-align: center;
+    }
+
+    // Row 2: result count and Clear all, small and quiet.
+    .addon-irclasscatalog-statusrow {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 32px;
+        padding: 0 16px;
+    }
+
+    .addon-irclasscatalog-count {
+        margin: 0;
+        color: var(--subdued-text-color, #6a737b);
+        font-size: 0.8125rem;
+    }
+
+    .addon-irclasscatalog-clearall {
+        padding: 4px 0;
+        background: none;
+        border: 0;
+        color: var(--ion-color-primary);
+        font-size: 0.8125rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    // Active filters: one line that scrolls sideways.
+    .addon-irclasscatalog-chips {
+        display: flex;
+        gap: 6px;
+        padding: 0 16px 8px;
+        overflow-x: auto;
+        scrollbar-width: none;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+
+        ion-chip {
+            flex-shrink: 0;
+            height: 30px;
+            margin: 0;
+            --background: var(--irclass-tint, #e6f8ff);
+            --color: var(--text-color, #21225f);
+            font-size: 0.8125rem;
+
+            ion-icon {
+                font-size: 0.75rem;
+                margin-inline-start: 6px;
+            }
+        }
+    }
+
+    // Filter panel: one white card with three rows separated by thin lines.
+    .addon-irclasscatalog-filters {
+        margin: 0 16px 12px;
+        padding: 0;
+        overflow: hidden;
+        border: 1px solid var(--stroke, #dee2e6);
+        border-radius: var(--irclass-radius, 8px);
+        background: var(--ion-item-background, #fff);
+
+        ion-item {
+            --background: transparent;
+            --min-height: 56px;
+            --border-color: var(--stroke, #dee2e6);
+
+            &:last-child {
+                --border-width: 0;
+                --inner-border-width: 0;
+            }
+        }
+    }
+
+    .addon-irclasscatalog-card {
+        margin: 0 16px 16px;
+        overflow: hidden;
+        border-radius: var(--irclass-radius, 8px);
+        box-shadow: var(--irclass-shadow-card, 0 1px 4px rgba(0, 0, 0, 0.09));
+    }
+
+    .addon-irclasscatalog-image {
+        position: relative;
+        aspect-ratio: 16 / 9;
+        background: var(--irclass-tint, #e6f8ff);
+
+        img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        // No course image: a short coloured band that only holds the category label.
+        &.addon-irclasscatalog-noimage {
+            aspect-ratio: auto;
+            min-height: 52px;
+        }
+    }
+
+    .addon-irclasscatalog-category {
+        position: absolute;
+        top: 12px;
+        inset-inline-start: 12px;
+        padding: 4px 10px;
+        border-radius: 4px;
+        background: var(--ion-color-primary);
+        color: var(--ion-color-primary-contrast, #fff);
+        font-size: 0.8125rem;
+        font-weight: 500;
+    }
+
+    ion-card-content {
+        padding: 12px 16px 16px;
+    }
+
+    .addon-irclasscatalog-meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        color: var(--subdued-text-color, #6a737b);
+        font-size: 0.8125rem;
+
+        ion-icon {
+            color: var(--ion-color-primary);
+            vertical-align: -2px;
+            margin-inline-end: 2px;
+        }
+    }
+
+    .addon-irclasscatalog-enrolled {
+        color: var(--ion-color-success, #2dd36f);
+    }
+
+    .addon-irclasscatalog-title {
+        margin: 8px 0 4px;
+        color: var(--text-color, #21225f);
+        font-size: 1.0625rem;
+        font-weight: 700;
+        line-height: 1.35;
+    }
+
+    .addon-irclasscatalog-summary {
+        margin: 0 0 4px;
+        color: var(--subdued-text-color, #6a737b);
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+
+    .addon-irclasscatalog-delivery {
+        margin: 0;
+        color: var(--ion-color-primary);
+        font-size: 0.875rem;
+    }
+
+    .addon-irclasscatalog-price {
+        margin: 8px 0 0;
+        color: var(--text-color, #21225f);
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+    .addon-irclasscatalog-gst {
+        margin-inline-start: 2px;
+        color: var(--subdued-text-color, #6a737b);
+        font-size: 0.75rem;
+        font-weight: 400;
+    }
+
+    .addon-irclasscatalog-sep {
+        margin: 0 4px;
+        color: var(--subdued-text-color, #6a737b);
+        font-weight: 400;
+    }
+}

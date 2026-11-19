@@ -22,6 +22,7 @@ import { AddonCompetencyModule } from './competency/competency.module';
 import { AddonCourseCompletionModule } from './coursecompletion/coursecompletion.module';
 import { AddonEnrolModule } from './enrol/enrol.module';
 import { AddonFilterModule } from './filter/filter.module';
+import { AddonIrclassCatalogModule } from './irclasscatalog/irclasscatalog.module';
 import { AddonMessageOutputModule } from './messageoutput/messageoutput.module';
 import { AddonMessagesModule } from './messages/messages.module';
 import { AddonModModule } from './mod/mod.module';
@@ -45,6 +46,7 @@ import { AddonUserProfileFieldModule } from './userprofilefield/userprofilefield
         AddonCourseCompletionModule,
         AddonEnrolModule,
         AddonFilterModule,
+        AddonIrclassCatalogModule,
         AddonMessageOutputModule,
         AddonMessagesModule,
         AddonModModule,
