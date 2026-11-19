@@ -16,6 +16,7 @@ import { NgModule } from '@angular/core';
 
 import { AddonEnrolFeeModule } from './fee/fee.module';
 import { AddonEnrolGuestModule } from './guest/guest.module';
+import { AddonEnrolIrclassPaidUsersModule } from './irclasspaidusers/irclasspaidusers.module';
 import { AddonEnrolPaypalModule } from './paypal/paypal.module';
 import { AddonEnrolSelfModule } from './self/self.module';
 
@@ -23,6 +24,7 @@ import { AddonEnrolSelfModule } from './self/self.module';
     imports: [
         AddonEnrolFeeModule,
         AddonEnrolGuestModule,
+        AddonEnrolIrclassPaidUsersModule,
         AddonEnrolPaypalModule,
         AddonEnrolSelfModule,
     ],

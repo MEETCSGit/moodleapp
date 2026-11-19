@@ -166,9 +166,33 @@
             }
             @if (!isEnrolled) {
 
+                <!-- IRClass: course price, as on the website course cards. -->
+                @if (coursePrice?.state === 'free') {
+                    <p class="core-course-summary-price">{{ 'addon.irclasscatalog.pricefree' | translate }}</p>
+                } @else if (coursePrice?.state === 'paid' && coursePrice?.prices?.length) {
+                    <p class="core-course-summary-price">
+                        @for (price of coursePrice!.prices; track price.currency; let last = $last) {
+                            <span class="core-course-summary-price-amount">{{ price.amount }}</span>
+                            @if (price.gst) {
+                                <span class="core-course-summary-price-gst">{{ price.gst }}</span>
+                            }
+                            @if (!last) {
+                                <span class="core-course-summary-price-sep">/</span>
+                            }
+                        }
+                    </p>
+                }
+
                 @if (selfEnrolInstances.length || hasBrowserEnrolments) {
                     <ion-button expand="block" (click)="enrolMe()" class="ion-text-wrap">
-                        {{ 'core.courses.enrolme' | translate }}
+                        <!-- IRClass: the website's wording for courses sold by IRClass commerce. -->
+                        @if (coursePrice?.state === 'paid') {
+                            {{ 'addon.irclasscatalog.buythiscourse' | translate }}
+                        } @else if (coursePrice?.state === 'free') {
+                            {{ 'addon.irclasscatalog.enrolfree' | translate }}
+                        } @else {
+                            {{ 'core.courses.enrolme' | translate }}
+                        }
                     </ion-button>
                 } @else {
                     <core-alert-card type="info" [message]="'core.courses.notenrollable' | translate" />

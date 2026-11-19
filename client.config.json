@@ -18,7 +18,8 @@
     },
     "side_menu_site_url" : "https://irclass.academy.meetcs.com",
     "display_side_menu_switch_account_menu" : true,
-    "display_side_menu_logout_menu" : true
+    "display_side_menu_logout_menu" : true,
+    "enrol_in_app_browser" : true
   },
 
   "author_data" :{

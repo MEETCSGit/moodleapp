@@ -44,6 +44,9 @@ import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreRemindersDateComponent } from '../../../reminders/components/date/date';
 import { CoreSharedModule } from '@/core/shared.module';
 import { CoreTimeConstants } from '@/core/constants';
+import { CoreOpener } from '@static/opener';
+import { CoreUrl, CoreUrlPartNames } from '@static/url';
+import clientConfig from '@/../client.config.json';
 
 /**
  * Page that shows the summary of a course including buttons to enrol and other available options.
@@ -78,6 +81,11 @@ export default class CoreCourseSummaryPage implements OnInit, OnDestroy {
     courseMenuHandlers: CoreCourseOptionsMenuHandlerToDisplay[] = [];
     displayOpenInBrowser = false;
     isTeacher = false;
+    // IRClass: price shown above the enrol button, passed by the course catalogue (same data as the website course cards).
+    coursePrice?: {
+        state: '' | 'free' | 'paid';
+        prices: { currency: string; amount: string; gst: string }[];
+    };
 
     protected actionSheet?: HTMLIonActionSheetElement;
     protected waitStart = 0;
@@ -143,6 +151,7 @@ export default class CoreCourseSummaryPage implements OnInit, OnDestroy {
             }
 
             this.course = CoreNavigator.getRouteParam('course');
+            this.coursePrice = CoreNavigator.getRouteParam('irclassPrice');
         } else {
             // Opened as a modal.
             this.isModal = true;
@@ -350,6 +359,13 @@ export default class CoreCourseSummaryPage implements OnInit, OnDestroy {
      * Enrol in browser.
      */
     async browserEnrol(): Promise<void> {
+        if (clientConfig.app_data?.enrol_in_app_browser) {
+            // IRClass: checkout (price, Buy, registration form, payment) opens inside the app.
+            await this.inAppBrowserEnrol();
+
+            return;
+        }
+
         // Send user to browser to enrol. Warn the user first.
         try {
             await CoreAlerts.confirm(Translate.instant('core.courses.browserenrolinstructions'), {
@@ -408,6 +424,78 @@ export default class CoreCourseSummaryPage implements OnInit, OnDestroy {
         });
 
         this.openCourse(true);
+    }
+
+    /**
+     * Enrol on the website inside the in-app browser, already logged in (client.config.json app_data.enrol_in_app_browser).
+     *
+     * The website enrolment page shows the price and Buy (or Enrol for free), then checkout and payment. "Go to course" on
+     * the order or free enrolment confirmation page brings the learner back: the browser closes and the course opens in
+     * the app. Closing the browser in any other way refreshes this page, which then shows whether the learner is enrolled.
+     */
+    protected async inAppBrowserEnrol(): Promise<void> {
+        const site = CoreSites.getRequiredCurrentSite();
+        // A course sold by IRClass commerce (price known from the catalogue) opens the website checkout directly. Checkout
+        // shows the registration form first when the course needs one, and sends free courses to the free enrolment page.
+        // Otherwise open the website enrolment page, which shows the price and Buy.
+        const url = this.coursePrice?.state
+            ? CorePath.concatenatePaths(site.getURL(), `local/irclass_commerce/checkout.php?id=${this.courseId}`)
+            : this.enrolUrl;
+        const browser = await site.openInAppWithAutoLogin(url);
+        let returnedFromCoursePage = false;
+
+        const loadStart = browser.on('loadstart').subscribe((event) => {
+            if (!this.isThisCoursePage(event.url)) {
+                return;
+            }
+
+            returnedFromCoursePage = true;
+            CoreOpener.closeInAppBrowser();
+        });
+
+        const exit = browser.on('exit').subscribe(() => {
+            loadStart.unsubscribe();
+            exit.unsubscribe();
+
+            NgZone.run(async () => {
+                this.dataLoaded = false;
+                if (returnedFromCoursePage) {
+                    // The enrolment may take a moment to show in the course list. Wait for it (up to a minute).
+                    await this.waitForEnrolled(true);
+                }
+
+                await this.refreshData();
+
+                if (!this.isEnrolled || this.pageDestroyed) {
+                    return;
+                }
+
+                CoreEvents.trigger(CORE_COURSES_MY_COURSES_UPDATED_EVENT, {
+                    courseId: this.courseId,
+                    course: this.course,
+                    action: CoreCoursesMyCoursesUpdatedEventAction.ENROL,
+                }, site.getId());
+
+                this.openCourse(true);
+            });
+        });
+    }
+
+    /**
+     * Whether a URL is this course's page on the current site (course/view.php?id=courseId).
+     *
+     * @param url URL.
+     * @returns Whether it is.
+     */
+    protected isThisCoursePage(url: string): boolean {
+        const site = CoreSites.getRequiredCurrentSite();
+        if (!site.containsUrl(url)) {
+            return false;
+        }
+
+        const path = CoreUrl.removeUrlParts(url, [CoreUrlPartNames.Protocol, CoreUrlPartNames.Query, CoreUrlPartNames.Fragment]);
+
+        return path.endsWith('/course/view.php') && Number(CoreUrl.extractUrlParams(url).id) === this.courseId;
     }
 
     /**

@@ -78,4 +78,26 @@
     .core-course-oib-button.hidden {
         display: none;
     }
+
+    // IRClass: course price above the enrol button.
+    .core-course-summary-price {
+        margin: 4px 16px 8px;
+        text-align: center;
+        color: var(--text-color);
+        font-size: 1.125rem;
+        font-weight: 700;
+    }
+
+    .core-course-summary-price-gst {
+        margin-inline-start: 2px;
+        color: var(--subdued-text-color);
+        font-size: 0.8125rem;
+        font-weight: 400;
+    }
+
+    .core-course-summary-price-sep {
+        margin: 0 6px;
+        color: var(--subdued-text-color);
+        font-weight: 400;
+    }
 }
