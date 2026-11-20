@@ -43,6 +43,7 @@ import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreSharedModule } from '@/core/shared.module';
 import { CoreMainMenuUserButtonComponent } from '@features/mainmenu/components/user-menu-button/user-menu-button';
 import { Subscription } from 'rxjs';
+import { coreIrclassCalendarExportAvailable, coreIrclassShowAddToCalendar } from '@/core/irclass/calendar-export';
 
 /**
  * Page that displays the calendar events.
@@ -83,6 +84,7 @@ export default class AddonCalendarIndexPage implements OnInit, OnDestroy {
     courses: CoreEnrolledCourseData[] = [];
     loaded = false;
     hasOffline = false;
+    canAddToMyCalendar = coreIrclassCalendarExportAvailable(); // IRClass: Add to my calendar.
     readonly isOnline = CoreNetwork.onlineSignal;
     syncIcon = CoreSyncIcon.LOADING;
     showCalendar = true;
@@ -351,6 +353,13 @@ export default class AddonCalendarIndexPage implements OnInit, OnDestroy {
         });
 
         CoreNavigator.navigateToSitePath('/calendar/day', { params });
+    }
+
+    /**
+     * IRClass: add the learner's calendar to the phone calendar (subscribe or download .ics).
+     */
+    async addToMyCalendar(): Promise<void> {
+        await coreIrclassShowAddToCalendar();
     }
 
     /**

@@ -15,6 +15,13 @@
 import { Component, OnInit } from '@angular/core';
 import { CoreSharedModule } from '@/core/shared.module';
 import { CoreCourseHelper } from '@features/course/services/course-helper';
+import { CORE_COURSES_MY_COURSES_UPDATED_EVENT, CoreCoursesMyCoursesUpdatedEventAction } from '@features/courses/constants';
+import { CoreCourses } from '@features/courses/services/courses';
+import { CoreEvents } from '@static/events';
+import { CoreOpener } from '@static/opener';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreUrl, CoreUrlPartNames } from '@static/url';
+import { CoreWait } from '@static/wait';
 import { CoreNavigator } from '@services/navigator';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreSites } from '@services/sites';
@@ -138,14 +145,74 @@ export default class AddonIrclassOrdersOrderPage implements OnInit {
      * @param url Website page.
      */
     protected async openOnWebsite(url: string): Promise<void> {
-        const browser = await CoreSites.getRequiredCurrentSite().openInAppWithAutoLogin(url);
+        const site = CoreSites.getRequiredCurrentSite();
+        const courseId = this.order?.courseid;
+        const browser = await site.openInAppWithAutoLogin(url);
+        let returnedFromCoursePage = false;
+
+        // "Go to course" after paying: close the browser and open the course in the app, not the website course page.
+        const loadStart = browser.on('loadstart').subscribe((event) => {
+            if (!courseId || !this.isCoursePage(event.url, courseId)) {
+                return;
+            }
+
+            returnedFromCoursePage = true;
+            CoreOpener.closeInAppBrowser();
+        });
+
         const exit = browser.on('exit').subscribe(() => {
+            loadStart.unsubscribe();
             exit.unsubscribe();
-            NgZone.run(() => {
+            NgZone.run(async () => {
                 this.loaded = false;
-                this.fetch();
+                if (returnedFromCoursePage && courseId) {
+                    await this.waitForEnrolled(courseId);
+                    CoreEvents.trigger(CORE_COURSES_MY_COURSES_UPDATED_EVENT, {
+                        courseId,
+                        action: CoreCoursesMyCoursesUpdatedEventAction.ENROL,
+                    }, site.getId());
+                    CoreCourseHelper.getAndOpenCourse(courseId, { isGuest: false });
+                }
+                await this.fetch();
             });
         });
+    }
+
+    /**
+     * Whether a URL is the website page of the course (course/view.php?id=).
+     *
+     * @param url URL.
+     * @param courseId Course id.
+     * @returns Whether it is.
+     */
+    protected isCoursePage(url: string, courseId: number): boolean {
+        const site = CoreSites.getRequiredCurrentSite();
+        if (!site.containsUrl(url)) {
+            return false;
+        }
+
+        const path = CoreUrl.removeUrlParts(url, [CoreUrlPartNames.Protocol, CoreUrlPartNames.Query, CoreUrlPartNames.Fragment]);
+
+        return path.endsWith('/course/view.php') && Number(CoreUrl.extractUrlParams(url).id) === courseId;
+    }
+
+    /**
+     * Wait until the course shows in the learner's courses (the enrolment can take a moment), up to 30 seconds.
+     *
+     * @param courseId Course id.
+     */
+    protected async waitForEnrolled(courseId: number): Promise<void> {
+        const start = Date.now();
+        while (Date.now() - start < 30000) {
+            await CorePromiseUtils.ignoreErrors(CoreCourses.invalidateUserCourses());
+            try {
+                await CoreCourses.getUserCourse(courseId);
+
+                return;
+            } catch {
+                await CoreWait.wait(3000);
+            }
+        }
     }
 
 }

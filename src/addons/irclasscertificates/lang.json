@@ -3,6 +3,7 @@
     "copysharelink": "Copy share link",
     "download": "Download",
     "issuedon": "Issued {{$a}}",
+    "linkcopied": "Link copied to clipboard",
     "mycertificates": "My certificates",
     "nocertificates": "You have no certificates yet.",
     "number": "Certificate number",

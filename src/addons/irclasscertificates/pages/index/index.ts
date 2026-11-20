@@ -93,7 +93,7 @@ export default class AddonIrclassCertificatesIndexPage implements OnInit {
      * @param certificate Certificate.
      */
     async copyShareLink(certificate: AddonIrclassCertificate): Promise<void> {
-        await CoreText.copyToClipboard(certificate.shareurl);
+        await CoreText.copyToClipboard(certificate.shareurl, 'addon.irclasscertificates.linkcopied');
     }
 
     /**

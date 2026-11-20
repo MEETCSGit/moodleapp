@@ -102,8 +102,42 @@ export async function coreIrclassDownloadPdf(options: {
         return;
     }
 
+    await coreIrclassSaveToAndroidDownloads({
+        localPath,
+        fileName: options.fileName,
+        mimeType: 'application/pdf',
+        savedMessage: options.savedMessage,
+        permissionMessage: options.permissionMessage,
+    });
+}
+
+/**
+ * IRClass: save a copy of a file already in the app storage to the Android Download folder, then show a one-line message
+ * with "View" to open it (Android shows the apps that can open it). The file is not opened automatically.
+ *
+ * @param options Options.
+ * @param options.localPath Path or file:// URL of the file in the app storage.
+ * @param options.fileName File name to save with.
+ * @param options.mimeType MIME type of the file.
+ * @param options.savedMessage Translation key of the "saved" message, with {{$a}} for the file name.
+ * @param options.permissionMessage Translation key of the message when Android 7 to 9 storage permission is refused.
+ */
+export async function coreIrclassSaveToAndroidDownloads(options: {
+    localPath: string;
+    fileName: string;
+    mimeType: string;
+    savedMessage: string;
+    permissionMessage: string;
+}): Promise<void> {
+    const plugin = CoreNative.plugin('downloads');
+    if (!plugin) {
+        await CoreOpener.openFile(options.localPath);
+
+        return;
+    }
+
     try {
-        const result = await plugin.saveToDownloads(localPath, options.fileName, 'application/pdf');
+        const result = await plugin.saveToDownloads(options.localPath, options.fileName, options.mimeType);
         if (!result.saved) {
             return;
         }
@@ -116,8 +150,9 @@ export async function coreIrclassDownloadPdf(options: {
             buttons: [{
                 text: Translate.instant('core.view'),
                 handler: (): void => {
-                    CoreOpener.openFile(localPath).catch(() => {
-                        // No PDF viewer: the copy in Downloads is still there.
+                    CoreOpener.openFile(options.localPath).catch((error) => {
+                        // No app to open it: the copy in Downloads is still there.
+                        CoreAlerts.showError(error);
                     });
                 },
             }],

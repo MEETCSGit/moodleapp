@@ -126,8 +126,9 @@ export class CoreText {
      * Copies a text to clipboard and shows a toast message.
      *
      * @param text Text to be copied
+     * @param message Translation key of the message to show. Defaults to "Text copied to clipboard".
      */
-    static async copyToClipboard(text: string): Promise<void> {
+    static async copyToClipboard(text: string, message = 'core.copiedtoclipboard'): Promise<void> {
         try {
             await Clipboard.copy(text);
         } catch {
@@ -141,7 +142,7 @@ export class CoreText {
 
         // Show toast using ionicLoading.
         CoreToasts.show({
-                message: 'core.copiedtoclipboard',
+                message,
                 translateMessage: true,
         });
     }

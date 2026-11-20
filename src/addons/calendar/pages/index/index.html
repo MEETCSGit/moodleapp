@@ -10,6 +10,11 @@
             }
         </ion-title>
         <ion-buttons slot="end">
+            @if (canAddToMyCalendar) {
+                <ion-button fill="clear" (click)="addToMyCalendar()" [ariaLabel]="'addon.calendar.irclassaddtomycalendar' | translate">
+                    <ion-icon slot="icon-only" name="fas-calendar-plus" aria-hidden="true" />
+                </ion-button>
+            }
             <ion-button fill="clear" (click)="openFilter()" [ariaLabel]="'core.filter' | translate">
                 <ion-icon slot="icon-only" name="fas-filter" aria-hidden="true" />
             </ion-button>
