@@ -18,6 +18,7 @@ import { CoreMainMenuUserButtonComponent } from '@features/mainmenu/components/u
 import { CoreNavigator } from '@services/navigator';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { ADDON_IRCLASS_CATALOG_PAGE_NAME } from '@addons/irclasscatalog/constants';
+import { ADDON_IRCLASS_ORDERS_PAGE_NAME } from '../../constants';
 import { AddonIrclassOrders, AddonIrclassOrderRow } from '../../services/irclassorders';
 import { addonIrclassOrdersOpenInvoice, addonIrclassOrdersStatusColor } from '../../irclassorders-helper';
 
@@ -106,7 +107,7 @@ export default class AddonIrclassOrdersIndexPage implements OnInit {
         if (order.kind !== 'order' || !order.canview) {
             return;
         }
-        CoreNavigator.navigate(`order/${order.reference}`);
+        CoreNavigator.navigateToSitePath(`${ADDON_IRCLASS_ORDERS_PAGE_NAME}/order/${order.reference}`);
     }
 
     /**
