@@ -27,7 +27,8 @@ import { Translate } from '@singletons';
 /**
  * IRClass: download a PDF (certificate, invoice) and keep a copy where the learner can find it.
  *
- * - Android: saved in the public Download folder (no permission on Android 10+, asked once on 7 to 9), then opened.
+ * - Android: saved in the public Download folder (no permission on Android 10+, asked once on 7 to 9); the saved message
+ *   offers View to open it.
  * - iOS: the system "Save to Files" screen, where the learner picks a folder such as Downloads.
  * - Browser (development preview): opened as before, there is no device Downloads.
  *
@@ -92,22 +93,26 @@ export async function coreIrclassDownloadPdf(options: {
 
     try {
         const result = await plugin.saveToDownloads(localPath, options.fileName, 'application/pdf');
-        if (result.saved) {
-            CoreToasts.show({
-                message: Translate.instant(options.savedMessage, { $a: result.name || options.fileName }),
-                duration: 4000,
-            });
+        if (!result.saved) {
+            return; // Cancelled on the iOS Save to Files screen.
         }
+
+        // The file is only saved, not opened. On Android the message offers "View" to open it now.
+        CoreToasts.show({
+            message: Translate.instant(options.savedMessage, { $a: result.name || options.fileName }),
+            duration: 6000,
+            buttons: CorePlatform.isAndroid()
+                ? [{
+                    text: Translate.instant('core.view'),
+                    handler: (): void => {
+                        CoreOpener.openFile(localPath).catch(() => {
+                            // No PDF viewer: the copy in Downloads is still there.
+                        });
+                    },
+                }]
+                : undefined,
+        });
     } catch (error) {
         CoreAlerts.showError(error === 'permission_denied' ? Translate.instant(options.permissionMessage) : error);
-    }
-
-    if (CorePlatform.isAndroid()) {
-        // Show it too (on iOS the Save to Files screen is enough; the file can be opened from Files).
-        try {
-            await CoreOpener.openFile(localPath);
-        } catch {
-            // No PDF viewer: the copy in Downloads is still there.
-        }
     }
 }

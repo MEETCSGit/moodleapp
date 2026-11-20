@@ -71,7 +71,7 @@ export default class AddonIrclassCertificatesIndexPage implements OnInit {
 
     /**
      * Download the certificate PDF with the app's login and save a copy in the device Downloads
-     * (Android: Download folder, then it opens; iOS: Save to Files).
+     * (Android: Download folder, with a View button; iOS: Save to Files).
      *
      * @param certificate Certificate.
      */
