@@ -1,0 +1,60 @@
+<ion-header>
+    <ion-toolbar>
+        <ion-buttons slot="start">
+            <ion-back-button [text]="'core.back' | translate" />
+        </ion-buttons>
+        <ion-title>
+            <h1>{{ 'addon.irclasscertificates.mycertificates' | translate }}</h1>
+        </ion-title>
+        <ion-buttons slot="end">
+            <core-user-menu-button />
+        </ion-buttons>
+    </ion-toolbar>
+</ion-header>
+<ion-content class="addon-irclasscertificates">
+    <ion-refresher slot="fixed" [disabled]="!loaded" (ionRefresh)="refresh($event.target)">
+        <ion-refresher-content pullingText="{{ 'core.pulltorefresh' | translate }}" />
+    </ion-refresher>
+
+    <core-loading [hideUntil]="loaded" placeholderType="column" placeholderHeight="170px">
+        <div class="list-item-limited-width">
+            @for (certificate of certificates; track certificate.id) {
+                <ion-card class="addon-irclasscertificates-card">
+                    <ion-card-content>
+                        <div class="addon-irclasscertificates-head">
+                            <ion-icon name="fas-award" aria-hidden="true" />
+                            <h2>
+                                <core-format-text [text]="certificate.coursename" [wsNotFiltered]="true" />
+                            </h2>
+                        </div>
+                        <p class="addon-irclasscertificates-label">{{ 'addon.irclasscertificates.number' | translate }}</p>
+                        <p class="addon-irclasscertificates-number">{{ certificate.certificatenumber }}</p>
+                        <p class="addon-irclasscertificates-date">
+                            {{ 'addon.irclasscertificates.issuedon' | translate: { $a: certificate.issuedate } }}
+                        </p>
+                        <div class="addon-irclasscertificates-actions">
+                            @if (certificate.downloadurl) {
+                                <ion-button size="small" (click)="download(certificate)">
+                                    <ion-icon name="fas-download" slot="start" aria-hidden="true" />
+                                    {{ 'addon.irclasscertificates.download' | translate }}
+                                </ion-button>
+                            }
+                            <ion-button size="small" fill="outline" (click)="copyShareLink(certificate)">
+                                <ion-icon name="far-copy" slot="start" aria-hidden="true" />
+                                {{ 'addon.irclasscertificates.copysharelink' | translate }}
+                            </ion-button>
+                        </div>
+                    </ion-card-content>
+                </ion-card>
+            }
+
+            @if (!certificates.length) {
+                <core-empty-box icon="fas-award" [message]="'addon.irclasscertificates.nocertificates' | translate">
+                    <ion-button fill="outline" (click)="browseCourses()">
+                        {{ 'addon.irclasscertificates.browsecourses' | translate }}
+                    </ion-button>
+                </core-empty-box>
+            }
+        </div>
+    </core-loading>
+</ion-content>

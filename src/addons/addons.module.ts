@@ -23,6 +23,8 @@ import { AddonCourseCompletionModule } from './coursecompletion/coursecompletion
 import { AddonEnrolModule } from './enrol/enrol.module';
 import { AddonFilterModule } from './filter/filter.module';
 import { AddonIrclassCatalogModule } from './irclasscatalog/irclasscatalog.module';
+import { AddonIrclassCertificatesModule } from './irclasscertificates/irclasscertificates.module';
+import { AddonIrclassOrdersModule } from './irclassorders/irclassorders.module';
 import { AddonMessageOutputModule } from './messageoutput/messageoutput.module';
 import { AddonMessagesModule } from './messages/messages.module';
 import { AddonModModule } from './mod/mod.module';
@@ -47,6 +49,8 @@ import { AddonUserProfileFieldModule } from './userprofilefield/userprofilefield
         AddonEnrolModule,
         AddonFilterModule,
         AddonIrclassCatalogModule,
+        AddonIrclassCertificatesModule,
+        AddonIrclassOrdersModule,
         AddonMessageOutputModule,
         AddonMessagesModule,
         AddonModModule,

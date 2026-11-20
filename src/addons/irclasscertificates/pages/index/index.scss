@@ -1,0 +1,64 @@
+// Certificate cards, like the website My certificates page. Colours, radius and shadow come from the IRClass tokens.
+:host {
+    .addon-irclasscertificates-card {
+        margin: 12px 16px;
+        border-radius: var(--irclass-radius, 8px);
+        box-shadow: var(--irclass-shadow-card, 0 1px 4px rgba(0, 0, 0, 0.09));
+    }
+
+    ion-card-content {
+        padding: 16px;
+    }
+
+    .addon-irclasscertificates-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 10px;
+
+        ion-icon {
+            flex-shrink: 0;
+            margin-top: 2px;
+            color: var(--ion-color-primary);
+            font-size: 1.375rem;
+        }
+
+        h2 {
+            margin: 0;
+            color: var(--text-color, #21225f);
+            font-size: 1rem;
+            font-weight: 700;
+            line-height: 1.35;
+        }
+    }
+
+    .addon-irclasscertificates-label {
+        margin: 0;
+        color: var(--subdued-text-color, #6a737b);
+        font-size: 0.75rem;
+    }
+
+    .addon-irclasscertificates-number {
+        margin: 2px 0 6px;
+        color: var(--text-color, #21225f);
+        font-size: 0.9375rem;
+        font-weight: 600;
+        word-break: break-all;
+    }
+
+    .addon-irclasscertificates-date {
+        margin: 0 0 12px;
+        color: var(--subdued-text-color, #6a737b);
+        font-size: 0.8125rem;
+    }
+
+    .addon-irclasscertificates-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+
+        ion-button {
+            margin: 0;
+        }
+    }
+}

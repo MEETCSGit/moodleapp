@@ -1,0 +1,21 @@
+{
+    "browsecourses": "Browse courses",
+    "buyagain": "Buy again",
+    "checkstatus": "Check payment status",
+    "details": "Details",
+    "downloadinvoice": "Download invoice",
+    "invoice": "Invoice",
+    "invoicepreparing": "Invoice is being prepared",
+    "listprice": "List price",
+    "myorders": "My orders",
+    "noorders": "You have no orders yet.",
+    "opencourse": "Open course",
+    "orderdate": "Order date",
+    "orderdetails": "Order details",
+    "ordernotfound": "Order not found.",
+    "payagain": "Pay again",
+    "paynow": "Pay now",
+    "pricesummary": "Price summary",
+    "reference": "Reference",
+    "total": "Total"
+}

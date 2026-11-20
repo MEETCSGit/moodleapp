@@ -1,0 +1,122 @@
+<ion-header>
+    <ion-toolbar>
+        <ion-buttons slot="start">
+            <ion-back-button [text]="'core.back' | translate" />
+        </ion-buttons>
+        <ion-title>
+            <h1>{{ 'addon.irclassorders.orderdetails' | translate }}</h1>
+        </ion-title>
+    </ion-toolbar>
+</ion-header>
+<ion-content class="addon-irclassorders">
+    <ion-refresher slot="fixed" [disabled]="!loaded" (ionRefresh)="refresh($event.target)">
+        <ion-refresher-content pullingText="{{ 'core.pulltorefresh' | translate }}" />
+    </ion-refresher>
+
+    <core-loading [hideUntil]="loaded">
+        @if (order) {
+            <div class="list-item-limited-width">
+                <h2 class="addon-irclassorders-title">
+                    <core-format-text [text]="order.coursename" [wsNotFiltered]="true" />
+                </h2>
+
+                <core-alert-card [type]="stateType" [message]="order.message" />
+
+                <ion-card class="addon-irclassorders-card">
+                    <ion-card-content>
+                        <div class="addon-irclassorders-row addon-irclassorders-meta">
+                            <span>{{ 'addon.irclassorders.reference' | translate }}</span>
+                            <span class="addon-irclassorders-mono">{{ order.reference }}</span>
+                        </div>
+                        <div class="addon-irclassorders-row addon-irclassorders-meta">
+                            <span>{{ 'addon.irclassorders.orderdate' | translate }}</span>
+                            <span>{{ order.date }}</span>
+                        </div>
+                    </ion-card-content>
+                </ion-card>
+
+                <!-- Price summary, as on the website order page. -->
+                <ion-card class="addon-irclassorders-card">
+                    <ion-card-content>
+                        <h3 class="addon-irclassorders-subtitle">{{ 'addon.irclassorders.pricesummary' | translate }}</h3>
+                        <div class="addon-irclassorders-row">
+                            <span>{{ 'addon.irclassorders.listprice' | translate }}</span>
+                            <span>{{ order.summary.listprice }}</span>
+                        </div>
+                        @if (order.summary.hasdiscount) {
+                            <div class="addon-irclassorders-row">
+                                <span>{{ order.summary.discountlabel }}</span>
+                                <span>{{ order.summary.discount }}</span>
+                            </div>
+                        }
+                        @for (line of order.summary.lines; track $index) {
+                            <div class="addon-irclassorders-row addon-irclassorders-meta">
+                                <span>{{ line.label }}</span>
+                                <span>{{ line.amount }}</span>
+                            </div>
+                        }
+                        <div class="addon-irclassorders-row addon-irclassorders-total">
+                            <span>{{ 'addon.irclassorders.total' | translate }}</span>
+                            <span>{{ order.summary.total }}</span>
+                        </div>
+                        @if (order.summary.gstnote) {
+                            <p class="addon-irclassorders-muted">{{ order.summary.gstnote }}</p>
+                        }
+                    </ion-card-content>
+                </ion-card>
+
+                @if (order.invoiceurl || order.invoicepending) {
+                    <ion-card class="addon-irclassorders-card">
+                        <ion-card-content>
+                            <h3 class="addon-irclassorders-subtitle">{{ 'addon.irclassorders.invoice' | translate }}</h3>
+                            @if (order.invoiceurl) {
+                                <ion-button expand="block" fill="outline" (click)="openInvoice()">
+                                    <ion-icon name="fas-file-pdf" slot="start" aria-hidden="true" />
+                                    {{ 'addon.irclassorders.downloadinvoice' | translate }}
+                                </ion-button>
+                            } @else {
+                                <p class="addon-irclassorders-muted">{{ 'addon.irclassorders.invoicepreparing' | translate }}</p>
+                            }
+                        </ion-card-content>
+                    </ion-card>
+                }
+
+                <!-- One main action, as on the website order page. -->
+                <div class="addon-irclassorders-buttons">
+                    @if (order.canopencourse) {
+                        <ion-button expand="block" (click)="openCourse()">
+                            <ion-icon name="fas-book-open" slot="start" aria-hidden="true" />
+                            {{ 'addon.irclassorders.opencourse' | translate }}
+                        </ion-button>
+                    }
+                    @if (order.canpay) {
+                        <ion-button expand="block" (click)="openOrderPage()">
+                            <ion-icon name="fas-credit-card" slot="start" aria-hidden="true" />
+                            {{ 'addon.irclassorders.paynow' | translate }}
+                        </ion-button>
+                    }
+                    @if (order.canpayagain) {
+                        <ion-button expand="block" (click)="openOrderPage()">
+                            <ion-icon name="fas-credit-card" slot="start" aria-hidden="true" />
+                            {{ 'addon.irclassorders.payagain' | translate }}
+                        </ion-button>
+                    }
+                    @if (order.canrefresh) {
+                        <ion-button expand="block" fill="outline" (click)="openOrderPage()">
+                            <ion-icon name="fas-arrows-rotate" slot="start" aria-hidden="true" />
+                            {{ 'addon.irclassorders.checkstatus' | translate }}
+                        </ion-button>
+                    }
+                    @if (order.canstartagain) {
+                        <ion-button expand="block" (click)="buyAgain()">
+                            <ion-icon name="fas-cart-shopping" slot="start" aria-hidden="true" />
+                            {{ 'addon.irclassorders.buyagain' | translate }}
+                        </ion-button>
+                    }
+                </div>
+            </div>
+        } @else {
+            <core-empty-box icon="fas-receipt" [message]="'addon.irclassorders.ordernotfound' | translate" />
+        }
+    </core-loading>
+</ion-content>

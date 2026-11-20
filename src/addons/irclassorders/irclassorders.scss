@@ -1,0 +1,113 @@
+// My orders and order details. Colours, radius and shadow come from the IRClass tokens (src/theme/irclass).
+:host {
+    .addon-irclassorders-card {
+        margin: 12px 16px;
+        border-radius: var(--irclass-radius, 8px);
+        box-shadow: var(--irclass-shadow-card, 0 1px 4px rgba(0, 0, 0, 0.09));
+    }
+
+    ion-card-content {
+        padding: 14px 16px;
+    }
+
+    .addon-irclassorders-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 4px 0;
+        color: var(--text-color, #21225f);
+        font-size: 0.9375rem;
+    }
+
+    .addon-irclassorders-course {
+        flex: 1;
+        margin: 0;
+        color: var(--text-color, #21225f);
+        font-size: 1rem;
+        font-weight: 700;
+        line-height: 1.35;
+    }
+
+    .addon-irclassorders-amount {
+        flex-shrink: 0;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .addon-irclassorders-meta {
+        align-items: center;
+        color: var(--subdued-text-color, #6a737b);
+        font-size: 0.8125rem;
+    }
+
+    .addon-irclassorders-reason,
+    .addon-irclassorders-muted {
+        margin: 6px 0 0;
+        color: var(--subdued-text-color, #6a737b);
+        font-size: 0.8125rem;
+    }
+
+    .addon-irclassorders-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 8px;
+        padding-top: 6px;
+        border-top: 1px solid var(--stroke, #dee2e6);
+
+        ion-button {
+            margin: 0;
+            --padding-start: 0;
+        }
+    }
+
+    .addon-irclassorders-details {
+        margin-inline-start: auto;
+        color: var(--ion-color-primary);
+        font-size: 0.8125rem;
+        font-weight: 600;
+
+        ion-icon {
+            font-size: 0.6875rem;
+            vertical-align: middle;
+        }
+    }
+
+    .addon-irclassorders-title {
+        margin: 16px 16px 8px;
+        color: var(--text-color, #21225f);
+        font-size: 1.125rem;
+        font-weight: 700;
+        line-height: 1.35;
+    }
+
+    .addon-irclassorders-subtitle {
+        margin: 0 0 8px;
+        color: var(--text-color, #21225f);
+        font-size: 0.9375rem;
+        font-weight: 700;
+    }
+
+    .addon-irclassorders-total {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid var(--stroke, #dee2e6);
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
+    .addon-irclassorders-mono {
+        font-family: monospace;
+        color: var(--text-color, #21225f);
+    }
+
+    .addon-irclassorders-buttons {
+        padding: 4px 16px 24px;
+    }
+
+    core-alert-card {
+        display: block;
+        margin: 0 16px;
+    }
+}

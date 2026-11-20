@@ -1,0 +1,9 @@
+{
+    "browsecourses": "Browse courses",
+    "copysharelink": "Copy share link",
+    "download": "Download",
+    "issuedon": "Issued {{$a}}",
+    "mycertificates": "My certificates",
+    "nocertificates": "You have no certificates yet.",
+    "number": "Certificate number"
+}
