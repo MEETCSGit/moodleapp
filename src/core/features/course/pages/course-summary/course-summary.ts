@@ -48,6 +48,9 @@ import { CoreOpener } from '@static/opener';
 import { CoreUrl, CoreUrlPartNames } from '@static/url';
 import clientConfig from '@/../client.config.json';
 import { AddonIrclassCatalog } from '@addons/irclasscatalog/services/irclasscatalog';
+import { AddonIrclassOrders } from '@addons/irclassorders/services/irclassorders';
+import { ADDON_IRCLASS_ORDERS_PAGE_NAME } from '@addons/irclassorders/constants';
+import { coreIrclassOpenCommercePage } from '@/core/irclass/commerce-browser';
 
 /**
  * Page that shows the summary of a course including buttons to enrol and other available options.
@@ -87,6 +90,9 @@ export default class CoreCourseSummaryPage implements OnInit, OnDestroy {
         state: '' | 'free' | 'paid';
         prices: { currency: string; amount: string; gst: string }[];
     };
+
+    // IRClass: reference of a paid order while the enrolment is being set up ("View your order", as on the website).
+    paidOrderReference?: string;
 
     protected actionSheet?: HTMLIonActionSheetElement;
     protected waitStart = 0;
@@ -244,6 +250,11 @@ export default class CoreCourseSummaryPage implements OnInit, OnDestroy {
         }
 
         await this.getEnrolmentInfo(courseByField?.enrollmentmethods);
+
+        // IRClass: paid but not enrolled yet, the website shows "Payment received" and "View your order" instead of Buy.
+        this.paidOrderReference = this.isEnrolled
+            ? undefined
+            : await CorePromiseUtils.ignoreErrors(AddonIrclassOrders.getPaidOrderReference(this.courseId));
 
         if (!this.coursePrice && !this.isEnrolled && courseByField?.enrollmentmethods?.includes('irclasspaidusers')) {
             await this.loadIrclassPrice(courseByField.fullname);
@@ -475,7 +486,7 @@ export default class CoreCourseSummaryPage implements OnInit, OnDestroy {
         const url = this.coursePrice?.state
             ? CorePath.concatenatePaths(site.getURL(), `local/irclass_commerce/checkout.php?id=${this.courseId}`)
             : this.enrolUrl;
-        const browser = await site.openInAppWithAutoLogin(url);
+        const browser = await coreIrclassOpenCommercePage(url);
         let returnedFromCoursePage = false;
 
         const loadStart = browser.on('loadstart').subscribe((event) => {
@@ -662,6 +673,20 @@ export default class CoreCourseSummaryPage implements OnInit, OnDestroy {
      */
     toggleContacts(): void {
         this.contactsExpanded = !this.contactsExpanded;
+    }
+
+    /**
+     * IRClass: open the paid order (My orders, order details).
+     */
+    viewPaidOrder(): void {
+        if (!this.paidOrderReference) {
+            return;
+        }
+        if (this.isModal) {
+            this.closeModal();
+        }
+
+        CoreNavigator.navigateToSitePath(`${ADDON_IRCLASS_ORDERS_PAGE_NAME}/order/${this.paidOrderReference}`);
     }
 
     /**

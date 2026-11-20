@@ -58,6 +58,37 @@ export class AddonIrclassOrdersProvider {
     }
 
     /**
+     * Find a paid order of a course whose enrolment is still being set up: the same rule as the website course page
+     * before it shows "Payment received. Your access is being set up." and "View your order" (paid, and the enrolment
+     * step not finished; the order details state is then "settingup").
+     *
+     * @param courseId Course id.
+     * @param siteId Site ID. Current site if not defined.
+     * @returns Reference of that order, or undefined.
+     */
+    async getPaidOrderReference(courseId: number, siteId?: string): Promise<string | undefined> {
+        if (!(await this.isAvailable(siteId))) {
+            return;
+        }
+
+        // Orders are newest first; most learners have a single page.
+        for (let page = 0; page < 20; page++) {
+            const list = await this.getMyOrders(page, siteId);
+            const paid = list.orders.filter((row) =>
+                row.kind === 'order' && row.courseid === courseId && row.statuscode === 'paid');
+            for (const row of paid) {
+                const order = await this.getOrder(row.reference, siteId);
+                if (order.state === 'settingup') {
+                    return row.reference;
+                }
+            }
+            if (!list.orders.length || (page + 1) * list.perpage >= list.total) {
+                return;
+            }
+        }
+    }
+
+    /**
      * Get one of the learner's orders.
      *
      * @param reference Order reference.

@@ -164,7 +164,14 @@
                     </ion-button>
                 }
             }
-            @if (!isEnrolled) {
+            @if (!isEnrolled && paidOrderReference) {
+                <!-- IRClass: paid, enrolment being set up. Same message and button as the website course page. -->
+                <p class="core-course-summary-paid">{{ 'addon.irclasscatalog.paymentreceived' | translate }}</p>
+                <ion-button expand="block" (click)="viewPaidOrder()" class="ion-text-wrap">
+                    <ion-icon name="fas-receipt" slot="start" aria-hidden="true" />
+                    {{ 'addon.irclasscatalog.viewyourorder' | translate }}
+                </ion-button>
+            } @else if (!isEnrolled) {
 
                 <!-- IRClass: course price, as on the website course cards. -->
                 @if (coursePrice?.state === 'free') {

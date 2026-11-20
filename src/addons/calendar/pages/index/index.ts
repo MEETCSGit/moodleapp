@@ -45,6 +45,9 @@ import { CoreMainMenuUserButtonComponent } from '@features/mainmenu/components/u
 import { Subscription } from 'rxjs';
 import { coreIrclassCalendarExportAvailable, coreIrclassShowAddToCalendar } from '@/core/irclass/calendar-export';
 
+// IRClass: event type switches of the Calendar filter (Add to my calendar says when some are off).
+const ADDON_CALENDAR_IRCLASS_EVENT_TYPES = ['site', 'category', 'course', 'group', 'user'] as const;
+
 /**
  * Page that displays the calendar events.
  */
@@ -359,7 +362,13 @@ export default class AddonCalendarIndexPage implements OnInit, OnDestroy {
      * IRClass: add the learner's calendar to the phone calendar (subscribe or download .ics).
      */
     async addToMyCalendar(): Promise<void> {
-        await coreIrclassShowAddToCalendar();
+        const courseId = this.filter.courseId;
+
+        await coreIrclassShowAddToCalendar({
+            courseId,
+            courseName: courseId ? this.courses.find((course) => course.id === courseId)?.fullname : undefined,
+            typesFiltered: ADDON_CALENDAR_IRCLASS_EVENT_TYPES.some((type) => !this.filter[type]),
+        });
     }
 
     /**

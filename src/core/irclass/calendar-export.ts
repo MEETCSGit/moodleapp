@@ -52,23 +52,44 @@ export function coreIrclassCalendarExportAvailable(): boolean {
 }
 
 /**
- * Show the "Add to my calendar" choices.
+ * Show the "Add to my calendar" choices, following the Calendar page filter where the site export can:
+ * - a selected course: only that course's events and the site events (as the app calendar shows for a course);
+ * - event type switches: the export cannot combine types, so all types are included and the sheet says so.
+ *
+ * @param options Options.
+ * @param options.courseId Course selected in the Calendar filter, undefined for all courses.
+ * @param options.courseName Name of that course, for the sheet title.
+ * @param options.typesFiltered Whether some event types are switched off in the Calendar filter.
  */
-export async function coreIrclassShowAddToCalendar(): Promise<void> {
+export async function coreIrclassShowAddToCalendar(options: {
+    courseId?: number;
+    courseName?: string;
+    typesFiltered?: boolean;
+} = {}): Promise<void> {
+    const courseId = options.courseId && options.courseId > 1 ? options.courseId : undefined;
+    const notes = [Translate.instant('addon.calendar.irclassaddtomycalendarnote')];
+    if (options.typesFiltered) {
+        notes.push(Translate.instant(courseId
+            ? 'addon.calendar.irclasstypesnotappliedcourse'
+            : 'addon.calendar.irclasstypesnotapplied'));
+    }
+
     const sheet = await ActionSheetController.create({
-        header: Translate.instant('addon.calendar.irclassaddtomycalendar'),
-        subHeader: Translate.instant('addon.calendar.irclassaddtomycalendarnote'),
+        header: courseId && options.courseName
+            ? Translate.instant('addon.calendar.irclassaddcoursetomycalendar', { $a: options.courseName })
+            : Translate.instant('addon.calendar.irclassaddtomycalendar'),
+        subHeader: notes.join(' '),
         buttons: [
             {
                 text: Translate.instant('addon.calendar.irclasssubscribe'),
                 handler: (): void => {
-                    subscribe();
+                    subscribe(courseId);
                 },
             },
             {
                 text: Translate.instant('addon.calendar.irclassdownloadics'),
                 handler: (): void => {
-                    download();
+                    download(courseId);
                 },
             },
             {
@@ -85,9 +106,10 @@ export async function coreIrclassShowAddToCalendar(): Promise<void> {
  * Get the learner's personal calendar export address. Asks the site each time, so a changed key (after a password
  * change) is picked up.
  *
+ * @param courseId Only this course (and the site events), undefined for all.
  * @returns Address (https).
  */
-async function getExportUrl(): Promise<string> {
+async function getExportUrl(courseId?: number): Promise<string> {
     const site = CoreSites.getRequiredCurrentSite();
     const result = await site.read<{ token: string }>(WS_EXPORT_TOKEN, {}, { getFromCache: false, saveToCache: false });
 
@@ -98,18 +120,21 @@ async function getExportUrl(): Promise<string> {
         preset_what: 'all',
         // eslint-disable-next-line @typescript-eslint/naming-convention
         preset_time: 'recentupcoming',
+        // The site keeps only this course and the site events (as the course calendar shows).
+        course: courseId,
     });
 }
 
 /**
  * Get the export address, with a loading indicator and the error shown.
  *
+ * @param courseId Only this course (and the site events), undefined for all.
  * @returns Address, or undefined on error.
  */
-async function getExportUrlWithLoading(): Promise<string | undefined> {
+async function getExportUrlWithLoading(courseId?: number): Promise<string | undefined> {
     const modal = await CoreLoadings.show();
     try {
-        return await getExportUrl();
+        return await getExportUrl(courseId);
     } catch (error) {
         CoreAlerts.showError(error, { default: Translate.instant('addon.calendar.irclassexporterror') });
     } finally {
@@ -119,9 +144,11 @@ async function getExportUrlWithLoading(): Promise<string | undefined> {
 
 /**
  * Subscribe the phone calendar to the learner's calendar.
+ *
+ * @param courseId Only this course (and the site events), undefined for all.
  */
-async function subscribe(): Promise<void> {
-    const url = await getExportUrlWithLoading();
+async function subscribe(courseId?: number): Promise<void> {
+    const url = await getExportUrlWithLoading(courseId);
     if (!url) {
         return;
     }
@@ -158,9 +185,11 @@ async function subscribe(): Promise<void> {
 
 /**
  * Download the learner's calendar as an .ics file (a one-time copy).
+ *
+ * @param courseId Only this course (and the site events), undefined for all.
  */
-async function download(): Promise<void> {
-    const url = await getExportUrlWithLoading();
+async function download(courseId?: number): Promise<void> {
+    const url = await getExportUrlWithLoading(courseId);
     if (!url) {
         return;
     }
@@ -174,7 +203,7 @@ async function download(): Promise<void> {
 
     const now = new Date();
     const day = [now.getFullYear(), now.getMonth() + 1, now.getDate()].map((part) => String(part).padStart(2, '0')).join('-');
-    const fileName = `irclass-calendar-${day}.ics`;
+    const fileName = `irclass-calendar-${courseId ? `course${courseId}-` : ''}${day}.ics`;
     let localPath: string;
     const modal = await CoreLoadings.show('core.downloading', true);
     try {

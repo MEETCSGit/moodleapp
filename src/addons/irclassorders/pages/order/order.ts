@@ -22,6 +22,7 @@ import { CoreOpener } from '@static/opener';
 import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreUrl, CoreUrlPartNames } from '@static/url';
 import { CoreWait } from '@static/wait';
+import { coreIrclassOpenCommercePage } from '@/core/irclass/commerce-browser';
 import { CoreNavigator } from '@services/navigator';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreSites } from '@services/sites';
@@ -147,7 +148,7 @@ export default class AddonIrclassOrdersOrderPage implements OnInit {
     protected async openOnWebsite(url: string): Promise<void> {
         const site = CoreSites.getRequiredCurrentSite();
         const courseId = this.order?.courseid;
-        const browser = await site.openInAppWithAutoLogin(url);
+        const browser = await coreIrclassOpenCommercePage(url);
         let returnedFromCoursePage = false;
 
         // "Go to course" after paying: close the browser and open the course in the app, not the website course page.

@@ -13,6 +13,7 @@
     "enrolled": "Enrolled",
     "lastupdated": "Last updated",
     "noresults": "No courses match your search. Try fewer words or clear the filters.",
+    "paymentreceived": "Payment received. Your access is being set up.",
     "price": "Price",
     "pricefree": "Free",
     "pricepaid": "Paid",
@@ -20,5 +21,6 @@
     "resultone": "1 course found",
     "searchlabel": "Search by course name or keyword",
     "searchplaceholder": "Search courses",
-    "studentcount": "{{$a}} Students"
+    "studentcount": "{{$a}} Students",
+    "viewyourorder": "View your order"
 }
