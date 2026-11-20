@@ -17,8 +17,8 @@ import { CoreSharedModule } from '@/core/shared.module';
 import { CoreMainMenuUserButtonComponent } from '@features/mainmenu/components/user-menu-button/user-menu-button';
 import { CoreNavigator } from '@services/navigator';
 import { CoreAlerts } from '@services/overlays/alerts';
-import { CoreFileHelper } from '@services/file-helper';
 import { CoreText } from '@static/text';
+import { coreIrclassDownloadPdf } from '@/core/irclass/pdf-download';
 import { ADDON_IRCLASS_CATALOG_PAGE_NAME } from '@addons/irclasscatalog/constants';
 import { ADDON_IRCLASS_CERTIFICATES_COMPONENT_NAME } from '../../constants';
 import { AddonIrclassCertificate, AddonIrclassCertificates } from '../../services/irclasscertificates';
@@ -70,29 +70,21 @@ export default class AddonIrclassCertificatesIndexPage implements OnInit {
     }
 
     /**
-     * Download the certificate PDF with the app's login and open it in the device PDF viewer.
+     * Download the certificate PDF with the app's login and save a copy in the device Downloads
+     * (Android: Download folder, then it opens; iOS: Save to Files).
      *
      * @param certificate Certificate.
      */
     async download(certificate: AddonIrclassCertificate): Promise<void> {
-        if (!certificate.downloadurl) {
-            return;
-        }
-
-        try {
-            await CoreFileHelper.downloadAndOpenFile(
-                {
-                    fileurl: certificate.downloadurl,
-                    filename: certificate.filename || `${certificate.certificatenumber}.pdf`,
-                    mimetype: 'application/pdf',
-                    timemodified: certificate.timeissued,
-                },
-                ADDON_IRCLASS_CERTIFICATES_COMPONENT_NAME,
-                certificate.id,
-            );
-        } catch (error) {
-            CoreAlerts.showError(error);
-        }
+        await coreIrclassDownloadPdf({
+            fileUrl: certificate.downloadurl,
+            fileName: certificate.filename || `${certificate.certificatenumber}.pdf`,
+            component: ADDON_IRCLASS_CERTIFICATES_COMPONENT_NAME,
+            componentId: certificate.id,
+            timemodified: certificate.timeissued,
+            savedMessage: 'addon.irclasscertificates.savedtodownloads',
+            permissionMessage: 'addon.irclasscertificates.storagepermission',
+        });
     }
 
     /**

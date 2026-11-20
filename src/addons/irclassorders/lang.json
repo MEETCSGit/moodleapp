@@ -17,5 +17,7 @@
     "paynow": "Pay now",
     "pricesummary": "Price summary",
     "reference": "Reference",
+    "savedtodownloads": "Invoice saved: {{$a}}",
+    "storagepermission": "Allow storage access to save the invoice in Downloads.",
     "total": "Total"
 }

@@ -14,6 +14,9 @@
             <feature name="InstallReferrer">
                 <param name="android-package" value="com.moodle.moodlemobile.InstallReferrer"/>
             </feature>
+            <feature name="Downloads">
+                <param name="android-package" value="com.moodle.moodlemobile.Downloads"/>
+            </feature>
         </config-file>
 
         <config-file target="res/xml/config.xml" parent="/*">
@@ -37,6 +40,7 @@
         <source-file src="src/android/SecureStorage.java" target-dir="src/com/moodle/moodlemobile" />
         <source-file src="src/android/InstallReferrer.java" target-dir="src/com/moodle/moodlemobile" />
         <source-file src="src/android/PinchToZoom.java" target-dir="src/com/moodle/moodlemobile" />
+        <source-file src="src/android/Downloads.java" target-dir="src/com/moodle/moodlemobile" />
     </platform>
 
     <platform name="ios">
@@ -48,6 +52,14 @@
 
         <header-file src="src/ios/SecureStorage.h" />
         <source-file src="src/ios/SecureStorage.m" />
+
+        <config-file target="config.xml" parent="/*">
+            <feature name="Downloads">
+                <param name="ios-package" value="Downloads" />
+            </feature>
+        </config-file>
+
+        <source-file src="src/ios/Downloads.m" />
 
         <config-file target="config.xml" parent="/*">
             <feature name="Diagnostic">

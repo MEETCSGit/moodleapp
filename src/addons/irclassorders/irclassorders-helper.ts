@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { CoreFileHelper } from '@services/file-helper';
-import { CoreAlerts } from '@services/overlays/alerts';
+import { coreIrclassDownloadPdf } from '@/core/irclass/pdf-download';
 import { ADDON_IRCLASS_ORDERS_COMPONENT_NAME } from './constants';
 import { AddonIrclassOrderStatusCode } from './services/irclassorders';
 
@@ -41,26 +40,20 @@ export function addonIrclassOrdersStatusColor(status: AddonIrclassOrderStatusCod
 }
 
 /**
- * Download the invoice PDF with the app's login and open it in the device PDF viewer.
+ * Download the invoice PDF with the app's login and save a copy in the device Downloads
+ * (Android: Download folder, then it opens; iOS: Save to Files).
  *
  * @param fileUrl Invoice PDF address (pluginfile).
  * @param reference Order reference, used to keep the downloaded file.
  * @param fileName File name, if known.
  */
 export async function addonIrclassOrdersOpenInvoice(fileUrl: string, reference: string, fileName?: string): Promise<void> {
-    if (!fileUrl) {
-        return;
-    }
-
-    const name = fileName || decodeURIComponent(fileUrl.split('?')[0].split('/').pop() || 'invoice.pdf');
-
-    try {
-        await CoreFileHelper.downloadAndOpenFile(
-            { fileurl: fileUrl, filename: name, mimetype: 'application/pdf', timemodified: 0 },
-            ADDON_IRCLASS_ORDERS_COMPONENT_NAME,
-            reference,
-        );
-    } catch (error) {
-        CoreAlerts.showError(error);
-    }
+    await coreIrclassDownloadPdf({
+        fileUrl,
+        fileName: fileName || decodeURIComponent(fileUrl.split('?')[0].split('/').pop() || 'invoice.pdf'),
+        component: ADDON_IRCLASS_ORDERS_COMPONENT_NAME,
+        componentId: reference,
+        savedMessage: 'addon.irclassorders.savedtodownloads',
+        permissionMessage: 'addon.irclassorders.storagepermission',
+    });
 }

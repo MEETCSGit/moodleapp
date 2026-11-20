@@ -5,5 +5,7 @@
     "issuedon": "Issued {{$a}}",
     "mycertificates": "My certificates",
     "nocertificates": "You have no certificates yet.",
-    "number": "Certificate number"
+    "number": "Certificate number",
+    "savedtodownloads": "Certificate saved: {{$a}}",
+    "storagepermission": "Allow storage access to save the certificate in Downloads."
 }
