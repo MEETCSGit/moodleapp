@@ -41,7 +41,7 @@ export function addonIrclassOrdersStatusColor(status: AddonIrclassOrderStatusCod
 
 /**
  * Download the invoice PDF with the app's login and save a copy in the device Downloads
- * (Android: Download folder, with a View button; iOS: Save to Files).
+ * (Android: Download folder, with a View button; iOS: PDF preview, Share > Save to Files).
  *
  * @param fileUrl Invoice PDF address (pluginfile).
  * @param reference Order reference, used to keep the downloaded file.

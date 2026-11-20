@@ -9,6 +9,16 @@ ion-toast {
         }
     }
 
+    // Message and button on one line, also on phones (for example "Invoice saved: name.pdf   VIEW").
+    &.core-toast-inline::part(container) {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    &.core-toast-inline::part(message) {
+        overflow-wrap: anywhere;
+    }
+
     @each $color-name, $unused in $colors {
         &.core-#{$color-name}-toast {
             --background: var(--ion-color-#{$color-name}-tint);

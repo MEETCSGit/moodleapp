@@ -29,7 +29,8 @@ import { Translate } from '@singletons';
  *
  * - Android: saved in the public Download folder (no permission on Android 10+, asked once on 7 to 9); the saved message
  *   offers View to open it.
- * - iOS: the system "Save to Files" screen, where the learner picks a folder such as Downloads.
+ * - iOS: opened in the system PDF preview, whose Share button offers "Save to Files" (Downloads or any folder). The
+ *   native "Save to Files" picker showed a black screen on devices, so the proven preview is used instead.
  * - Browser (development preview): opened as before, there is no device Downloads.
  *
  * @param options Options.
@@ -91,26 +92,35 @@ export async function coreIrclassDownloadPdf(options: {
         modal.dismiss();
     }
 
+    if (CorePlatform.isIOS()) {
+        try {
+            await CoreOpener.openFile(localPath);
+        } catch (error) {
+            CoreAlerts.showError(error);
+        }
+
+        return;
+    }
+
     try {
         const result = await plugin.saveToDownloads(localPath, options.fileName, 'application/pdf');
         if (!result.saved) {
-            return; // Cancelled on the iOS Save to Files screen.
+            return;
         }
 
-        // The file is only saved, not opened. On Android the message offers "View" to open it now.
+        // The file is only saved, not opened. The message offers "View" to open it now, on the same line.
         CoreToasts.show({
             message: Translate.instant(options.savedMessage, { $a: result.name || options.fileName }),
             duration: 6000,
-            buttons: CorePlatform.isAndroid()
-                ? [{
-                    text: Translate.instant('core.view'),
-                    handler: (): void => {
-                        CoreOpener.openFile(localPath).catch(() => {
-                            // No PDF viewer: the copy in Downloads is still there.
-                        });
-                    },
-                }]
-                : undefined,
+            cssClass: 'core-toast-inline',
+            buttons: [{
+                text: Translate.instant('core.view'),
+                handler: (): void => {
+                    CoreOpener.openFile(localPath).catch(() => {
+                        // No PDF viewer: the copy in Downloads is still there.
+                    });
+                },
+            }],
         });
     } catch (error) {
         CoreAlerts.showError(error === 'permission_denied' ? Translate.instant(options.permissionMessage) : error);
