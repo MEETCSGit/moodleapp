@@ -103,8 +103,11 @@
                         <div id="activity-{{module.id}}-collapsible"
                             class="ion-text-wrap activity-description-availabilityinfo activity-extra" [collapsible-item]="64">
                             @if (module.description) {
+                                <!-- IRClass: label content knows its activity, so view-only media in it is streamed, never saved. -->
                                 <core-format-text class="core-module-description" [text]="module.description" contextLevel="module"
-                                    [contextInstanceId]="module.id" [courseId]="module.course" />
+                                    [contextInstanceId]="module.id" [courseId]="module.course"
+                                    [component]="module.modname === 'label' ? 'mmaModLabel' : undefined"
+                                    [componentId]="module.modname === 'label' ? module.id : undefined" />
                             }
 
                             <!-- Availability info -->

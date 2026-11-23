@@ -44,6 +44,7 @@ import { CoreArray } from '@static/array';
 import { CoreMimetype } from '@static/mimetype';
 import { FileEntry } from '@awesome-cordova-plugins/file/ngx';
 import { CoreWS } from '@services/ws';
+import { CoreIrclassResRestrict } from '@/core/irclass/resource-restrictions';
 
 /**
  * Directive to handle external content.
@@ -215,6 +216,25 @@ export class CoreExternalContentDirective implements AfterViewInit, OnChanges, O
         }
 
         const site = await CorePromiseUtils.ignoreErrors(CoreSites.getSite(this.siteId));
+
+        // IRClass: view-only video and audio in activity content (site plugin local_irclass_resrestrict) is streamed from the
+        // site and never saved: no automatic download, no download when played, no download control. A copy saved before it
+        // became view-only is removed.
+        if (
+            site && targetAttr !== 'poster' && (tagName === 'VIDEO' || tagName === 'AUDIO' || tagName === 'SOURCE') &&
+            site.isSitePluginFileUrl(url) &&
+            await CoreIrclassResRestrict.isViewOnlyEmbeddedMedia(this.component, this.componentId, url)
+        ) {
+            const media = tagName === 'SOURCE' ? this.element.closest('video,audio') : this.element;
+            media?.setAttribute('controlsList', 'nodownload noremoteplayback');
+            media?.setAttribute('disablePictureInPicture', '');
+            CorePromiseUtils.ignoreErrors(CoreFilepool.removeFileByUrl(site.getId(), url));
+
+            const streamUrl = await site.checkAndFixPluginfileURL(url);
+            this.setElementUrl(targetAttr, streamUrl.replace('forcedownload=1', 'forcedownload=0'));
+
+            return;
+        }
 
         let finalUrl: string;
         try {

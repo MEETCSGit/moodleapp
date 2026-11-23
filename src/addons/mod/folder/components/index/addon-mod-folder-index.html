@@ -34,7 +34,19 @@
                 </ion-item>
             </ion-card>
             <ng-container *ngFor="let file of contents.files">
-                <core-file [file]="file" [component]="component" [componentId]="componentId" />
+                @if (isViewOnly(file)) {
+                    <!-- IRClass: view-only file, shown without saving it (PDF viewer, in-app player) or explained. -->
+                    <ion-item class="ion-text-wrap item-file" (click)="openViewOnly(file)" [detail]="false" button>
+                        <img [src]="getFileIcon(file)" slot="start" alt="" role="presentation" class="core-mimetype-icon" />
+                        <ion-label>
+                            <p class="item-heading">{{ file.filename }}</p>
+                            <p>{{ 'core.irclassviewonly' | translate }}</p>
+                        </ion-label>
+                        <ion-icon name="fas-eye" slot="end" aria-hidden="true" />
+                    </ion-item>
+                } @else {
+                    <core-file [file]="file" [component]="component" [componentId]="componentId" />
+                }
             </ng-container>
         </ion-list>
     } @else{

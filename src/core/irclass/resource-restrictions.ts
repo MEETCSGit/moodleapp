@@ -17,7 +17,6 @@ import { CoreCacheUpdateFrequency } from '@/core/constants';
 import { CoreModals } from '@services/overlays/modals';
 import { CorePlatform } from '@services/platform';
 import { CoreMimetype } from '@static/mimetype';
-import { CoreIrclassMediaPlayerComponent } from './media-player/media-player';
 import { CoreSites } from '@services/sites';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CorePath } from '@static/path';
@@ -30,7 +29,20 @@ const ROOT_CACHE_KEY = 'CoreIrclassResRestrict:';
 const PDF_VIEWER_PATH = 'local/irclass_resrestrict/thirdparty/pdfjs/web/viewer.html';
 
 /** Activities whose files the site plugin can restrict (handled "file", "folder" and "embedded"). */
-const RESTRICTABLE_MODULES = ['resource', 'folder', 'page', 'book'];
+const RESTRICTABLE_MODULES = ['resource', 'folder', 'page', 'book', 'label'];
+
+/** Components that show activity content with embedded files, and their activity type. */
+const EMBEDDING_COMPONENTS: Record<string, string> = {
+    mmaModPage: 'page',
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    AddonModPage: 'page',
+    mmaModBook: 'book',
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    AddonModBook: 'book',
+    mmaModLabel: 'label',
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    AddonModLabel: 'label',
+};
 
 /**
  * IRClass resource restrictions (site plugin local_irclass_resrestrict).
@@ -124,6 +136,62 @@ export class CoreIrclassResRestrictService {
     }
 
     /**
+     * Get the names (path and name in the activity) of the view-only files of an activity.
+     *
+     * @param cmid Course module id.
+     * @param fresh Ask the site even if a recent answer is saved.
+     * @returns Names, empty when none or when the site does not say.
+     */
+    async getViewOnlyNames(cmid: number, fresh = false): Promise<Set<string>> {
+        const files = await this.getModuleFiles(cmid, fresh);
+
+        return new Set((files ?? []).filter((file) => !file.candownload).map((file) => file.filename));
+    }
+
+    /**
+     * Key of a file of the activity contents, as the site names it ("/path/name").
+     *
+     * @param file File.
+     * @param file.filepath Path inside the activity.
+     * @param file.filename File name.
+     * @returns Key.
+     */
+    fileKey(file: { filepath?: string; filename?: string }): string {
+        return CorePath.concatenatePaths(file.filepath || '/', file.filename || '');
+    }
+
+    /**
+     * Whether a file embedded in activity content (Page, Book, Label) is view-only video or audio, which must be streamed
+     * and never saved on the device.
+     *
+     * @param component Component showing the content.
+     * @param componentId Course module id.
+     * @param url File address.
+     * @returns Whether it is.
+     */
+    async isViewOnlyEmbeddedMedia(component: string | undefined, componentId: string | number | undefined, url: string):
+    Promise<boolean> {
+        const modName = component ? EMBEDDING_COMPONENTS[component] : undefined;
+        const cmid = Number(componentId);
+        if (!modName || !cmid || !this.getMediaKind(url)) {
+            return false;
+        }
+
+        const names = await this.getViewOnlyNames(cmid);
+        if (!names.size) {
+            return false;
+        }
+        let path = this.getFilePath(url) ?? '';
+        try {
+            path = decodeURIComponent(path);
+        } catch {
+            // Keep it encoded.
+        }
+
+        return [...names].some((name) => path.endsWith(name));
+    }
+
+    /**
      * Get the decision of one file of an activity.
      *
      * @param cmid Course module id.
@@ -173,6 +241,8 @@ export class CoreIrclassResRestrictService {
         if (decision.viewer === 'native' && media && file.fileurl) {
             // The site streams view-only media to the app (its "Mobile app media" setting); the player never saves it.
             const url = await CoreSites.getRequiredCurrentSite().checkAndFixPluginfileURL(file.fileurl);
+            // Loaded when needed: the player uses the shared module, which uses this service.
+            const { CoreIrclassMediaPlayerComponent } = await import('./media-player/media-player');
             await CoreModals.openModal({
                 component: CoreIrclassMediaPlayerComponent,
                 componentProps: { title: file.filename || '', url, isAudio: media === 'audio' },

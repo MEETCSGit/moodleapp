@@ -15,7 +15,7 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { Params } from '@angular/router';
 import { CoreCourseModuleMainResourceComponent } from '@features/course/classes/main-resource-component';
-import { CoreCourse } from '@features/course/services/course';
+import { CoreCourse, CoreCourseModuleContentFile } from '@features/course/services/course';
 import { CoreNavigator } from '@services/navigator';
 import { Md5 } from 'ts-md5';
 import { AddonModFolder, AddonModFolderFolder } from '../../services/folder';
@@ -25,6 +25,10 @@ import { ADDON_MOD_FOLDER_COMPONENT_LEGACY, ADDON_MOD_FOLDER_PAGE_NAME } from '.
 import { CoreCourseModuleNavigationComponent } from '@features/course/components/module-navigation/module-navigation';
 import { CoreCourseModuleInfoComponent } from '@features/course/components/module-info/module-info';
 import { CoreSharedModule } from '@/core/shared.module';
+import { CoreIrclassResRestrict } from '@/core/irclass/resource-restrictions';
+import { CoreFilepool } from '@services/filepool';
+import { CoreSites } from '@services/sites';
+import { CoreMimetype } from '@static/mimetype';
 
 /**
  * Component that displays a folder.
@@ -49,6 +53,7 @@ export class AddonModFolderIndexComponent extends CoreCourseModuleMainResourceCo
     component = ADDON_MOD_FOLDER_COMPONENT_LEGACY;
     pluginName = 'folder';
     contents?: AddonModFolderFolderFormattedData;
+    viewOnlyNames = new Set<string>(); // IRClass: view-only files of the folder (site plugin local_irclass_resrestrict).
 
     /**
      * @inheritdoc
@@ -60,6 +65,7 @@ export class AddonModFolderIndexComponent extends CoreCourseModuleMainResourceCo
             this.description = this.folderInstance ? this.folderInstance.intro : this.module.description;
             this.contents = this.subfolder;
             this.sortFilesAndFolders();
+            await CorePromiseUtils.ignoreErrors(this.loadViewOnlyFiles());
 
             this.showLoading = false;
 
@@ -95,6 +101,48 @@ export class AddonModFolderIndexComponent extends CoreCourseModuleMainResourceCo
         this.description = this.folderInstance ? this.folderInstance.intro : this.module.description;
         this.contents = AddonModFolderHelper.formatContents(contents);
         this.sortFilesAndFolders();
+        await CorePromiseUtils.ignoreErrors(this.loadViewOnlyFiles());
+    }
+
+    /**
+     * IRClass: get the view-only files of the folder from the site, and remove copies of them saved before they became
+     * view-only.
+     */
+    protected async loadViewOnlyFiles(): Promise<void> {
+        this.viewOnlyNames = await CoreIrclassResRestrict.getViewOnlyNames(this.module.id, true);
+        const siteId = CoreSites.getCurrentSiteId();
+        (this.contents?.files ?? []).filter((file) => this.isViewOnly(file)).forEach((file) => {
+            CorePromiseUtils.ignoreErrors(CoreFilepool.removeFileByUrl(siteId, file.fileurl));
+        });
+    }
+
+    /**
+     * IRClass: whether a file of the folder is view-only.
+     *
+     * @param file File.
+     * @returns Whether it is.
+     */
+    isViewOnly(file: CoreCourseModuleContentFile): boolean {
+        return this.viewOnlyNames.has(CoreIrclassResRestrict.fileKey(file));
+    }
+
+    /**
+     * IRClass: open a view-only file without saving it (PDF viewer, in-app player) or explain why it cannot be opened.
+     *
+     * @param file File.
+     */
+    async openViewOnly(file: CoreCourseModuleContentFile): Promise<void> {
+        await CoreIrclassResRestrict.handleViewOnly(this.module.id, file);
+    }
+
+    /**
+     * IRClass: icon of a file.
+     *
+     * @param file File.
+     * @returns Icon address.
+     */
+    getFileIcon(file: CoreCourseModuleContentFile): string {
+        return CoreMimetype.getFileIcon(file.filename, CoreSites.getCurrentSite());
     }
 
     /**
