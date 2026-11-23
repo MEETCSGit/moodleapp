@@ -36,6 +36,7 @@ import { CoreFileSizeSum } from '@services/plugin-file-delegate';
 import { CoreCourseHelper, CoreCourseModuleData } from './course-helper';
 import { CorePromiseUtils } from '@static/promise-utils';
 import { CORE_COURSE_MODULE_FEATURE_PREFIX } from '../constants';
+import { CoreIrclassResRestrict } from '@/core/irclass/resource-restrictions';
 
 /**
  * Delegate to register module prefetch handlers.
@@ -1033,7 +1034,10 @@ export class CoreCourseModulePrefetchDelegateService extends CoreDelegate<CoreCo
             return false;
         }
 
-        if (!handler.isDownloadable) {
+        // IRClass: activities with view-only files (site plugin local_irclass_resrestrict) are not offered for download.
+        const restrictable = CoreIrclassResRestrict.isRestrictableModule(module.modname);
+
+        if (!handler.isDownloadable && !restrictable) {
             // Function not defined, assume it's downloadable.
             return true;
         }
@@ -1046,7 +1050,8 @@ export class CoreCourseModulePrefetchDelegateService extends CoreDelegate<CoreCo
         }
 
         try {
-            downloadable = await handler.isDownloadable(module, courseId);
+            downloadable = (handler.isDownloadable ? await handler.isDownloadable(module, courseId) : true) &&
+                !(await CoreIrclassResRestrict.hasViewOnlyFiles(module.modname, module.id));
 
             return this.statusCache.setValue(packageId, 'downloadable', downloadable);
         } catch {

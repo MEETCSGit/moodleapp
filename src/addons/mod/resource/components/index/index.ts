@@ -37,6 +37,7 @@ import { CoreAlerts } from '@services/overlays/alerts';
 import { CoreCourseModuleNavigationComponent } from '@features/course/components/module-navigation/module-navigation';
 import { CoreCourseModuleInfoComponent } from '@features/course/components/module-info/module-info';
 import { CoreSharedModule } from '@/core/shared.module';
+import { CoreIrclassResRestrict } from '@/core/irclass/resource-restrictions';
 
 /**
  * Component that displays a resource.
@@ -117,7 +118,11 @@ export class AddonModResourceIndexComponent extends CoreCourseModuleMainResource
 
         this.setStatusListener();
 
-        if (AddonModResourceHelper.isDisplayedInIframe(this.module)) {
+        // IRClass: a view-only file (site plugin local_irclass_resrestrict) is never shown from a downloaded copy; the page
+        // shows the Open button, which opens the website viewer or explains why it cannot be opened.
+        const viewOnly = await CoreIrclassResRestrict.mustUseViewer(this.module.id, contents[0]);
+
+        if (!viewOnly && AddonModResourceHelper.isDisplayedInIframe(this.module)) {
 
             const downloadResult = await this.downloadResourceIfNeeded(refresh, true);
             const src = await AddonModResourceHelper.getIframeSrc(this.module);
@@ -144,7 +149,10 @@ export class AddonModResourceIndexComponent extends CoreCourseModuleMainResource
             return;
         }
 
-        if (resource && 'display' in resource && AddonModResourceHelper.isDisplayedEmbedded(this.module, resource.display)) {
+        if (
+            !viewOnly && resource && 'display' in resource &&
+            AddonModResourceHelper.isDisplayedEmbedded(this.module, resource.display)
+        ) {
             this.mode = 'embedded';
             this.warning = '';
 
@@ -194,6 +202,17 @@ export class AddonModResourceIndexComponent extends CoreCourseModuleMainResource
      * @param iOSOpenFileAction Action to do in iOS.
      */
     async open(iOSOpenFileAction?: OpenFileAction): Promise<void> {
+        // IRClass: a view-only file is not downloadable, but must not go to the browser either: the helper opens the website
+        // viewer, explains that it cannot be opened, or plays view-only video and audio as before.
+        const decision = this.module.contents?.[0]
+            ? await CoreIrclassResRestrict.getFileDecision(this.module.id, this.module.contents[0])
+            : undefined;
+        if (decision && !decision.candownload) {
+            await AddonModResourceHelper.openModuleFile(this.module, this.courseId, { iOSOpenFileAction });
+
+            return;
+        }
+
         let downloadable = await CoreCourseModulePrefetchDelegate.isModuleDownloadable(this.module, this.courseId);
 
         if (downloadable) {

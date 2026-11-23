@@ -34,6 +34,8 @@ import { CoreOpenerOpenFileOptions } from '@static/opener';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { ModResourceDisplay } from '@addons/mod/constants';
 import { CoreCoursePrefetch } from '@features/course/services/course-prefetch';
+import { CorePromiseUtils } from '@static/promise-utils';
+import { CoreIrclassResRestrict } from '@/core/irclass/resource-restrictions';
 
 /**
  * Service that provides helper functions for resources.
@@ -186,6 +188,15 @@ export class AddonModResourceHelperProvider {
      * @param options Options to open the file.
      */
     async openModuleFile(module: CoreCourseModuleData, courseId: number, options: CoreOpenerOpenFileOptions = {}): Promise<void> {
+        // IRClass: a view-only file (site plugin local_irclass_resrestrict) opens in the website viewer, or is explained.
+        const mainFile = module.contents?.[0];
+        if (mainFile && await CoreIrclassResRestrict.handleViewOnly(module.id, mainFile) === 'handled') {
+            await CorePromiseUtils.ignoreErrors(AddonModResource.logView(module.instance, module.name));
+            CoreCourse.checkModuleCompletion(courseId, module.completiondata);
+
+            return;
+        }
+
         const modal = await CoreLoadings.show();
 
         try {

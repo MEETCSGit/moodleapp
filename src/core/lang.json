@@ -169,6 +169,8 @@
     "invalidformdata": "Incorrect form data",
     "invalidusername": "The given username contains invalid characters",
     "ioscookieshelp": "Embedded content might require cookies to work. Please go to the app's iOS settings, enable 'Allow Cross-Website Tracking' and try again.",
+    "irclassviewonlytitle": "This file cannot be downloaded",
+    "irclassviewonlyunsupported": "This file is view only, but there is no viewer for its type, so it cannot be shown or downloaded.",
     "labelsep": ":",
     "labelvalue": "{{$a.label}}: {{$a.value}}",
     "lastaccess": "Last access",
