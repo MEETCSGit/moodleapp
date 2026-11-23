@@ -123,6 +123,8 @@ export class AddonModResourceIndexComponent extends CoreCourseModuleMainResource
         // shows the Open button, which opens the website viewer or explains why it cannot be opened.
         const viewOnly = await CoreIrclassResRestrict.mustUseViewer(this.module.id, contents[0]);
         this.viewOnly = viewOnly;
+        // The site was just asked: forget the saved "downloadable" state, which may come from an older decision.
+        CoreCourseModulePrefetchDelegate.invalidateModuleStatusCache(this.module);
         if (viewOnly) {
             // A copy downloaded before the file became view-only is removed from the device.
             CorePromiseUtils.ignoreErrors(CoreCourseModulePrefetchDelegate.removeModuleFiles(this.module, this.courseId));
@@ -217,6 +219,12 @@ export class AddonModResourceIndexComponent extends CoreCourseModuleMainResource
             await AddonModResourceHelper.openModuleFile(this.module, this.courseId, { iOSOpenFileAction });
 
             return;
+        }
+
+        if (decision) {
+            // IRClass: the site just said the file can be downloaded; forget a saved "not downloadable" from an older
+            // view-only decision, so it is not sent to the browser.
+            CoreCourseModulePrefetchDelegate.invalidateModuleStatusCache(this.module);
         }
 
         let downloadable = await CoreCourseModulePrefetchDelegate.isModuleDownloadable(this.module, this.courseId);

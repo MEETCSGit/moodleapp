@@ -93,6 +93,20 @@ export class CoreIrclassResRestrictService {
     }
 
     /**
+     * Forget the saved decision of an activity, so the next check asks the site (course refreshed).
+     *
+     * @param modName Activity type.
+     * @param cmid Course module id.
+     */
+    async invalidateModule(modName: string, cmid: number): Promise<void> {
+        if (!this.isRestrictableModule(modName) || !this.isAvailable()) {
+            return;
+        }
+
+        await CoreSites.getRequiredCurrentSite().invalidateWsCacheForKey(`${ROOT_CACHE_KEY}${cmid}`);
+    }
+
+    /**
      * Whether an activity has a file that cannot be downloaded, so it must not be offered for offline download.
      *
      * @param modName Activity type.

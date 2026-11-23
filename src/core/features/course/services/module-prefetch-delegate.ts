@@ -969,6 +969,9 @@ export class CoreCourseModulePrefetchDelegateService extends CoreDelegate<CoreCo
                 await CorePromiseUtils.ignoreErrors(handler.invalidateModule(module, courseId));
             }
 
+            // IRClass: refreshing the course also asks the site again whether the activity has view-only files.
+            await CorePromiseUtils.ignoreErrors(CoreIrclassResRestrict.invalidateModule(module.modname, module.id));
+
             // Invalidate cache.
             this.invalidateModuleStatusCache(module);
         });
