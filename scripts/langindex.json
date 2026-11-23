@@ -2200,6 +2200,7 @@
   "core.invalidformdata": "error",
   "core.invalidusername": "error",
   "core.ioscookieshelp": "local_moodlemobileapp",
+  "core.irclassmediaunavailable": "local_moodlemobileapp",
   "core.irclassviewonlytitle": "local_moodlemobileapp",
   "core.irclassviewonlyunsupported": "local_moodlemobileapp",
   "core.labelsep": "langconfig",

@@ -16,7 +16,7 @@ import { CoreSites } from '@services/sites';
 import { CoreEvents } from '@static/events';
 import { CoreOpener } from '@static/opener';
 import { CoreUrl } from '@static/url';
-import { InAppBrowserObject } from '@awesome-cordova-plugins/in-app-browser/ngx';
+import { InAppBrowserObject, InAppBrowserOptions } from '@awesome-cordova-plugins/in-app-browser/ngx';
 
 /**
  * IRClass: open the website buying pages (checkout, enrolment, order) in the in-app browser, never logged in as another
@@ -51,12 +51,14 @@ CoreEvents.on(CoreEvents.IAB_LOAD_START, (event) => {
 });
 
 /**
- * Open a website buying page in the in-app browser (see above).
+ * Open a website page in the in-app browser, logged in as the app account (see above). Used for the buying pages and the
+ * view-only PDF viewer.
  *
  * @param url Website page.
+ * @param options Extra in-app browser display options (for example to hide the address bar).
  * @returns In-app browser.
  */
-export async function coreIrclassOpenCommercePage(url: string): Promise<InAppBrowserObject> {
+export async function coreIrclassOpenCommercePage(url: string, options: InAppBrowserOptions = {}): Promise<InAppBrowserObject> {
     const site = CoreSites.getRequiredCurrentSite();
     const autoLoginUrl = await site.getAutoLoginUrl(url);
     const hasKey = autoLoginUrl !== url;
@@ -68,6 +70,7 @@ export async function coreIrclassOpenCommercePage(url: string): Promise<InAppBro
     }
 
     return CoreOpener.openInApp(autoLoginUrl, {
+        ...options,
         originalUrl: url,
         clearsessioncache: hasKey || !sameAccount ? 'yes' : 'no',
     });

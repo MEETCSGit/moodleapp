@@ -36,6 +36,7 @@ import { ModResourceDisplay } from '@addons/mod/constants';
 import { CoreCoursePrefetch } from '@features/course/services/course-prefetch';
 import { CorePromiseUtils } from '@static/promise-utils';
 import { CoreIrclassResRestrict } from '@/core/irclass/resource-restrictions';
+import { CoreCourseModulePrefetchDelegate } from '@features/course/services/module-prefetch-delegate';
 
 /**
  * Service that provides helper functions for resources.
@@ -188,9 +189,11 @@ export class AddonModResourceHelperProvider {
      * @param options Options to open the file.
      */
     async openModuleFile(module: CoreCourseModuleData, courseId: number, options: CoreOpenerOpenFileOptions = {}): Promise<void> {
-        // IRClass: a view-only file (site plugin local_irclass_resrestrict) opens in the website viewer, or is explained.
+        // IRClass: a view-only file (site plugin local_irclass_resrestrict) is shown without saving it (PDF viewer, in-app
+        // player) or explained. A copy downloaded before it became view-only is removed from the device.
         const mainFile = module.contents?.[0];
         if (mainFile && await CoreIrclassResRestrict.handleViewOnly(module.id, mainFile) === 'handled') {
+            CorePromiseUtils.ignoreErrors(CoreCourseModulePrefetchDelegate.removeModuleFiles(module, courseId));
             await CorePromiseUtils.ignoreErrors(AddonModResource.logView(module.instance, module.name));
             CoreCourse.checkModuleCompletion(courseId, module.completiondata);
 

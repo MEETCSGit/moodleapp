@@ -14,6 +14,10 @@
 
 import { Injectable } from '@angular/core';
 import { CoreCacheUpdateFrequency } from '@/core/constants';
+import { CoreModals } from '@services/overlays/modals';
+import { CorePlatform } from '@services/platform';
+import { CoreMimetype } from '@static/mimetype';
+import { CoreIrclassMediaPlayerComponent } from './media-player/media-player';
 import { CoreSites } from '@services/sites';
 import { CoreAlerts } from '@services/overlays/alerts';
 import { CorePath } from '@static/path';
@@ -23,6 +27,7 @@ import { coreIrclassOpenCommercePage } from './commerce-browser';
 
 const WS_GET_POLICY = 'local_irclass_resrestrict_get_effective_policy';
 const ROOT_CACHE_KEY = 'CoreIrclassResRestrict:';
+const PDF_VIEWER_PATH = 'local/irclass_resrestrict/thirdparty/pdfjs/web/viewer.html';
 
 /** Activities whose files the site plugin can restrict (handled "file", "folder" and "embedded"). */
 const RESTRICTABLE_MODULES = ['resource', 'folder', 'page', 'book'];
@@ -127,36 +132,55 @@ export class CoreIrclassResRestrictService {
     }
 
     /**
-     * Handle a view-only file the way the website does, if it is one.
-     * - PDF viewer: opens the website viewer in the in-app browser.
+     * Handle a view-only file the way the website does, if it is one. Nothing is saved on the device or given to another app.
+     * - PDF viewer: the site's PDF viewer, full screen.
+     * - Video and audio: the app's own player, streamed from the site.
+     * - Other files shown natively (for example an image): the site's file route, full screen.
      * - No viewer: explains that it cannot be opened.
-     * - Native (video, audio): not handled here, the app plays it as before (priority 2 will stop saving copies).
      *
      * @param cmid Course module id.
      * @param file File of the activity contents.
      * @param file.filepath Path inside the activity.
      * @param file.filename File name.
      * @param file.fileurl File address.
-     * @returns "handled" when the viewer or the message was shown (the caller must not download the file), "play" for view-only
-     *          video or audio (the caller plays it as before, never through the browser), undefined when not view-only.
+     * @returns "handled" when the file was a view-only file (shown or explained; the caller must not download or open it),
+     *          undefined when it is not view-only.
      */
     async handleViewOnly(
         cmid: number,
         file: { filepath?: string; filename?: string; fileurl?: string },
-    ): Promise<'handled' | 'play' | undefined> {
+    ): Promise<'handled' | undefined> {
         const decision = await this.getFileDecision(cmid, file);
         if (!decision || decision.candownload) {
             return;
         }
 
-        if (decision.viewer === 'native') {
-            return 'play';
+        const media = file.fileurl ? this.getMediaKind(file.filename || file.fileurl) : undefined;
+        if (decision.viewer === 'native' && media && file.fileurl) {
+            // The site streams view-only media to the app (its "Mobile app media" setting); the player never saves it.
+            const url = await CoreSites.getRequiredCurrentSite().checkAndFixPluginfileURL(file.fileurl);
+            await CoreModals.openModal({
+                component: CoreIrclassMediaPlayerComponent,
+                componentProps: { title: file.filename || '', url, isAudio: media === 'audio' },
+                cssClass: 'core-modal-fullscreen',
+            });
+
+            return 'handled';
         }
 
-        const viewerUrl = decision.viewer === 'pdfjs' && file.fileurl ? this.getViewerUrl(file.fileurl) : undefined;
+        const viewerUrl = decision.viewer === 'pdfjs' && file.fileurl
+            ? this.getViewerUrl(file.fileurl)
+            : (decision.viewer === 'native' && file.fileurl ? this.getWebFileUrl(file.fileurl) : undefined);
         if (viewerUrl) {
-            // Same login rules as the buying pages: never shown as another account.
-            await coreIrclassOpenCommercePage(viewerUrl);
+            // Only the file, full screen: no website around it, no address bar and no navigation buttons, just Close. Same
+            // login rules as the buying pages, so never shown as another account. A real browser window (not a frame inside
+            // an app screen) keeps the site login working on iOS and Android alike.
+            await coreIrclassOpenCommercePage(viewerUrl, {
+                location: CorePlatform.isIOS() ? 'no' : 'yes',
+                hideurlbar: 'yes',
+                hidenavigationbuttons: 'yes',
+                closebuttoncaption: Translate.instant('core.close'),
+            });
 
             return 'handled';
         }
@@ -170,8 +194,7 @@ export class CoreIrclassResRestrictService {
     }
 
     /**
-     * Whether a file is view-only and must not be shown from a local copy (embedded or in a frame): everything except
-     * view-only video and audio, which the app plays as before.
+     * Whether a file is view-only, so it must never be shown from a downloaded or embedded copy, only with handleViewOnly.
      *
      * @param cmid Course module id.
      * @param file File of the activity contents.
@@ -182,32 +205,70 @@ export class CoreIrclassResRestrictService {
     async mustUseViewer(cmid: number, file: { filepath?: string; filename?: string }): Promise<boolean> {
         const decision = await this.getFileDecision(cmid, file);
 
-        return !!decision && !decision.candownload && decision.viewer !== 'native';
+        return !!decision && !decision.candownload;
     }
 
     /**
-     * Get the website PDF viewer address of a file.
+     * Whether a file is video or audio, from its name.
+     *
+     * @param name File name or address.
+     * @returns "video", "audio" or undefined.
+     */
+    protected getMediaKind(name: string): 'video' | 'audio' | undefined {
+        const extension = CoreMimetype.getFileExtension(name.split('?')[0]);
+        const mimetype = extension ? CoreMimetype.getMimeType(extension) : undefined;
+        if (mimetype?.startsWith('video/')) {
+            return 'video';
+        }
+        if (mimetype?.startsWith('audio/')) {
+            return 'audio';
+        }
+    }
+
+    /**
+     * Get the website address of a file (the route the site shows view-only files inline on, with the site session).
+     *
+     * @param fileUrl File address (pluginfile, webservice/pluginfile or tokenpluginfile).
+     * @returns Website file address, or undefined if the address is not a site file.
+     */
+    protected getWebFileUrl(fileUrl: string): string | undefined {
+        const path = this.getFilePath(fileUrl);
+
+        return path ? CorePath.concatenatePaths(CoreSites.getRequiredCurrentSite().getURL(), `pluginfile.php${path}`) : undefined;
+    }
+
+    /**
+     * Get the path of a site file after pluginfile.php (from the context id on).
+     *
+     * @param fileUrl File address (pluginfile, webservice/pluginfile or tokenpluginfile).
+     * @returns Path, or undefined if the address is not a site file.
+     */
+    protected getFilePath(fileUrl: string): string | undefined {
+        // tokenpluginfile.php/<token>/<contextid>/... or (webservice/)pluginfile.php/<contextid>/...
+        const address = fileUrl.split('?')[0];
+        const match = address.match(/\/tokenpluginfile\.php\/[^/]+(\/\d+\/.+)$/) ?? address.match(/\/pluginfile\.php(\/\d+\/.+)$/);
+
+        return match?.[1];
+    }
+
+    /**
+     * Get the address of the site's PDF viewer (PDF.js, without download, print or open buttons) showing a file. The viewer
+     * reads the file through the website file route, which serves view-only PDFs to it inline.
      *
      * @param fileUrl File address (pluginfile, webservice/pluginfile or tokenpluginfile).
      * @returns Viewer address, or undefined if the address is not a site file.
      */
     getViewerUrl(fileUrl: string): string | undefined {
-        // tokenpluginfile.php/<token>/<contextid>/... or (webservice/)pluginfile.php/<contextid>/...
-        const address = fileUrl.split('?')[0];
-        const match = address.match(/\/tokenpluginfile\.php\/[^/]+(\/\d+\/.+)$/) ?? address.match(/\/pluginfile\.php(\/\d+\/.+)$/);
-        if (!match) {
+        // Website file route (the viewer is logged in with the site session), path as the site encodes it.
+        const pdfUrl = this.getWebFileUrl(fileUrl);
+        if (!pdfUrl) {
             return;
-        }
-        let path = match[1];
-        try {
-            path = decodeURIComponent(path);
-        } catch {
-            // Keep it encoded.
         }
 
         return CoreUrl.addParamsToUrl(
-            CorePath.concatenatePaths(CoreSites.getRequiredCurrentSite().getURL(), 'local/irclass_resrestrict/viewer.php'),
-            { path },
+            CorePath.concatenatePaths(CoreSites.getRequiredCurrentSite().getURL(), PDF_VIEWER_PATH),
+            { file: pdfUrl },
+            { anchor: 'pagemode=none' }, // Open on the page, without the sidebar.
         );
     }
 

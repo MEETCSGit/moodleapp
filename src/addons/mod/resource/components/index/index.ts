@@ -67,6 +67,7 @@ export class AddonModResourceIndexComponent extends CoreCourseModuleMainResource
     readonly isOnline = CoreNetwork.onlineSignal;
     isStreamedFile = false;
     shouldOpenInBrowser = false;
+    viewOnly = false; // IRClass: view-only on the site (no "Open with", never saved).
 
     // Variables for 'external' mode.
     type = '';
@@ -121,6 +122,11 @@ export class AddonModResourceIndexComponent extends CoreCourseModuleMainResource
         // IRClass: a view-only file (site plugin local_irclass_resrestrict) is never shown from a downloaded copy; the page
         // shows the Open button, which opens the website viewer or explains why it cannot be opened.
         const viewOnly = await CoreIrclassResRestrict.mustUseViewer(this.module.id, contents[0]);
+        this.viewOnly = viewOnly;
+        if (viewOnly) {
+            // A copy downloaded before the file became view-only is removed from the device.
+            CorePromiseUtils.ignoreErrors(CoreCourseModulePrefetchDelegate.removeModuleFiles(this.module, this.courseId));
+        }
 
         if (!viewOnly && AddonModResourceHelper.isDisplayedInIframe(this.module)) {
 

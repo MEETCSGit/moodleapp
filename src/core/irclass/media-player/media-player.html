@@ -1,0 +1,25 @@
+<ion-header>
+    <ion-toolbar>
+        <ion-title>
+            <h1>{{ title }}</h1>
+        </ion-title>
+        <ion-buttons slot="end">
+            <ion-button fill="clear" (click)="close()" [ariaLabel]="'core.close' | translate">
+                <ion-icon slot="icon-only" name="fas-xmark" aria-hidden="true" />
+            </ion-button>
+        </ion-buttons>
+    </ion-toolbar>
+</ion-header>
+<ion-content class="core-irclass-media-player">
+    @if (failed) {
+        <core-empty-box icon="fas-ban" [message]="'core.irclassmediaunavailable' | translate" />
+    } @else if (isAudio) {
+        <!-- Streamed, never saved: no download control, no context menu. -->
+        <audio [src]="url" controls autoplay preload="metadata" controlsList="nodownload noremoteplayback"
+            (error)="onError()" (contextmenu)="$event.preventDefault()"></audio>
+    } @else {
+        <video [src]="url" controls autoplay playsinline preload="metadata"
+            controlsList="nodownload noremoteplayback" disableRemotePlayback disablePictureInPicture
+            (error)="onError()" (contextmenu)="$event.preventDefault()"></video>
+    }
+</ion-content>
