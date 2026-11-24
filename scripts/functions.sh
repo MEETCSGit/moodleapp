@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# jq on Windows writes Windows line endings (CRLF). The scripts read its output into shell variables and loops, where the
+# extra "\r" ends up in language codes and numbers (for example "af\r" added to moodle.config.json on every run). Remove
+# it; on Linux and macOS this changes nothing. The exit status of jq is kept.
+function jq {
+    command jq "$@" | tr -d '\r'
+    return "${PIPESTATUS[0]}"
+}
+
 function check_success_exit {
     if [ $? -ne 0 ]; then
         print_error "$1"

@@ -6,6 +6,12 @@
 
 set -uo pipefail
 
+# jq on Windows writes Windows line endings; remove the "\r" so its output can be compared and counted in the shell.
+jq() {
+    command jq "$@" | tr -d '\r'
+    return "${PIPESTATUS[0]}"
+}
+
 REMOTE_REF="${1:-origin}"
 
 # Work out the merge base against the upstream branch to know which files are being pushed.
@@ -58,6 +64,12 @@ npm run lint --silent -- --quiet $LINT_FILES || fail "lint failed."
 # If lang.json or langindex.json is included in the changed files, run the language check.
 if echo "$CHANGED_FILES" | grep -qE 'lang.json|langindex.json'; then
     echo "▶ Running language check for lang.json..."
+
+    # The language update below rewrites moodle.config.json (language names). This hook only checks, so put the file back
+    # as it was when the hook ends, whatever the result.
+    CONFIG_BACKUP="$(mktemp)"
+    cp moodle.config.json "$CONFIG_BACKUP"
+    trap 'cp "$CONFIG_BACKUP" moodle.config.json; rm -f "$CONFIG_BACKUP"' EXIT
 
     npx gulp lang > /dev/null
     npm run lang:update-langpacks > /dev/null

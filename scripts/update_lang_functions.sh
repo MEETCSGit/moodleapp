@@ -23,9 +23,6 @@ function progressbar {
 function copy_lang {
     lang=$1
 
-    index_keys=$(jq -r 'to_entries[] | "\"\(.key)\","' langindex.json)
-    index_keys=${index_keys:0:${#index_keys}-1}
-
     hyphenlang=${lang/_/-}
     langfilepath=$LANG_PATH/$hyphenlang.json
     cp "$LANGPACKS_PATH"/"$lang".json "$langfilepath"
@@ -33,15 +30,17 @@ function copy_lang {
     # Merge SUFFIX file if exists.
     if [ -n "$SUFFIX" ] && [ -f "$LANGPACKS_PATH/${lang}_${SUFFIX}.json" ]; then
         suffixfilepath="$LANGPACKS_PATH/${lang}_${SUFFIX}.json"
-        jq --indent 4 -s --sort-keys ".[0] + .[1]" "$langfilepath" "$suffixfilepath"  > /tmp/moodle-langtmp.json
-        mv /tmp/moodle-langtmp.json "$langfilepath"
+        jq --indent 4 -s --sort-keys ".[0] + .[1]" "$langfilepath" "$suffixfilepath"  > /tmp/moodle-langtmp.json && \
+            mv /tmp/moodle-langtmp.json "$langfilepath"
     fi
 
 
-    # Remove strings non exiting on langindex.
-    query="with_entries(select([.key] | inside([$index_keys])))"
-    jq --indent 2 -r "$query" "$langfilepath" > /tmp/moodle-langtmp.json
-    mv /tmp/moodle-langtmp.json "$langfilepath"
+    # Remove strings non exiting on langindex. The keys are read from langindex.json by jq itself: putting all of them in
+    # the jq program exceeded the command line length on Windows ("Argument list too long"), jq wrote nothing and the
+    # language file was replaced by an empty one. The file is only replaced when jq succeeds.
+    jq --indent 2 -r --slurpfile index langindex.json 'with_entries(select(.key as $k | $index[0] | has($k)))' \
+        "$langfilepath" > /tmp/moodle-langtmp.json && \
+        mv /tmp/moodle-langtmp.json "$langfilepath"
 
     name=$(jq -r .\""$lang"\".name "$LANGPACKS_PATH"/languages.json)
     local=$(jq -r .\""$lang"\".local "$LANGPACKS_PATH"/languages.json)
@@ -54,8 +53,8 @@ function copy_lang {
     # Add or update language name to config.
     newlang="{\"$hyphenlang\": \"$name\"}"
     languages=$(jq -s --sort-keys ".[0].languages + $newlang" ../moodle.config.json)
-    jq --indent 4 -s ".[0].languages = $languages | .[0]" ../moodle.config.json > /tmp/moodle-langtmp.json
-    mv /tmp/moodle-langtmp.json ../moodle.config.json
+    jq --indent 4 -s ".[0].languages = $languages | .[0]" ../moodle.config.json > /tmp/moodle-langtmp.json && \
+        mv /tmp/moodle-langtmp.json ../moodle.config.json
 }
 
 function detect_lang {
