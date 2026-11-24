@@ -66,6 +66,18 @@ const xmlEscape = (value) => String(value)
   .replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;');
 
+// Write a generated file keeping the line endings it already has (CRLF in a Windows checkout, LF elsewhere), and do not
+// touch it when the content is the same. Otherwise every run rewrites unchanged files with other line endings and git
+// shows them as modified.
+function writeKeepingLineEndings(filePath, content) {
+  const existing = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : '';
+  const normalised = content.replace(/\r\n/g, '\n');
+  const output = existing.includes('\r\n') ? normalised.replace(/\n/g, '\r\n') : normalised;
+  if (output !== existing) {
+    fs.writeFileSync(filePath, output, 'utf8');
+  }
+}
+
 // Replace a single attribute inside a tag string, failing loudly if it isn't there.
 function setAttribute(tag, attr, value) {
   const regex = new RegExp(`(\\s${attr}=")[^"]*(")`);
@@ -119,7 +131,7 @@ configXml = replaceOnce(
   'AppendUserAgent preference',
 );
 
-fs.writeFileSync(configXmlPath, configXml);
+writeKeepingLineEndings(configXmlPath, configXml);
 console.log(`✅ Updated config.xml: ${appData.appname} (${appData.packageid}) ${appData.versionname}`);
 
 // === Update src/theme/irclass/_client.scss (brand colours as Sass variables) ===
@@ -134,7 +146,7 @@ for (const [sassVar, ...keys] of brandColours) {
     themeLines.push(`${sassVar}: ${customisation[key]};`);
   }
 }
-fs.writeFileSync(themeFile, themeLines.join('\n') + '\n', 'utf8');
+writeKeepingLineEndings(themeFile, themeLines.join('\n') + '\n');
 console.log(`✅ Updated brand colours in src/theme/irclass/_client.scss (brand ${customisation.brandColor})`);
 
 // === Update moodle.config.json ===
@@ -160,7 +172,7 @@ if (appData.url_scheme) {
   moodleConfig.customurlscheme = appData.url_scheme;
 }
 
-fs.writeFileSync(configPath, JSON.stringify(moodleConfig, null, 4) + '\n', 'utf8');
+writeKeepingLineEndings(configPath, JSON.stringify(moodleConfig, null, 4) + '\n');
 console.log('✅ moodle.config.json updated successfully!');
 
 // === Update the URL scheme registered by cordova-plugin-customurlscheme (package.json) ===
@@ -173,7 +185,7 @@ if (appData.url_scheme) {
   }
   const updated = packageText.replace(schemeRegex, (_, start, end) => start + appData.url_scheme + end);
   if (updated !== packageText) {
-    fs.writeFileSync(packagePath, updated, 'utf8');
+    writeKeepingLineEndings(packagePath, updated);
   }
   console.log(`✅ App URL scheme: ${appData.url_scheme}`);
 }
@@ -186,7 +198,7 @@ for (const client of googleConfig.client || []) {
   client.client_info.android_client_info.package_name = appData.packageid;
 }
 
-fs.writeFileSync(googleConfigPath, JSON.stringify(googleConfig, null, 2) + '\n', 'utf8');
+writeKeepingLineEndings(googleConfigPath, JSON.stringify(googleConfig, null, 2) + '\n');
 console.log('✅ Updated google-services.json');
 
 if (appData.moodle_site_url && appData.moodle_site_url.logo) {
