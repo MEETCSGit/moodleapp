@@ -29,6 +29,11 @@ import { NativeHttp } from '@singletons';
  * the request fails (the caller then offers the website viewer), so a PDF is never fetched as another account.
  */
 
+/**
+ * The site gave no login key (it allows one per account every few minutes) and the client has no login of this account.
+ */
+export class CoreIrclassPdfNoLoginError extends Error {}
+
 /** Site and user the native client is logged in as (from a key login), or undefined when unknown. */
 let nativeLogin: { siteId: string; userId: number } | undefined;
 
@@ -72,7 +77,7 @@ export async function coreIrclassFetchViewOnlyPdf(pdfUrl: string): Promise<Uint8
         NativeHttp.clearCookies();
         nativeLogin = undefined;
 
-        throw new Error('No login for the PDF');
+        throw new CoreIrclassPdfNoLoginError('No login key available yet');
     }
 
     const response = await NativeHttp.sendRequest(pdfUrl, {
@@ -92,7 +97,7 @@ export async function coreIrclassFetchViewOnlyPdf(pdfUrl: string): Promise<Uint8
         String.fromCharCode(data[0], data[1], data[2], data[3]) !== '%PDF') {
         nativeLogin = undefined;
 
-        throw new Error('The site did not send the PDF');
+        throw new Error(`The site did not send the PDF (HTTP ${response.status})`);
     }
 
     return data;

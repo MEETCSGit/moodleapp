@@ -15,7 +15,7 @@
 import { AfterViewInit, Component, ElementRef, Input, OnDestroy, QueryList, ViewChildren, inject } from '@angular/core';
 import { CoreSharedModule } from '@/core/shared.module';
 import { ModalController } from '@singletons';
-import { coreIrclassFetchViewOnlyPdf } from './pdf-fetch';
+import { CoreIrclassPdfNoLoginError, coreIrclassFetchViewOnlyPdf } from './pdf-fetch';
 
 /**
  * IRClass: the app's own viewer for view-only PDFs (site plugin local_irclass_resrestrict).
@@ -40,6 +40,8 @@ export class CoreIrclassPdfViewerComponent implements AfterViewInit, OnDestroy {
 
     loading = true;
     failed = false;
+    noLogin = false; // No login key available yet: try again in a few minutes.
+    errorDetail = ''; // Technical reason, shown small to help support.
     pages: number[] = [];
     zoom = 1;
 
@@ -80,9 +82,11 @@ export class CoreIrclassPdfViewerComponent implements AfterViewInit, OnDestroy {
 
             // Draw pages when they come into view, after the canvases exist.
             setTimeout(() => this.observePages());
-        } catch {
+        } catch (error) {
             this.loading = false;
             this.failed = true;
+            this.noLogin = error instanceof CoreIrclassPdfNoLoginError;
+            this.errorDetail = describeError(error);
         }
     }
 
@@ -188,6 +192,22 @@ export class CoreIrclassPdfViewerComponent implements AfterViewInit, OnDestroy {
         this.loadingTask?.destroy();
     }
 
+}
+
+/**
+ * Short technical description of an error (plugin errors are objects with status and error).
+ *
+ * @param error Error.
+ * @returns Description.
+ */
+function describeError(error: unknown): string {
+    if (error instanceof Error) {
+        return error.message;
+    }
+    const object = error as { status?: number; error?: string } | undefined;
+
+    return [object?.status !== undefined ? 'HTTP ' + object.status : '', object?.error ?? ''].filter(Boolean).join(' ') ||
+        String(error);
 }
 
 /**

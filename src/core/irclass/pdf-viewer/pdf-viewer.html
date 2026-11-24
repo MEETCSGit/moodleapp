@@ -24,9 +24,14 @@
             <ion-spinner />
         </div>
     } @else if (failed) {
-        <core-empty-box icon="far-file-pdf" [message]="'core.irclasspdfunavailable' | translate">
+        <core-empty-box icon="far-file-pdf"
+            [message]="(noLogin ? 'core.irclasspdfnologin' : 'core.irclasspdfunavailable') | translate">
             @if (openFallback) {
                 <ion-button (click)="openWebsiteViewer()">{{ 'core.irclasspdfopenwebsite' | translate }}</ion-button>
+            }
+            @if (errorDetail && !noLogin) {
+                <!-- Technical reason, to help support. -->
+                <p class="core-irclass-pdf-error-detail">{{ errorDetail }}</p>
             }
         </core-empty-box>
     } @else {

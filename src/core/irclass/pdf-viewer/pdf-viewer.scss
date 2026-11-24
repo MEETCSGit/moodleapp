@@ -31,3 +31,10 @@
         }
     }
 }
+
+:host .core-irclass-pdf-error-detail {
+    margin-top: 12px;
+    font-size: 0.75rem;
+    color: var(--subdued-text-color);
+    word-break: break-word;
+}
