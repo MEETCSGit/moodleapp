@@ -259,12 +259,31 @@ export class CoreIrclassResRestrictService {
             // Only the file, full screen: no website around it, no address bar and no navigation buttons, just Close. Same
             // login rules as the buying pages, so never shown as another account. A real browser window (not a frame inside
             // an app screen) keeps the site login working on iOS and Android alike.
-            await coreIrclassOpenCommercePage(viewerUrl, {
-                location: CorePlatform.isIOS() ? 'no' : 'yes',
-                hideurlbar: 'yes',
-                hidenavigationbuttons: 'yes',
-                closebuttoncaption: Translate.instant('core.close'),
-            });
+            const openWebsiteViewer = async (): Promise<void> => {
+                await coreIrclassOpenCommercePage(viewerUrl, {
+                    location: CorePlatform.isIOS() ? 'no' : 'yes',
+                    hideurlbar: 'yes',
+                    hidenavigationbuttons: 'yes',
+                    closebuttoncaption: Translate.instant('core.close'),
+                });
+            };
+            const pdfUrl = file.fileurl && decision.viewer === 'pdfjs' ? this.getWebFileUrl(file.fileurl) : undefined;
+
+            if (pdfUrl && CorePlatform.isMobile()) {
+                // A PDF is shown by the app's own viewer (pdf.js legacy build shipped with the app, works on older Android
+                // WebViews), kept in memory only. The website viewer is offered if the PDF cannot be fetched.
+                // Loaded when needed: the viewer uses the shared module, which uses this service.
+                const { CoreIrclassPdfViewerComponent } = await import('./pdf-viewer/pdf-viewer');
+                await CoreModals.openModal({
+                    component: CoreIrclassPdfViewerComponent,
+                    componentProps: { title: file.filename || '', pdfUrl, openFallback: openWebsiteViewer },
+                    cssClass: 'core-modal-fullscreen',
+                });
+
+                return 'handled';
+            }
+
+            await openWebsiteViewer();
 
             return 'handled';
         }

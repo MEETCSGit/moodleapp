@@ -1,0 +1,41 @@
+<ion-header>
+    <ion-toolbar>
+        <ion-title>
+            <h1>{{ title }}</h1>
+        </ion-title>
+        <ion-buttons slot="end">
+            @if (!loading && !failed) {
+                <ion-button fill="clear" (click)="changeZoom(-1)" [disabled]="zoom === 1" [ariaLabel]="'core.zoomout' | translate">
+                    <ion-icon slot="icon-only" name="fas-magnifying-glass-minus" aria-hidden="true" />
+                </ion-button>
+                <ion-button fill="clear" (click)="changeZoom(1)" [disabled]="zoom === 3" [ariaLabel]="'core.zoomin' | translate">
+                    <ion-icon slot="icon-only" name="fas-magnifying-glass-plus" aria-hidden="true" />
+                </ion-button>
+            }
+            <ion-button fill="clear" (click)="close()" [ariaLabel]="'core.close' | translate">
+                <ion-icon slot="icon-only" name="fas-xmark" aria-hidden="true" />
+            </ion-button>
+        </ion-buttons>
+    </ion-toolbar>
+</ion-header>
+<ion-content class="core-irclass-pdf-viewer" [scrollX]="zoom > 1">
+    @if (loading) {
+        <div class="core-irclass-pdf-loading">
+            <ion-spinner />
+        </div>
+    } @else if (failed) {
+        <core-empty-box icon="far-file-pdf" [message]="'core.irclasspdfunavailable' | translate">
+            @if (openFallback) {
+                <ion-button (click)="openWebsiteViewer()">{{ 'core.irclasspdfopenwebsite' | translate }}</ion-button>
+            }
+        </core-empty-box>
+    } @else {
+        <!-- Drawn in the app from memory: no download, print, share or text selection. -->
+        <div class="core-irclass-pdf-pages" (contextmenu)="$event.preventDefault()">
+            @for (page of pages; track page) {
+                <canvas #pageCanvas [attr.data-page]="page" [attr.aria-label]="'core.irclasspdfpage' | translate: { $a: page }">
+                </canvas>
+            }
+        </div>
+    }
+</ion-content>
