@@ -48,7 +48,24 @@ export async function coreIrclassFetchViewOnlyPdf(pdfUrl: string): Promise<Uint8
         // Start from a clean client so the key is not refused as "already logged in as someone else".
         NativeHttp.clearCookies();
         nativeLogin = undefined;
-        await NativeHttp.sendRequest(autoLoginUrl, { method: 'get', responseType: 'text' });
+
+        // The site logs the client in on the autologin page and sets the login cookie on its redirect answer. The plugin
+        // only keeps cookies of the answer it returns, so the redirect must not be followed or the cookie is lost. The
+        // plugin ignores a per-request "false", so it is switched off globally just for this request.
+        const followRedirect = NativeHttp.getFollowRedirect();
+        NativeHttp.setFollowRedirect(false);
+        try {
+            await NativeHttp.sendRequest(autoLoginUrl, { method: 'get', responseType: 'text' });
+        } catch (error) {
+            // A redirect (3xx) is the expected answer: the login cookie was stored.
+            const status = Number((error as { status?: number })?.status);
+            if (!(status >= 300 && status < 400)) {
+                throw error;
+            }
+        } finally {
+            NativeHttp.setFollowRedirect(followRedirect);
+        }
+
         nativeLogin = { siteId: site.getId(), userId: site.getUserId() };
     } else if (!sameAccount) {
         // No key and the client login may belong to another account: never use it.

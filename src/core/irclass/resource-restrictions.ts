@@ -259,8 +259,8 @@ export class CoreIrclassResRestrictService {
             // Only the file, full screen: no website around it, no address bar and no navigation buttons, just Close. Same
             // login rules as the buying pages, so never shown as another account. A real browser window (not a frame inside
             // an app screen) keeps the site login working on iOS and Android alike.
-            const openWebsiteViewer = async (): Promise<void> => {
-                await coreIrclassOpenCommercePage(viewerUrl, {
+            const openWebsiteViewer = async (url = viewerUrl): Promise<void> => {
+                await coreIrclassOpenCommercePage(url, {
                     location: CorePlatform.isIOS() ? 'no' : 'yes',
                     hideurlbar: 'yes',
                     hidenavigationbuttons: 'yes',
@@ -276,7 +276,13 @@ export class CoreIrclassResRestrictService {
                 const { CoreIrclassPdfViewerComponent } = await import('./pdf-viewer/pdf-viewer');
                 await CoreModals.openModal({
                     component: CoreIrclassPdfViewerComponent,
-                    componentProps: { title: file.filename || '', pdfUrl, openFallback: openWebsiteViewer },
+                    componentProps: {
+                        title: file.filename || '',
+                        pdfUrl,
+                        // The website viewer page (with the site layout): it asks for a login when the browser has none,
+                        // unlike the bare PDF.js page, which would show an empty viewer.
+                        openFallback: () => openWebsiteViewer(this.getWebsiteViewerPageUrl(file.fileurl ?? '') ?? viewerUrl),
+                    },
                     cssClass: 'core-modal-fullscreen',
                 });
 
@@ -309,6 +315,29 @@ export class CoreIrclassResRestrictService {
         const decision = await this.getFileDecision(cmid, file);
 
         return !!decision && !decision.candownload;
+    }
+
+    /**
+     * Get the address of the website page that shows a view-only PDF (viewer.php, with the site layout; it requires a login).
+     *
+     * @param fileUrl File address.
+     * @returns Page address, or undefined if the address is not a site file.
+     */
+    protected getWebsiteViewerPageUrl(fileUrl: string): string | undefined {
+        let path = this.getFilePath(fileUrl);
+        if (!path) {
+            return;
+        }
+        try {
+            path = decodeURIComponent(path);
+        } catch {
+            // Keep it encoded.
+        }
+
+        return CoreUrl.addParamsToUrl(
+            CorePath.concatenatePaths(CoreSites.getRequiredCurrentSite().getURL(), 'local/irclass_resrestrict/viewer.php'),
+            { path },
+        );
     }
 
     /**
