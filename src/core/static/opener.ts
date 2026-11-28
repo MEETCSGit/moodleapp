@@ -317,6 +317,10 @@ export class CoreOpener {
             allowInlineMediaPlayback: options?.allowInlineMediaPlayback ?? 'yes', // Allow playing inline videos in iOS.
             toolbartranslucent: options?.toolbartranslucent ?? 'no', // Make toolbar opaque in iOS by default.
             zoomcontrols: options?.zoomcontrols ?? 'no', // Disable zoom controls in Android by default.
+            // IRClass: always say whether to clear the website login. The Android plugin keeps this option from the previous
+            // browser when it is not given, so after one browser cleared the login every later one cleared it too and showed
+            // the website login page.
+            clearsessioncache: otherOptions?.clearsessioncache ?? 'no',
             ...CoreOpener.calculateInAppBrowserToolbarColors(options || {}),
         };
 
